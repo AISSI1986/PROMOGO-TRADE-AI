@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:stacked/stacked.dart';
 import 'package:promogoai/ui/common/ui_helpers.dart';
+import 'package:promogoai/ui/common/app_colors.dart';
 
 import 'startup_viewmodel.dart';
 
@@ -14,29 +15,42 @@ class StartupView extends StackedView<StartupViewModel> {
     StartupViewModel viewModel,
     Widget? child,
   ) {
-    return const Scaffold(
+    return Scaffold(
+      backgroundColor: kcPrimaryColor,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'STACKED',
-              style: TextStyle(fontSize: 40, fontWeight: FontWeight.w900),
+            Image.asset(
+              'assets/images/logo.png',
+              width: 150,
+              height: 150,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(
+                  Icons.account_circle,
+                  size: 150,
+                  color: Colors.white,
+                );
+              },
             ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Loading ...', style: TextStyle(fontSize: 16)),
-                horizontalSpaceSmall,
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    color: Colors.black,
-                    strokeWidth: 6,
-                  ),
-                ),
-              ],
+            verticalSpaceMedium,
+            const Text(
+              'PROMOGO',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: 1.2,
+              ),
+            ),
+            verticalSpaceSmall,
+            const Text(
+              'Your best African marketplace',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+              ),
             ),
           ],
         ),

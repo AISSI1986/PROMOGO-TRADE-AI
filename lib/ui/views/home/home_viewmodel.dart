@@ -1,36 +1,77 @@
-import 'package:promogoai/app/app.bottomsheets.dart';
-import 'package:promogoai/app/app.dialogs.dart';
-import 'package:promogoai/app/app.locator.dart';
-import 'package:promogoai/ui/common/app_strings.dart';
+import 'dart:async';
+import 'package:flutter/widgets.dart';
 import 'package:stacked/stacked.dart';
-import 'package:stacked_services/stacked_services.dart';
 
 class HomeViewModel extends BaseViewModel {
-  final _dialogService = locator<DialogService>();
-  final _bottomSheetService = locator<BottomSheetService>();
+  int _currentIndex = 0;
+  int get currentIndex => _currentIndex;
 
-  String get counterLabel => 'Counter is: $_counter';
+  int _currentTopTab = 1; // 1 = Produits
+  int get currentTopTab => _currentTopTab;
 
-  int _counter = 0;
+  int _currentPromoIndex = 0;
+  int get currentPromoIndex => _currentPromoIndex;
 
-  void incrementCounter() {
-    _counter++;
-    rebuildUi();
+  bool _showPromotion = true;
+  bool get showPromotion => _showPromotion;
+
+  void togglePromotion(bool value) {
+    _showPromotion = value;
+    notifyListeners();
   }
 
-  void showDialog() {
-    _dialogService.showCustomDialog(
-      variant: DialogType.infoAlert,
-      title: 'Stacked Rocks!',
-      description: 'Give stacked $_counter stars on Github',
-    );
+  final PageController promoPageController = PageController(initialPage: 0);
+  Timer? _promoTimer;
+  final int _promoCount = 4; // Supporting up to 6 dynamically, here 4 items
+
+  HomeViewModel() {
+    _startPromoTimer();
   }
 
-  void showBottomSheet() {
-    _bottomSheetService.showCustomSheet(
-      variant: BottomSheetType.notice,
-      title: ksHomeBottomSheetTitle,
-      description: ksHomeBottomSheetDescription,
-    );
+  @override
+  void dispose() {
+    _promoTimer?.cancel();
+    promoPageController.dispose();
+    super.dispose();
+  }
+
+  void _startPromoTimer() {
+    _promoTimer = Timer.periodic(const Duration(seconds: 3), (Timer timer) {
+      if (promoPageController.hasClients) {
+        int nextPage = _currentPromoIndex + 1;
+        if (nextPage >= _promoCount) {
+          nextPage = 0;
+          promoPageController.animateToPage(
+            nextPage,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+          );
+        } else {
+          promoPageController.nextPage(
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+          );
+        }
+      }
+    });
+  }
+
+  void onPromoPageChanged(int index) {
+    _currentPromoIndex = index;
+    notifyListeners();
+  }
+
+  void setTopTab(int index) {
+    _currentTopTab = index;
+    notifyListeners();
+  }
+
+  void setIndex(int index) {
+    _currentIndex = index;
+    notifyListeners();
+  }
+
+  void onVoiceIAClicked() {
+    print("Voice IA clicked!");
   }
 }

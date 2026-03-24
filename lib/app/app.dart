@@ -2,6 +2,9 @@ import 'package:promogoai/ui/bottom_sheets/notice/notice_sheet.dart';
 import 'package:promogoai/ui/dialogs/info_alert/info_alert_dialog.dart';
 import 'package:promogoai/ui/views/home/home_view.dart';
 import 'package:promogoai/ui/views/startup/startup_view.dart';
+import 'package:promogoai/ui/views/mode_ia/mode_ia_view.dart';
+import 'package:promogoai/ui/views/moi/moi_view.dart';
+import 'package:promogoai/ui/views/reglages/reglages_view.dart';
 import 'package:stacked/stacked_annotations.dart';
 import 'package:stacked_services/stacked_services.dart';
 // @stacked-import
@@ -10,6 +13,9 @@ import 'package:stacked_services/stacked_services.dart';
   routes: [
     MaterialRoute(page: HomeView),
     MaterialRoute(page: StartupView),
+    MaterialRoute(page: ModeIaView),
+    MaterialRoute(page: MoiView),
+    MaterialRoute(page: ReglagesView),
     // @stacked-route
   ],
   dependencies: [
