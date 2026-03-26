@@ -70,5 +70,19 @@
     "legal_policies": "Legal policies",
     "rate_app": "Rate the Alibaba.com app",
     "clear_cache": "Clear app cache"
+  },
+  "startup": {
+    "description": "Your best African marketplace"
+  },
+  "onboarding": {
+    "title_commerce": "Modern Commerce",
+    "desc_commerce": "Access a global market with quality products selected for you.",
+    "title_ai": "Artificial Intelligence",
+    "desc_ai": "Promogo AI helps you find the best deals and optimize your purchases.",
+    "title_trading": "Market Analysis",
+    "desc_trading": "Compare prices and track product evolution to make the best purchasing decisions.",
+    "btn_next": "Next",
+    "btn_skip": "Skip",
+    "btn_get_started": "Get Started"
   }
 }

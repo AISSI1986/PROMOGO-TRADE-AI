@@ -257,15 +257,14 @@ class FuturisticNotch extends NotchedShape {
   Path getOuterPath(Rect host, Rect? guest) {
     if (guest == null) return Path()..addRect(host);
     final double centerX = guest.center.dx;
-    final double radius = guest.width / 2 + 8;
-    final double hillHeight = 20.0;
+    const double radius = 30.0;
+    const double hillHeight = 30.0; // Mounts over the top of the button
 
     return Path()
       ..moveTo(host.left, host.top)
-      ..lineTo(centerX - radius * 2, host.top)
-      ..quadraticBezierTo(centerX - radius * 1.2, host.top, centerX - radius * 0.8, host.top - hillHeight)
-      ..lineTo(centerX + radius * 0.8, host.top - hillHeight)
-      ..quadraticBezierTo(centerX + radius * 1.2, host.top, centerX + radius * 2, host.top)
+      ..lineTo(centerX - 50, host.top)
+      ..cubicTo(centerX - 40, host.top, centerX - 35, host.top - hillHeight, centerX, host.top - hillHeight)
+      ..cubicTo(centerX + 35, host.top - hillHeight, centerX + 40, host.top, centerX + 50, host.top)
       ..lineTo(host.right, host.top)
       ..lineTo(host.right, host.bottom)
       ..lineTo(host.left, host.bottom)
@@ -279,43 +278,7 @@ class FuturisticBottomBarPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const double hillHeight = 20.0;
-    final double centerX = size.width / 2;
-    const double radius = 60.0 / 2 + 8;
-
-    final Path path = Path()
-      ..moveTo(0, 0)
-      ..lineTo(centerX - radius * 2, 0)
-      ..quadraticBezierTo(centerX - radius * 1.2, 0, centerX - radius * 0.8, -hillHeight)
-      ..lineTo(centerX + radius * 0.8, -hillHeight)
-      ..quadraticBezierTo(centerX + radius * 1.2, 0, centerX + radius * 2, 0)
-      ..lineTo(size.width, 0);
-
-    final Paint glowPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 6.0
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0)
-      ..color = const Color(0xFF4285F4).withOpacity(0.3);
-
-    final Paint mainPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        transform: GradientRotation(animationValue * 2 * math.pi),
-        colors: const [
-          Color(0xFF4285F4),
-          Color(0xFF9B72CB),
-          Color(0xFFD96570),
-          Color(0xFFF4AF5F),
-          Color(0xFF4285F4),
-        ],
-      ).createShader(Rect.fromLTWH(0, -hillHeight, size.width, hillHeight + 5))
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0
-      ..strokeCap = StrokeCap.butt; // To ensure touches edges
-
-    canvas.drawPath(path, glowPaint);
-    canvas.drawPath(path, mainPaint);
+    // Suppression du trait (ligne lumineuse) à la demande de l'utilisateur
   }
 
   @override

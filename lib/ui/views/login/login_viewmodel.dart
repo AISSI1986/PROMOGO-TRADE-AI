@@ -3,14 +3,14 @@ import 'package:stacked_services/stacked_services.dart';
 import 'package:promogoai/app/app.locator.dart';
 import 'package:promogoai/app/app.router.dart';
 
-class MoiViewModel extends BaseViewModel {
+class LoginViewModel extends BaseViewModel {
   final _navigationService = locator<NavigationService>();
 
-  void navigateToSettings() {
-    _navigationService.navigateToReglagesView();
+  void goBack() {
+    _navigationService.back();
   }
 
-  void onConnectOrRegister() {
-    _navigationService.navigateToLoginView();
+  void navigateToRegister() {
+    _navigationService.navigateToRegisterView();
   }
 }

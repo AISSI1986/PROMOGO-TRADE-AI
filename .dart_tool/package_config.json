@@ -104,10 +104,22 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "country_picker",
+      "rootUri": "file:///C:/Users/kambi/AppData/Local/Pub/Cache/hosted/pub.flutter-io.cn/country_picker-2.0.27",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "crypto",
       "rootUri": "file:///C:/Users/kambi/AppData/Local/Pub/Cache/hosted/pub.flutter-io.cn/crypto-3.0.7",
       "packageUri": "lib/",
       "languageVersion": "3.4"
+    },
+    {
+      "name": "currency_picker",
+      "rootUri": "file:///C:/Users/kambi/AppData/Local/Pub/Cache/hosted/pub.flutter-io.cn/currency_picker-2.0.21",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
     },
     {
       "name": "dart_style",
@@ -590,7 +602,7 @@
       "languageVersion": "3.0"
     }
   ],
-  "generated": "2026-03-23T11:25:11.102875Z",
+  "generated": "2026-03-25T23:08:39.203528Z",
   "generator": "pub",
   "generatorVersion": "3.7.2",
   "flutterRoot": "file:///E:/FLU/flutter",

@@ -70,5 +70,19 @@
     "legal_policies": "Politiques légales",
     "rate_app": "Notez l'application Alibaba.com",
     "clear_cache": "Effacer le cache de l'app"
+  },
+  "startup": {
+    "description": "Votre meilleur marché africain"
+  },
+  "onboarding": {
+    "title_commerce": "Commerce Moderne",
+    "desc_commerce": "Accédez à un marché global avec des produits de qualité sélectionnés pour vous.",
+    "title_ai": "Intelligence Artificielle",
+    "desc_ai": "L'IA de Promogo vous aide à trouver les meilleures offres et à optimiser vos achats.",
+    "title_trading": "Analyse de Marché",
+    "desc_trading": "Comparez les prix et suivez l'évolution des produits pour prendre les meilleures décisions d'achat.",
+    "btn_next": "Suivant",
+    "btn_skip": "Passer",
+    "btn_get_started": "Commencer"
   }
 }
