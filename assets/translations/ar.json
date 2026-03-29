@@ -2,19 +2,25 @@
   "home": {
     "tab_mode_ia": "وضع الذكاء الاصطناعي",
     "tab_produits": "المنتجات",
-    "tab_usine": "مصنع",
-    "tab_inter": "دولي",
+    "tab_usine": "المصنعين",
+    "tab_inter": "عالمي",
     "search_hint": "ابحث عن منتج...",
     "promo_top": "أفضل العروض",
     "promo_jour": "عرض اليوم",
     "promo_explore": "تصفح حسب الفئة",
     "promo_special": "عرض خاص",
+    "promo_categories": "تصفح الفئات",
+    "promo_devis": "طلب تسعيرة",
+    "promo_top_ranking": "المنتجات الأعلى تصنيفاً",
+    "promo_for_you": "لك",
+    "promo_discount": "حتى -20%",
+    "promo_top_products": "أفضل المنتجات",
     "badge_livraison": "توصيل على مدار 24 ساعة",
     "badge_securite": "أمان بنسبة 100%",
     "category_title": "فئة:",
-    "category_securite": "أمان",
-    "category_sports": "رياضة",
-    "category_auto": "سيارات",
+    "category_all": "الكل",
+    "category_clothing": "الملابس والإكسسوارات",
+    "category_bags": "الحقائب والأمتعة والحافظات",
     "list_action": "قائمة",
     "section_produits_cat": "المنتجات حسب الفئات",
     "product_prefix": "المنتج",
@@ -56,7 +62,7 @@
     "referral_title": "قم بإحالة الأصدقاء لتربح +3,000 دولار أمريكي",
     "referral_subtitle": "احصل على قسائم",
     "sourcing_agent": "وكيل مصادر الذكاء الاصطناعي، Accio",
-    "become_seller": "كن بائعًا على Alibaba.com"
+    "become_seller": "كن بائعًا على PROMOGO AI"
   },
   "reglages": {
     "title": "الإعدادات",
@@ -83,6 +89,17 @@
     "desc_trading": "قارن الأسعار وتتبع تطور المنتجات لاتخاذ أفضل قرارات الشراء.",
     "btn_next": "التالي",
     "btn_skip": "تخطي",
-    "btn_get_started": "ابدأ الآن"
+    "btn_get_started": "البدء"
+  },
+  "cart": {
+    "title": "سلة المشتريات",
+    "items_count": "({count} منتجات)",
+    "empty": "سلة المشتريات فارغة",
+    "checkout": "الدفع",
+    "total": "الإجمالي",
+    "select_all": "تحديد الكل",
+    "save_for_later": "منتجات محفوظات لاحقاً",
+    "back_to_shop": "العودة للتسوق",
+    "delete_item": "حذف"
   }
 }

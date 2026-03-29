@@ -22,10 +22,7 @@ class OtpSheet extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(30),
-            topRight: Radius.circular(30),
-          ),
+          borderRadius: BorderRadius.zero,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -55,8 +52,8 @@ class OtpSheet extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: () => completer?.call(SheetResponse(confirmed: true, data: viewModel.selectedMethod)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00ACC1),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  backgroundColor: kcPrimaryColor,
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                 ),
                 child: const Text('Continuer', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               ),
@@ -94,9 +91,9 @@ class _MethodOption extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? const Color(0xFF00ACC1) : Colors.grey[200]!, width: 2),
-          color: isSelected ? const Color(0xFF00ACC1).withOpacity(0.05) : Colors.grey[50],
+          borderRadius: BorderRadius.zero,
+          border: Border.all(color: isSelected ? kcPrimaryColor : Colors.grey[200]!, width: 2),
+          color: isSelected ? kcPrimaryColor.withOpacity(0.05) : Colors.grey[50],
         ),
         child: Row(
           children: [
@@ -104,7 +101,7 @@ class _MethodOption extends StatelessWidget {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: color,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.zero,
               ),
               child: Icon(icon, color: Colors.white, size: 24),
             ),
@@ -119,7 +116,7 @@ class _MethodOption extends StatelessWidget {
               ),
             ),
             if (isSelected)
-              const Icon(Icons.check_circle, color: Color(0xFF00ACC1))
+              const Icon(Icons.check_circle, color: kcPrimaryColor)
             else
               Icon(Icons.radio_button_off, color: Colors.grey[300]),
           ],

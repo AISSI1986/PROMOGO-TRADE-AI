@@ -20,7 +20,7 @@ class MoiView extends StackedView<MoiViewModel> {
           child: ElevatedButton(
             onPressed: viewModel.onConnectOrRegister,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD32F2F),
+              backgroundColor: kcPrimaryColor,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -230,7 +230,7 @@ class _FeatureItem extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                 decoration: BoxDecoration(
-                  color: Colors.red,
+                  color: kcPrimaryColor,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(

@@ -7,6 +7,7 @@ import 'package:promogoai/ui/views/mode_ia/mode_ia_view.dart';
 import 'package:promogoai/ui/views/home/widgets/gemini_ai_button.dart';
 import 'package:promogoai/ui/views/home/widgets/animated_bottom_bar.dart';
 import 'package:promogoai/ui/views/moi/moi_view.dart';
+import 'package:promogoai/ui/views/panier/panier_view.dart';
 import 'widgets/produits_component.dart';
 
 import 'home_viewmodel.dart';
@@ -40,6 +41,15 @@ class HomeView extends StackedView<HomeViewModel> {
             ),
           ],
         );
+      case 1:
+        return Center(
+          child: Text(
+            'home.nav_message'.tr(),
+            style: const TextStyle(color: kcMediumGrey),
+          ),
+        );
+      case 2:
+        return const PanierView();
       case 3:
         return const MoiView();
       default:
@@ -121,72 +131,129 @@ class HomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        if (viewModel.showPromotion)
-          Container(
-            width: double.infinity,
-            height: 80,
-            color: kcPrimaryColor,
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                const Text(
-                  'March',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 24,
-                    letterSpacing: -1,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Bénéficiez de jusqu\'à 20 % de réduction',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-                const Icon(Icons.chevron_right, color: Colors.white, size: 20),
-              ],
-            ),
-          ),
-        Stack(
-          children: [
-            if (viewModel.showPromotion)
-              Container(height: 50, color: kcPrimaryColor),
+    return Container(
+      color: kcBackgroundColor,
+      child: Column(
+        children: [
+          if (viewModel.showPromotion)
             Container(
               width: double.infinity,
-              height: 70,
-              decoration: BoxDecoration(
-                color: kcBackgroundColor,
-                borderRadius: viewModel.showPromotion
-                    ? const BorderRadius.only(
-                        topLeft: Radius.circular(30),
-                        topRight: Radius.circular(30),
-                      )
-                    : null,
+              height: 80,
+              color: kcPrimaryColor,
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
+                  const Text(
+                    'March',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 24,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Bénéficiez de jusqu\'à 20 % de réduction',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, color: Colors.white, size: 20),
+                ],
               ),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                child: Row(
+            ),
+          Stack(
+            children: [
+              if (viewModel.showPromotion) Container(height: 50, color: kcPrimaryColor),
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: kcBackgroundColor,
+                  borderRadius: viewModel.showPromotion
+                      ? const BorderRadius.only(
+                          topLeft: Radius.circular(30),
+                          topRight: Radius.circular(30),
+                        )
+                      : null,
+                ),
+                child: Column(
                   children: [
-                    _buildTab(title: 'home.tab_mode_ia'.tr(), index: 0),
-                    _buildTab(title: 'home.tab_produits'.tr(), index: 1),
-                    _buildTab(title: 'home.tab_usine'.tr(), index: 2),
-                    _buildTab(title: 'home.tab_inter'.tr(), index: 3),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      child: Row(
+                        children: [
+                          _buildTab(title: 'home.tab_mode_ia'.tr(), index: 0),
+                          _buildTab(title: 'home.tab_produits'.tr(), index: 1),
+                          _buildTab(title: 'home.tab_usine'.tr(), index: 2),
+                          _buildTab(title: 'home.tab_inter'.tr(), index: 3),
+                        ],
+                      ),
+                    ),
+                    if (viewModel.currentTopTab != 0) _buildSearchBar(),
                   ],
                 ),
               ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 12.0),
+      child: Container(
+        height: 44,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: kcLightGrey.withOpacity(0.5)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-      ],
+        child: Row(
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12.0),
+              child: Icon(Icons.camera_alt_outlined, color: kcMediumGrey, size: 20),
+            ),
+            Expanded(
+              child: Text(
+                'home.search_hint'.tr(),
+                style: const TextStyle(color: kcMediumGrey, fontSize: 14),
+              ),
+            ),
+            const Icon(Icons.mic_none, color: kcMediumGrey, size: 20),
+            const SizedBox(width: 8),
+            Container(
+              margin: const EdgeInsets.all(2),
+              width: 50,
+              height: 40,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [kcPrimaryColor.withOpacity(0.7), kcPrimaryColor],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Icon(Icons.search, color: Colors.white, size: 20),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -196,28 +263,29 @@ class HomeHeader extends StatelessWidget {
       onTap: () => viewModel.setTopTab(index),
       child: Padding(
         padding: const EdgeInsets.only(right: 24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w500,
-                color: isSelected ? Colors.black87 : kcMediumGrey,
-              ),
-            ),
-            if (isSelected)
-              Container(
-                margin: const EdgeInsets.only(top: 4),
-                height: 3,
-                width: 20,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF64B5F6),
-                  borderRadius: BorderRadius.circular(2),
+        child: IntrinsicWidth(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.w500,
+                  color: isSelected ? Colors.black87 : kcMediumGrey,
                 ),
               ),
-          ],
+              if (isSelected)
+                Container(
+                  margin: const EdgeInsets.only(top: 2),
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: kcTabIndicatorColor,
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

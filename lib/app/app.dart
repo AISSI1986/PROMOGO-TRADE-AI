@@ -11,6 +11,7 @@ import 'package:promogoai/ui/views/mode_ia/mode_ia_view.dart';
 import 'package:promogoai/ui/views/moi/moi_view.dart';
 import 'package:promogoai/ui/views/reglages/reglages_view.dart';
 import 'package:promogoai/ui/views/onboarding/onboarding_view.dart';
+import 'package:promogoai/ui/views/panier/panier_view.dart';
 import 'package:promogoai/services/settings_service.dart';
 import 'package:stacked/stacked_annotations.dart';
 import 'package:stacked_services/stacked_services.dart';
@@ -27,6 +28,7 @@ import 'package:stacked_services/stacked_services.dart';
     MaterialRoute(page: LoginView),
     MaterialRoute(page: RegisterView),
     MaterialRoute(page: OtpView),
+    MaterialRoute(page: PanierView),
     // @stacked-route
   ],
   dependencies: [

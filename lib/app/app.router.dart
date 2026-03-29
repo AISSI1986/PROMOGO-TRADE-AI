@@ -6,7 +6,7 @@
 // **************************************************************************
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'package:flutter/material.dart' as _i11;
+import 'package:flutter/material.dart' as _i12;
 import 'package:flutter/material.dart';
 import 'package:promogoai/ui/views/home/home_view.dart' as _i2;
 import 'package:promogoai/ui/views/login/login_view.dart' as _i8;
@@ -14,11 +14,12 @@ import 'package:promogoai/ui/views/mode_ia/mode_ia_view.dart' as _i4;
 import 'package:promogoai/ui/views/moi/moi_view.dart' as _i5;
 import 'package:promogoai/ui/views/onboarding/onboarding_view.dart' as _i7;
 import 'package:promogoai/ui/views/otp/otp_view.dart' as _i10;
+import 'package:promogoai/ui/views/panier/panier_view.dart' as _i11;
 import 'package:promogoai/ui/views/register/register_view.dart' as _i9;
 import 'package:promogoai/ui/views/reglages/reglages_view.dart' as _i6;
 import 'package:promogoai/ui/views/startup/startup_view.dart' as _i3;
 import 'package:stacked/stacked.dart' as _i1;
-import 'package:stacked_services/stacked_services.dart' as _i12;
+import 'package:stacked_services/stacked_services.dart' as _i13;
 
 class Routes {
   static const homeView = '/home-view';
@@ -39,6 +40,8 @@ class Routes {
 
   static const otpView = '/otp-view';
 
+  static const panierView = '/panier-view';
+
   static const all = <String>{
     homeView,
     startupView,
@@ -49,6 +52,7 @@ class Routes {
     loginView,
     registerView,
     otpView,
+    panierView,
   };
 }
 
@@ -90,6 +94,10 @@ class StackedRouter extends _i1.RouterBase {
       Routes.otpView,
       page: _i10.OtpView,
     ),
+    _i1.RouteDef(
+      Routes.panierView,
+      page: _i11.PanierView,
+    ),
   ];
 
   final _pagesMap = <Type, _i1.StackedRouteFactory>{
@@ -97,7 +105,7 @@ class StackedRouter extends _i1.RouterBase {
       final args = data.getArgs<HomeViewArguments>(
         orElse: () => const HomeViewArguments(),
       );
-      return _i11.MaterialPageRoute<dynamic>(
+      return _i12.MaterialPageRoute<dynamic>(
         builder: (context) => _i2.HomeView(key: args.key),
         settings: data,
       );
@@ -106,7 +114,7 @@ class StackedRouter extends _i1.RouterBase {
       final args = data.getArgs<StartupViewArguments>(
         orElse: () => const StartupViewArguments(),
       );
-      return _i11.MaterialPageRoute<dynamic>(
+      return _i12.MaterialPageRoute<dynamic>(
         builder: (context) => _i3.StartupView(key: args.key),
         settings: data,
       );
@@ -115,7 +123,7 @@ class StackedRouter extends _i1.RouterBase {
       final args = data.getArgs<ModeIaViewArguments>(
         orElse: () => const ModeIaViewArguments(),
       );
-      return _i11.MaterialPageRoute<dynamic>(
+      return _i12.MaterialPageRoute<dynamic>(
         builder: (context) => _i4.ModeIaView(key: args.key),
         settings: data,
       );
@@ -124,7 +132,7 @@ class StackedRouter extends _i1.RouterBase {
       final args = data.getArgs<MoiViewArguments>(
         orElse: () => const MoiViewArguments(),
       );
-      return _i11.MaterialPageRoute<dynamic>(
+      return _i12.MaterialPageRoute<dynamic>(
         builder: (context) => _i5.MoiView(key: args.key),
         settings: data,
       );
@@ -133,7 +141,7 @@ class StackedRouter extends _i1.RouterBase {
       final args = data.getArgs<ReglagesViewArguments>(
         orElse: () => const ReglagesViewArguments(),
       );
-      return _i11.MaterialPageRoute<dynamic>(
+      return _i12.MaterialPageRoute<dynamic>(
         builder: (context) => _i6.ReglagesView(key: args.key),
         settings: data,
       );
@@ -142,7 +150,7 @@ class StackedRouter extends _i1.RouterBase {
       final args = data.getArgs<OnboardingViewArguments>(
         orElse: () => const OnboardingViewArguments(),
       );
-      return _i11.MaterialPageRoute<dynamic>(
+      return _i12.MaterialPageRoute<dynamic>(
         builder: (context) => _i7.OnboardingView(key: args.key),
         settings: data,
       );
@@ -151,7 +159,7 @@ class StackedRouter extends _i1.RouterBase {
       final args = data.getArgs<LoginViewArguments>(
         orElse: () => const LoginViewArguments(),
       );
-      return _i11.MaterialPageRoute<dynamic>(
+      return _i12.MaterialPageRoute<dynamic>(
         builder: (context) => _i8.LoginView(key: args.key),
         settings: data,
       );
@@ -160,16 +168,25 @@ class StackedRouter extends _i1.RouterBase {
       final args = data.getArgs<RegisterViewArguments>(
         orElse: () => const RegisterViewArguments(),
       );
-      return _i11.MaterialPageRoute<dynamic>(
+      return _i12.MaterialPageRoute<dynamic>(
         builder: (context) => _i9.RegisterView(key: args.key),
         settings: data,
       );
     },
     _i10.OtpView: (data) {
       final args = data.getArgs<OtpViewArguments>(nullOk: false);
-      return _i11.MaterialPageRoute<dynamic>(
+      return _i12.MaterialPageRoute<dynamic>(
         builder: (context) =>
             _i10.OtpView(key: args.key, phoneNumber: args.phoneNumber),
+        settings: data,
+      );
+    },
+    _i11.PanierView: (data) {
+      final args = data.getArgs<PanierViewArguments>(
+        orElse: () => const PanierViewArguments(),
+      );
+      return _i12.MaterialPageRoute<dynamic>(
+        builder: (context) => _i11.PanierView(key: args.key),
         settings: data,
       );
     },
@@ -185,7 +202,7 @@ class StackedRouter extends _i1.RouterBase {
 class HomeViewArguments {
   const HomeViewArguments({this.key});
 
-  final _i11.Key? key;
+  final _i12.Key? key;
 
   @override
   String toString() {
@@ -207,7 +224,7 @@ class HomeViewArguments {
 class StartupViewArguments {
   const StartupViewArguments({this.key});
 
-  final _i11.Key? key;
+  final _i12.Key? key;
 
   @override
   String toString() {
@@ -229,7 +246,7 @@ class StartupViewArguments {
 class ModeIaViewArguments {
   const ModeIaViewArguments({this.key});
 
-  final _i11.Key? key;
+  final _i12.Key? key;
 
   @override
   String toString() {
@@ -251,7 +268,7 @@ class ModeIaViewArguments {
 class MoiViewArguments {
   const MoiViewArguments({this.key});
 
-  final _i11.Key? key;
+  final _i12.Key? key;
 
   @override
   String toString() {
@@ -273,7 +290,7 @@ class MoiViewArguments {
 class ReglagesViewArguments {
   const ReglagesViewArguments({this.key});
 
-  final _i11.Key? key;
+  final _i12.Key? key;
 
   @override
   String toString() {
@@ -295,7 +312,7 @@ class ReglagesViewArguments {
 class OnboardingViewArguments {
   const OnboardingViewArguments({this.key});
 
-  final _i11.Key? key;
+  final _i12.Key? key;
 
   @override
   String toString() {
@@ -317,7 +334,7 @@ class OnboardingViewArguments {
 class LoginViewArguments {
   const LoginViewArguments({this.key});
 
-  final _i11.Key? key;
+  final _i12.Key? key;
 
   @override
   String toString() {
@@ -339,7 +356,7 @@ class LoginViewArguments {
 class RegisterViewArguments {
   const RegisterViewArguments({this.key});
 
-  final _i11.Key? key;
+  final _i12.Key? key;
 
   @override
   String toString() {
@@ -364,7 +381,7 @@ class OtpViewArguments {
     required this.phoneNumber,
   });
 
-  final _i11.Key? key;
+  final _i12.Key? key;
 
   final String phoneNumber;
 
@@ -385,9 +402,31 @@ class OtpViewArguments {
   }
 }
 
-extension NavigatorStateExtension on _i12.NavigationService {
+class PanierViewArguments {
+  const PanierViewArguments({this.key});
+
+  final _i12.Key? key;
+
+  @override
+  String toString() {
+    return '{"key": "$key"}';
+  }
+
+  @override
+  bool operator ==(covariant PanierViewArguments other) {
+    if (identical(this, other)) return true;
+    return other.key == key;
+  }
+
+  @override
+  int get hashCode {
+    return key.hashCode;
+  }
+}
+
+extension NavigatorStateExtension on _i13.NavigationService {
   Future<dynamic> navigateToHomeView({
-    _i11.Key? key,
+    _i12.Key? key,
     int? routerId,
     bool preventDuplicates = true,
     Map<String, String>? parameters,
@@ -403,7 +442,7 @@ extension NavigatorStateExtension on _i12.NavigationService {
   }
 
   Future<dynamic> navigateToStartupView({
-    _i11.Key? key,
+    _i12.Key? key,
     int? routerId,
     bool preventDuplicates = true,
     Map<String, String>? parameters,
@@ -419,7 +458,7 @@ extension NavigatorStateExtension on _i12.NavigationService {
   }
 
   Future<dynamic> navigateToModeIaView({
-    _i11.Key? key,
+    _i12.Key? key,
     int? routerId,
     bool preventDuplicates = true,
     Map<String, String>? parameters,
@@ -435,7 +474,7 @@ extension NavigatorStateExtension on _i12.NavigationService {
   }
 
   Future<dynamic> navigateToMoiView({
-    _i11.Key? key,
+    _i12.Key? key,
     int? routerId,
     bool preventDuplicates = true,
     Map<String, String>? parameters,
@@ -451,7 +490,7 @@ extension NavigatorStateExtension on _i12.NavigationService {
   }
 
   Future<dynamic> navigateToReglagesView({
-    _i11.Key? key,
+    _i12.Key? key,
     int? routerId,
     bool preventDuplicates = true,
     Map<String, String>? parameters,
@@ -467,7 +506,7 @@ extension NavigatorStateExtension on _i12.NavigationService {
   }
 
   Future<dynamic> navigateToOnboardingView({
-    _i11.Key? key,
+    _i12.Key? key,
     int? routerId,
     bool preventDuplicates = true,
     Map<String, String>? parameters,
@@ -483,7 +522,7 @@ extension NavigatorStateExtension on _i12.NavigationService {
   }
 
   Future<dynamic> navigateToLoginView({
-    _i11.Key? key,
+    _i12.Key? key,
     int? routerId,
     bool preventDuplicates = true,
     Map<String, String>? parameters,
@@ -499,7 +538,7 @@ extension NavigatorStateExtension on _i12.NavigationService {
   }
 
   Future<dynamic> navigateToRegisterView({
-    _i11.Key? key,
+    _i12.Key? key,
     int? routerId,
     bool preventDuplicates = true,
     Map<String, String>? parameters,
@@ -515,7 +554,7 @@ extension NavigatorStateExtension on _i12.NavigationService {
   }
 
   Future<dynamic> navigateToOtpView({
-    _i11.Key? key,
+    _i12.Key? key,
     required String phoneNumber,
     int? routerId,
     bool preventDuplicates = true,
@@ -531,8 +570,24 @@ extension NavigatorStateExtension on _i12.NavigationService {
         transition: transition);
   }
 
+  Future<dynamic> navigateToPanierView({
+    _i12.Key? key,
+    int? routerId,
+    bool preventDuplicates = true,
+    Map<String, String>? parameters,
+    Widget Function(BuildContext, Animation<double>, Animation<double>, Widget)?
+        transition,
+  }) async {
+    return navigateTo<dynamic>(Routes.panierView,
+        arguments: PanierViewArguments(key: key),
+        id: routerId,
+        preventDuplicates: preventDuplicates,
+        parameters: parameters,
+        transition: transition);
+  }
+
   Future<dynamic> replaceWithHomeView({
-    _i11.Key? key,
+    _i12.Key? key,
     int? routerId,
     bool preventDuplicates = true,
     Map<String, String>? parameters,
@@ -548,7 +603,7 @@ extension NavigatorStateExtension on _i12.NavigationService {
   }
 
   Future<dynamic> replaceWithStartupView({
-    _i11.Key? key,
+    _i12.Key? key,
     int? routerId,
     bool preventDuplicates = true,
     Map<String, String>? parameters,
@@ -564,7 +619,7 @@ extension NavigatorStateExtension on _i12.NavigationService {
   }
 
   Future<dynamic> replaceWithModeIaView({
-    _i11.Key? key,
+    _i12.Key? key,
     int? routerId,
     bool preventDuplicates = true,
     Map<String, String>? parameters,
@@ -580,7 +635,7 @@ extension NavigatorStateExtension on _i12.NavigationService {
   }
 
   Future<dynamic> replaceWithMoiView({
-    _i11.Key? key,
+    _i12.Key? key,
     int? routerId,
     bool preventDuplicates = true,
     Map<String, String>? parameters,
@@ -596,7 +651,7 @@ extension NavigatorStateExtension on _i12.NavigationService {
   }
 
   Future<dynamic> replaceWithReglagesView({
-    _i11.Key? key,
+    _i12.Key? key,
     int? routerId,
     bool preventDuplicates = true,
     Map<String, String>? parameters,
@@ -612,7 +667,7 @@ extension NavigatorStateExtension on _i12.NavigationService {
   }
 
   Future<dynamic> replaceWithOnboardingView({
-    _i11.Key? key,
+    _i12.Key? key,
     int? routerId,
     bool preventDuplicates = true,
     Map<String, String>? parameters,
@@ -628,7 +683,7 @@ extension NavigatorStateExtension on _i12.NavigationService {
   }
 
   Future<dynamic> replaceWithLoginView({
-    _i11.Key? key,
+    _i12.Key? key,
     int? routerId,
     bool preventDuplicates = true,
     Map<String, String>? parameters,
@@ -644,7 +699,7 @@ extension NavigatorStateExtension on _i12.NavigationService {
   }
 
   Future<dynamic> replaceWithRegisterView({
-    _i11.Key? key,
+    _i12.Key? key,
     int? routerId,
     bool preventDuplicates = true,
     Map<String, String>? parameters,
@@ -660,7 +715,7 @@ extension NavigatorStateExtension on _i12.NavigationService {
   }
 
   Future<dynamic> replaceWithOtpView({
-    _i11.Key? key,
+    _i12.Key? key,
     required String phoneNumber,
     int? routerId,
     bool preventDuplicates = true,
@@ -670,6 +725,22 @@ extension NavigatorStateExtension on _i12.NavigationService {
   }) async {
     return replaceWith<dynamic>(Routes.otpView,
         arguments: OtpViewArguments(key: key, phoneNumber: phoneNumber),
+        id: routerId,
+        preventDuplicates: preventDuplicates,
+        parameters: parameters,
+        transition: transition);
+  }
+
+  Future<dynamic> replaceWithPanierView({
+    _i12.Key? key,
+    int? routerId,
+    bool preventDuplicates = true,
+    Map<String, String>? parameters,
+    Widget Function(BuildContext, Animation<double>, Animation<double>, Widget)?
+        transition,
+  }) async {
+    return replaceWith<dynamic>(Routes.panierView,
+        arguments: PanierViewArguments(key: key),
         id: routerId,
         preventDuplicates: preventDuplicates,
         parameters: parameters,

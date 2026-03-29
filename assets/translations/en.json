@@ -2,19 +2,25 @@
   "home": {
     "tab_mode_ia": "AI Mode",
     "tab_produits": "Products",
-    "tab_usine": "Factory",
-    "tab_inter": "Inter",
+    "tab_usine": "Manufacturers",
+    "tab_inter": "Global",
     "search_hint": "Search for a product...",
     "promo_top": "Top Promo",
     "promo_jour": "Promo of the Day",
     "promo_explore": "Explore by Cat",
     "promo_special": "Special Offer",
+    "promo_categories": "Browse by categories",
+    "promo_devis": "Request a quote",
+    "promo_top_ranking": "Top Ranking Products",
+    "promo_for_you": "For you",
+    "promo_discount": "Up to -20%",
+    "promo_top_products": "Top Products",
     "badge_livraison": "24/7 Delivery",
     "badge_securite": "100% Security",
     "category_title": "Cat:",
-    "category_securite": "Security",
-    "category_sports": "Sports",
-    "category_auto": "Auto",
+    "category_all": "All",
+    "category_clothing": "Clothing & Accessory",
+    "category_bags": "Bags, Luggage, Cases",
     "list_action": "List",
     "section_produits_cat": "Products by categories",
     "product_prefix": "Product",
@@ -56,7 +62,7 @@
     "referral_title": "Refer and earn 3,000+ US$",
     "referral_subtitle": "Get coupons",
     "sourcing_agent": "AI Sourcing Agent, Accio",
-    "become_seller": "Become a seller on Alibaba.com"
+    "become_seller": "Become a seller on PROMOGO AI"
   },
   "reglages": {
     "title": "Settings",
@@ -84,5 +90,16 @@
     "btn_next": "Next",
     "btn_skip": "Skip",
     "btn_get_started": "Get Started"
+  },
+  "cart": {
+    "title": "My Cart",
+    "items_count": "({count} items)",
+    "empty": "Your cart is empty",
+    "checkout": "Checkout",
+    "total": "Total",
+    "select_all": "Select all",
+    "save_for_later": "Saved for later",
+    "back_to_shop": "Back to shopping",
+    "delete_item": "Delete"
   }
 }

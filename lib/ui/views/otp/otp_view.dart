@@ -20,46 +20,48 @@ class OtpView extends StackedView<OtpViewModel> {
           onPressed: viewModel.goBack,
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Vérification OTP',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-            ),
-            verticalSpaceSmall,
-            Text(
-              'Un code a été envoyé au +$phoneNumber. Veuillez le saisir ci-dessous.',
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
-            ),
-            verticalSpaceLarge,
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(4, (index) => _OtpDigitInput()),
-            ),
-            verticalSpaceLarge,
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: viewModel.verifyCode,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00ACC1),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 25.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Vérification OTP',
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              ),
+              verticalSpaceSmall,
+              Text(
+                'Un code a été envoyé au +$phoneNumber. Veuillez le saisir ci-dessous.',
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              verticalSpaceLarge,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: List.generate(4, (index) => _OtpDigitInput()),
+              ),
+              verticalSpaceLarge,
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  onPressed: viewModel.verifyCode,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kcPrimaryColor,
+                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                  ),
+                  child: const Text('Vérifier', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
-                child: const Text('Vérifier', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               ),
-            ),
-            verticalSpaceMedium,
-            Center(
-              child: TextButton(
-                onPressed: () {},
-                child: const Text('Renvoyer le code', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+              verticalSpaceMedium,
+              Center(
+                child: TextButton(
+                  onPressed: () {},
+                  child: const Text('Renvoyer le code', style: TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.bold)),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -84,8 +86,8 @@ class _OtpDigitInput extends StatelessWidget {
           counterText: '',
           filled: true,
           fillColor: Colors.grey[100],
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15),
+          border: const OutlineInputBorder(
+            borderRadius: BorderRadius.zero,
             borderSide: BorderSide.none,
           ),
         ),

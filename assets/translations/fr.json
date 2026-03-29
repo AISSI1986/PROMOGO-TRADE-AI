@@ -2,19 +2,25 @@
   "home": {
     "tab_mode_ia": "Mode IA",
     "tab_produits": "Produits",
-    "tab_usine": "Usine",
-    "tab_inter": "Inter",
+    "tab_usine": "Fabricants",
+    "tab_inter": "Mondial",
     "search_hint": "Rechercher un produit...",
     "promo_top": "Top Promo",
     "promo_jour": "Promo du Jour",
     "promo_explore": "Explore par Cat",
     "promo_special": "Offre Spéciale",
+    "promo_categories": "Explorer par catégories",
+    "promo_devis": "Demander un devis",
+    "promo_top_ranking": "Produits au top du classement",
+    "promo_for_you": "Pour vous",
+    "promo_discount": "Jusqu'à -20%",
+    "promo_top_products": "Top Produits",
     "badge_livraison": "Livraison 24/24",
     "badge_securite": "100% Sécurité",
     "category_title": "Cat:",
-    "category_securite": "Sécurité",
-    "category_sports": "Sports",
-    "category_auto": "Auto",
+    "category_all": "Tous",
+    "category_clothing": "Vêtement & Accessoire",
+    "category_bags": "Sacs, Bagages, Étuis",
     "list_action": "Lister",
     "section_produits_cat": "Produits par catégories",
     "product_prefix": "Produit",
@@ -56,7 +62,7 @@
     "referral_title": "Parrainez pour gagner 3,000+ US$",
     "referral_subtitle": "Obtenez des coupons",
     "sourcing_agent": "Agent de sourcing par IA, Accio",
-    "become_seller": "Devenir vendeur sur Alibaba.com"
+    "become_seller": "Devenir vendeur sur PROMOGO AI"
   },
   "reglages": {
     "title": "Réglages",
@@ -84,5 +90,16 @@
     "btn_next": "Suivant",
     "btn_skip": "Passer",
     "btn_get_started": "Commencer"
+  },
+  "cart": {
+    "title": "Mon Panier",
+    "items_count": "({count} articles)",
+    "empty": "Votre panier est vide",
+    "checkout": "Payer",
+    "total": "Total",
+    "select_all": "Tout sélectionner",
+    "save_for_later": "Produits sauvegardés",
+    "back_to_shop": "Retour à la boutique",
+    "delete_item": "Supprimer"
   }
 }
