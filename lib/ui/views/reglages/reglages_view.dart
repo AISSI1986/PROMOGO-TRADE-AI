@@ -56,8 +56,6 @@ class ReglagesView extends StackedView<ReglagesViewModel> {
             ),
             onTap: () => _showLanguageDialog(context, viewModel),
           ),
-          _buildSettingItem(label: 'reglages.notifications'.tr()),
-          _buildSettingItem(label: 'reglages.network_acceleration'.tr()),
           
           const SizedBox(height: 16),
           
@@ -85,8 +83,6 @@ class ReglagesView extends StackedView<ReglagesViewModel> {
           
           const SizedBox(height: 16),
           _buildSettingItem(label: 'reglages.legal_policies'.tr()),
-          _buildSettingItem(label: 'reglages.rate_app'.tr()),
-          _buildSettingItem(label: 'reglages.clear_cache'.tr()),
         ],
       ),
     );

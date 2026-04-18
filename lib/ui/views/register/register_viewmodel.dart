@@ -17,13 +17,14 @@ class RegisterViewModel extends BaseViewModel {
   // Registration Data
   String firstName = '';
   String lastName = '';
-  String nationality = 'Togolaise';
-  String nationalityCode = 'tg';
+  String nationality = 'Ghana';
+
+  String nationalityCode = 'gh';
   String gender = 'Homme'; // Homme / Femme
   String profession = '';
   String phoneNumber = '';
-  String phoneCountryCode = '228';
-  String phoneIsoCode = 'tg';
+  String phoneCountryCode = '233';
+  String phoneIsoCode = 'gh';
   String password = '';
   String confirmPassword = '';
 
@@ -33,14 +34,13 @@ class RegisterViewModel extends BaseViewModel {
   }
 
   Future<void> nextStep() async {
-    if (_currentStep == 4) {
-      // Phone step - show OTP method selection
+    // Étape 0 : Numéro de téléphone -> OTP
+    if (_currentStep == 0) {
       final response = await _bottomSheetService.showCustomSheet(
         variant: BottomSheetType.otp,
       );
 
       if (response?.confirmed == true) {
-        // Navigate to OtpView for verification
         final verified = await _navigationService.navigateToOtpView(
           phoneNumber: '$phoneCountryCode$phoneNumber',
         );
@@ -52,11 +52,12 @@ class RegisterViewModel extends BaseViewModel {
       return;
     }
 
+    // Autres étapes (Info personnelles, Mot de passe)
     _proceedToNext();
   }
 
   void _proceedToNext() {
-    if (_currentStep < 5) {
+    if (_currentStep < 1) {
       _currentStep++;
       pageController.animateToPage(
         _currentStep,

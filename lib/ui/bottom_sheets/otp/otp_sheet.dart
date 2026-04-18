@@ -19,46 +19,53 @@ class OtpSheet extends StatelessWidget {
     return ViewModelBuilder<_OtpSheetViewModel>.reactive(
       viewModelBuilder: () => _OtpSheetViewModel(),
       builder: (context, viewModel, child) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.zero,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _MethodOption(
-              title: 'Recevoir le code par WhatsApp',
-              subtitle: 'Le code sera envoyé via WhatsApp',
-              iconPath: 'assets/images/whatsapp_logo.png', // I'll use an icon for now
-              icon: Icons.chat,
-              color: const Color(0xFF25D366),
-              isSelected: viewModel.selectedMethod == 'whatsapp',
-              onTap: () => viewModel.setMethod('whatsapp'),
-            ),
-            verticalSpaceMedium,
-            _MethodOption(
-              title: 'Recevoir le code par SMS',
-              subtitle: 'Le code sera envoyé par message texte',
-              icon: Icons.sms,
-              color: const Color(0xFF8D6E63),
-              isSelected: viewModel.selectedMethod == 'sms',
-              onTap: () => viewModel.setMethod('sms'),
-            ),
-            verticalSpaceLarge,
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: () => completer?.call(SheetResponse(confirmed: true, data: viewModel.selectedMethod)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kcPrimaryColor,
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                ),
-                child: const Text('Continuer', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+        child: SafeArea(
+          bottom: true,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _MethodOption(
+                    title: 'Recevoir le code par WhatsApp',
+                    subtitle: 'Le code sera envoyé via WhatsApp',
+                    iconPath: 'assets/images/whatsapp_logo.png',
+                    icon: Icons.chat,
+                    color: const Color(0xFF25D366),
+                    isSelected: viewModel.selectedMethod == 'whatsapp',
+                    onTap: () => viewModel.setMethod('whatsapp'),
+                  ),
+                  verticalSpaceMedium,
+                  _MethodOption(
+                    title: 'Recevoir le code par SMS',
+                    subtitle: 'Le code sera envoyé par message texte',
+                    icon: Icons.sms,
+                    color: const Color(0xFF8D6E63),
+                    isSelected: viewModel.selectedMethod == 'sms',
+                    onTap: () => viewModel.setMethod('sms'),
+                  ),
+                  verticalSpaceLarge,
+                  SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: ElevatedButton(
+                      onPressed: () => completer?.call(SheetResponse(confirmed: true, data: viewModel.selectedMethod)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kcPrimaryColor,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)), // Légère courbure pour le premium
+                      ),
+                      child: const Text('Continuer', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

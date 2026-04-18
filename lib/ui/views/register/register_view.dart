@@ -28,35 +28,14 @@ class RegisterView extends StackedView<RegisterViewModel> {
               physics: const NeverScrollableScrollPhysics(),
               onPageChanged: viewModel.setStep,
               children: [
-                _StepNames(),
-                _StepNationality(),
-                _StepGender(),
-                _StepProfession(),
                 _StepPhone(),
-                _StepPassword(),
+                _StepPersonalInfo(),
               ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(25.0),
-            child: SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: viewModel.nextStep,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kcPrimaryColor,
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                ),
-                child: Text(
-                  viewModel.currentStep == 5 ? 'Finaliser' : 'Suivant',
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
             ),
           ),
         ],
       ),
+
     );
   }
 
@@ -64,56 +43,41 @@ class RegisterView extends StackedView<RegisterViewModel> {
   RegisterViewModel viewModelBuilder(BuildContext context) => RegisterViewModel();
 }
 
-class _StepNames extends ViewModelWidget<RegisterViewModel> {
+class _StepPersonalInfo extends ViewModelWidget<RegisterViewModel> {
   @override
   Widget build(BuildContext context, RegisterViewModel viewModel) {
     return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25.0),
+        padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Nom et prénom',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              'Informations personnelles',
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
             ),
             verticalSpaceSmall,
             const Text(
-              'Renseignez votre nom et prénom tels que figurés sur votre pièce d\'identité.',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+              'Renseignez vos informations avec précision telles que figurées sur votre pièce d\'identité.',
+              style: TextStyle(fontSize: 14, color: Colors.grey, height: 1.4),
             ),
             verticalSpaceLarge,
+            
+            // --- NOMS ---
             _buildTextField(
-              label: 'NOM',
+              label: 'Votre Nom',
               icon: Icons.person_outline,
               onChanged: (val) => viewModel.lastName = val,
             ),
             verticalSpaceMedium,
             _buildTextField(
-              label: 'PRÉNOM',
+              label: 'Votre Prénom',
               icon: Icons.person_outline,
               onChanged: (val) => viewModel.firstName = val,
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+            verticalSpaceMedium,
 
-class _StepNationality extends ViewModelWidget<RegisterViewModel> {
-  @override
-  Widget build(BuildContext context, RegisterViewModel viewModel) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Nationalité', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-            verticalSpaceSmall,
-            const Text('Précisez votre nationalité.', style: TextStyle(fontSize: 14, color: Colors.grey)),
-            verticalSpaceLarge,
+            // --- NATIONALITÉ ---
             InkWell(
               onTap: () {
                 showCountryPicker(
@@ -125,28 +89,111 @@ class _StepNationality extends ViewModelWidget<RegisterViewModel> {
                   },
                 );
               },
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF5F5F5),
-                  borderRadius: BorderRadius.zero,
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Votre Nationalité',
+                  labelStyle: TextStyle(color: Colors.grey[500], fontSize: 15, fontWeight: FontWeight.normal),
+                  floatingLabelStyle: const TextStyle(color: Color(0xFF0A1F44), fontWeight: FontWeight.bold),
+                  // Force le label à rester en haut même s'il n'y a pas de curseur actif
+                  floatingLabelBehavior: FloatingLabelBehavior.always, 
+                  prefixIcon: Icon(Icons.public, color: Colors.grey[400], size: 22),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.zero,
+                    borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                  ),
                 ),
                 child: Row(
                   children: [
                     Text(
                       _getFlag(viewModel.nationalityCode),
-                      style: const TextStyle(fontSize: 24),
+                      style: const TextStyle(fontSize: 22),
                     ),
-                    horizontalSpaceMedium,
-                    Text(viewModel.nationality, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    horizontalSpaceSmall,
+                    Text(viewModel.nationality, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
                     const Spacer(),
-                    const Icon(Icons.search, color: Colors.grey),
+                    Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey[400]),
                   ],
                 ),
               ),
             ),
             verticalSpaceMedium,
-            const Text('Rechercher une nationalité', style: TextStyle(color: Colors.grey)),
+
+            // --- GENRE / CIVILITÉ ---
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0, left: 2.0),
+              child: Text(
+                'VOTRE CIVILITÉ',
+                style: TextStyle(color: Colors.grey[500], fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+              ),
+            ),
+            Row(
+              children: [
+                Expanded(child: _buildGenderOption(viewModel, 'Homme', Icons.male)),
+                horizontalSpaceMedium,
+                Expanded(child: _buildGenderOption(viewModel, 'Femme', Icons.female)),
+              ],
+            ),
+            verticalSpaceMedium,
+
+            // --- PROFESSION ---
+            _buildTextField(
+              label: 'Profession',
+              icon: Icons.work_outline,
+              onChanged: (val) => viewModel.profession = val,
+            ),
+            verticalSpaceMedium,
+
+            // --- SÉCURITÉ ---
+            _buildTextField(
+              label: 'Votre mot de passe',
+              icon: Icons.lock_outline,
+              obscureText: true,
+              onChanged: (val) => viewModel.password = val,
+            ),
+            verticalSpaceMedium,
+            _buildTextField(
+              label: 'Confirmer votre mot de passe',
+              icon: Icons.lock_outline,
+              obscureText: true,
+              onChanged: (val) => viewModel.confirmPassword = val,
+            ),
+            const SizedBox(height: 40),
+
+            // --- CGU ---
+            const Center(
+              child: Column(
+                children: [
+                  Text('En continuant, vous acceptez nos', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  SizedBox(height: 4),
+                  Text(
+                    'Conditions Générales d\'Utilisation\net Politique de confidentialité',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: kcPrimaryColor, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            verticalSpaceLarge,
+            
+            // Bouton Finaliser intégré au scroll
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton(
+                onPressed: viewModel.nextStep,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kcPrimaryColor,
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                ),
+                child: const Text(
+                  'Finaliser',
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            verticalSpaceLarge,
+
           ],
         ),
       ),
@@ -154,31 +201,9 @@ class _StepNationality extends ViewModelWidget<RegisterViewModel> {
   }
 
   String _getFlag(String code) {
+    if (code.isEmpty) return '🏳️';
     return code.toUpperCase().replaceAllMapped(RegExp(r'[A-Z]'),
         (match) => String.fromCharCode(match.group(0)!.codeUnitAt(0) + 127397));
-  }
-}
-
-class _StepGender extends ViewModelWidget<RegisterViewModel> {
-  @override
-  Widget build(BuildContext context, RegisterViewModel viewModel) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Civilité H/F', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-            verticalSpaceSmall,
-            const Text('Précisez votre civilité', style: TextStyle(fontSize: 14, color: Colors.grey)),
-            verticalSpaceLarge,
-            _buildGenderOption(viewModel, 'Homme', Icons.person),
-            verticalSpaceMedium,
-            _buildGenderOption(viewModel, 'Femme', Icons.person_3_outlined),
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _buildGenderOption(RegisterViewModel viewModel, String value, IconData icon) {
@@ -186,22 +211,21 @@ class _StepGender extends ViewModelWidget<RegisterViewModel> {
     return InkWell(
       onTap: () => viewModel.updateGender(value),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        height: 60,
         decoration: BoxDecoration(
-          border: Border.all(color: isSelected ? kcPrimaryColor : Colors.grey[300]!),
-          borderRadius: BorderRadius.zero,
+          border: Border.all(color: isSelected ? kcPrimaryColor : Colors.grey[300]!, width: 1.5),
           color: isSelected ? kcPrimaryColor.withOpacity(0.05) : Colors.white,
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: Colors.black54),
-            horizontalSpaceMedium,
-            Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const Spacer(),
-            Icon(
-              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: isSelected ? kcPrimaryColor : Colors.grey,
-            ),
+            Icon(icon, color: isSelected ? kcPrimaryColor : Colors.grey[400], size: 22),
+            horizontalSpaceSmall,
+            Text(value, style: TextStyle(
+              fontSize: 15, 
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              color: isSelected ? kcPrimaryColor : Colors.black87
+            )),
           ],
         ),
       ),
@@ -240,13 +264,16 @@ class _StepPhone extends ViewModelWidget<RegisterViewModel> {
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFF5F5F5),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey),
                       borderRadius: BorderRadius.zero,
                     ),
                     child: Row(
                       children: [
                         Text(_getFlag(viewModel.phoneIsoCode), style: const TextStyle(fontSize: 20)),
+                        horizontalSpaceTiny,
+                        Text('+${viewModel.phoneCountryCode}', style: const TextStyle(fontWeight: FontWeight.bold)),
                         horizontalSpaceTiny,
                         const Icon(Icons.arrow_drop_down, color: Colors.grey),
                       ],
@@ -260,11 +287,8 @@ class _StepPhone extends ViewModelWidget<RegisterViewModel> {
                     onChanged: (val) => viewModel.phoneNumber = val,
                     decoration: const InputDecoration(
                       hintText: 'Numéro de téléphone',
-                      filled: true,
-                      fillColor: Color(0xFFF5F5F5),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.zero,
-                        borderSide: BorderSide.none,
                       ),
                     ),
                   ),
@@ -281,6 +305,26 @@ class _StepPhone extends ViewModelWidget<RegisterViewModel> {
                 ),
               ],
             ),
+            verticalSpaceLarge,
+            
+            // Bouton Suivant intégré au scroll
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton(
+                onPressed: viewModel.nextStep,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kcPrimaryColor,
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                ),
+                child: const Text(
+                  'Suivant',
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            verticalSpaceLarge,
+
           ],
         ),
       ),
@@ -293,100 +337,32 @@ class _StepPhone extends ViewModelWidget<RegisterViewModel> {
   }
 }
 
-class _StepProfession extends ViewModelWidget<RegisterViewModel> {
-  @override
-  Widget build(BuildContext context, RegisterViewModel viewModel) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Profession', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-            verticalSpaceSmall,
-            const Text('Précisez votre profession.', style: TextStyle(fontSize: 14, color: Colors.grey)),
-            verticalSpaceLarge,
-            _buildTextField(
-              label: 'PROFESSION',
-              icon: Icons.wallet_travel_outlined,
-              onChanged: (val) => viewModel.profession = val,
-            ),
-            verticalSpaceLarge,
-            const Center(
-              child: Column(
-                children: [
-                  Text('En continuant, vous acceptez nos', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  Text(
-                    'Conditions Générales d\'Utilisation\net Politique de confidentialité',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 12, color: kcPrimaryColor, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StepPassword extends ViewModelWidget<RegisterViewModel> {
-  @override
-  Widget build(BuildContext context, RegisterViewModel viewModel) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Sécurité', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-            verticalSpaceSmall,
-            const Text('Définissez votre mot de passe pour sécuriser votre compte.',
-                style: TextStyle(fontSize: 14, color: Colors.grey)),
-            verticalSpaceLarge,
-            _buildTextField(
-              label: 'MOT DE PASSE',
-              icon: Icons.lock_outline,
-              obscureText: true,
-              onChanged: (val) => viewModel.password = val,
-            ),
-            verticalSpaceMedium,
-            _buildTextField(
-              label: 'CONFIRMER LE MOT DE PASSE',
-              icon: Icons.lock_outline,
-              obscureText: true,
-              onChanged: (val) => viewModel.confirmPassword = val,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 Widget _buildTextField(
     {required String label,
     required IconData icon,
     bool obscureText = false,
     required Function(String) onChanged}) {
-  return TextField(
-    onChanged: onChanged,
-    obscureText: obscureText,
-    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-    decoration: InputDecoration(
-      hintText: label,
-      hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14, fontWeight: FontWeight.normal),
-      prefixIcon: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Icon(icon, color: Colors.black38, size: 24),
-      ),
-      filled: true,
-      fillColor: Colors.grey[200],
-      contentPadding: const EdgeInsets.symmetric(vertical: 20),
-      border: const OutlineInputBorder(
-        borderRadius: BorderRadius.zero,
-        borderSide: BorderSide.none,
+  return SizedBox(
+    height: 60, // Hauteur très stricte et uniforme pour TOUS les champs (Zéro-Radius)
+    child: TextField(
+      onChanged: onChanged,
+      obscureText: obscureText,
+      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+      decoration: InputDecoration(
+        labelText: label, // IMPORTANT: Utilise labelText au lieu de hintText (s'anime quand on clique)
+        labelStyle: TextStyle(color: Colors.grey[500], fontSize: 15, fontWeight: FontWeight.normal),
+        floatingLabelStyle: const TextStyle(color: Color(0xFF0A1F44), fontWeight: FontWeight.bold),
+        prefixIcon: Icon(icon, color: Colors.grey[400], size: 22),
+        contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.zero,
+          borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5),
+        ),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.zero,
+          borderSide: BorderSide(color: Color(0xFF0A1F44), width: 2), // Focus en bleu nuit premium
+        ),
       ),
     ),
   );

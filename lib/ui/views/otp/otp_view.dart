@@ -60,6 +60,7 @@ class OtpView extends StackedView<OtpViewModel> {
                   child: const Text('Renvoyer le code', style: TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.bold)),
                 ),
               ),
+              verticalSpaceLarge,
             ],
           ),
         ),

@@ -4,54 +4,50 @@ import 'package:promogoai/app/app.locator.dart';
 import 'package:promogoai/app/app.router.dart';
 import 'package:stacked_services/stacked_services.dart';
 import 'package:flutter/material.dart';
-import 'package:promogoai/app/app.bottomsheets.dart';
 
 class OnboardingViewModel extends BaseViewModel {
   final _navigationService = locator<NavigationService>();
-  final _bottomSheetService = locator<BottomSheetService>();
   final pageController = PageController();
-  Timer? _timer;
   
+  Timer? _autoPlayTimer;
   int _currentIndex = 0;
   int get currentIndex => _currentIndex;
 
-  OnboardingViewModel() {
-    _startTimer();
+  void init() {
+    _startAutoPlay();
   }
 
-  void _startTimer() {
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 7), (timer) {
+  void _startAutoPlay() {
+    _autoPlayTimer?.cancel();
+    _autoPlayTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       if (_currentIndex < 2) {
-        pageController.nextPage(
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
+        pageController.animateToPage(
+          _currentIndex + 1,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOutCubic,
         );
       } else {
-        pageController.animateToPage(
-          0,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        );
+        // Stop autoplay on the last page
+        timer.cancel();
       }
     });
   }
 
   void setIndex(int index) {
     _currentIndex = index;
+    
+    // Si l'utilisateur défile manuellement, on réinitialise le minuteur de 10 secondes
+    // S'il est sur la dernière page, on arrête le défilement automatique
+    if (_currentIndex < 2) {
+      _startAutoPlay();
+    } else {
+      _autoPlayTimer?.cancel();
+    }
+    
     notifyListeners();
   }
 
-  Future<void> showSettings() async {
-    _timer?.cancel();
-    await _bottomSheetService.showCustomSheet(
-      variant: BottomSheetType.settings,
-    );
-    _startTimer();
-  }
-
   void onNextPage() {
-    _startTimer(); // Restart the 7-second timer on interaction
     if (_currentIndex < 2) {
       pageController.nextPage(
         duration: const Duration(milliseconds: 300),
@@ -62,8 +58,16 @@ class OnboardingViewModel extends BaseViewModel {
     }
   }
 
+  void onBackPage() {
+    if (_currentIndex > 0) {
+      pageController.previousPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   void skip() {
-    _timer?.cancel();
     navigateToHome();
   }
 
@@ -71,9 +75,17 @@ class OnboardingViewModel extends BaseViewModel {
     _navigationService.replaceWithHomeView();
   }
 
+  void navigateToLogin() {
+    _navigationService.replaceWithLoginView();
+  }
+
+  void navigateToRegister() {
+    _navigationService.replaceWithRegisterView();
+  }
+
   @override
   void dispose() {
-    _timer?.cancel();
+    _autoPlayTimer?.cancel();
     pageController.dispose();
     super.dispose();
   }

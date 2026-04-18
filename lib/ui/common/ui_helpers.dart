@@ -81,8 +81,10 @@ double getResponsiveFontSize(
 }) {
   max ??= 100;
 
+  // Use a base width of 375 as reference. Clamp scaling between 0.85 and 1.4 to keep it readable.
+  var scale = (screenWidth(context) / 375).clamp(0.85, 1.4);
   var responsiveSize = min(
-    screenWidthFraction(context, dividedBy: 10) * ((fontSize ?? 100) / 100),
+    (fontSize ?? 100) * scale,
     max,
   );
 

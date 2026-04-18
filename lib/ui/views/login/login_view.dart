@@ -3,84 +3,145 @@ import 'package:promogoai/ui/common/app_colors.dart';
 import 'package:promogoai/ui/common/ui_helpers.dart';
 import 'package:stacked/stacked.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:country_picker/country_picker.dart';
 import 'login_viewmodel.dart';
 
 class LoginView extends StackedView<LoginViewModel> {
-  const LoginView({Key? key}) : super(key: key);
+  const LoginView({super.key});
 
   @override
   Widget builder(BuildContext context, LoginViewModel viewModel, Widget? child) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.black),
-          onPressed: viewModel.goBack,
-        ),
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(25.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Connexion',
-                style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: kcPrimaryColor),
-              ),
-              verticalSpaceSmall,
-              const Text(
-                'Bienvenue sur Promogo. Connectez-vous pour continuer.',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-              verticalSpaceLarge,
-              TextField(
-                decoration: InputDecoration(
-                  labelText: 'E-mail ou Téléphone',
-                  prefixIcon: const Icon(Icons.person_outline),
-                  border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
-                ),
-              ),
-              verticalSpaceMedium,
-              TextField(
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Mot de passe',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
-                ),
-              ),
-              verticalSpaceLarge,
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kcPrimaryColor,
-                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(25.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                verticalSpaceSmall,
+                Center(
+                  child: Image.asset(
+                    'assets/images/logo.jpeg',
+                    height: 70, // Taille optimisée pour libérer de l'espace
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.shopping_bag_outlined,
+                      size: 70,
+                      color: kcPrimaryColor,
+                    ),
                   ),
-                  child: const Text('Se connecter', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
-              ),
-              verticalSpaceLarge,
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("Vous n'avez pas de compte ? "),
-                  TextButton(
-                    onPressed: viewModel.navigateToRegister,
-                    child: const Text('Inscrivez-vous', style: TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.bold)),
+                verticalSpaceMedium, // Espacement réduit
+                const Text(
+                  'Connexion',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: kcPrimaryColor),
+                ),
+                verticalSpaceSmall,
+                const Text(
+                  'Bienvenue sur Promogo. Connectez-vous pour continuer.',
+                  style: TextStyle(fontSize: 15, color: Colors.grey),
+                ),
+                verticalSpaceMedium, // Espacement réduit pour remonter le formulaire
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        showCountryPicker(
+                          context: context,
+                          onSelect: (Country country) {
+                            viewModel.phoneCountryCode = country.phoneCode;
+                            viewModel.phoneIsoCode = country.countryCode.toLowerCase();
+                            viewModel.notifyListeners();
+                          },
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: Colors.grey),
+                          borderRadius: BorderRadius.zero,
+                        ),
+                        child: Row(
+                          children: [
+                            Text(_getFlag(viewModel.phoneIsoCode), style: const TextStyle(fontSize: 20)),
+                            horizontalSpaceTiny,
+                            Text('+${viewModel.phoneCountryCode}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            horizontalSpaceTiny,
+                            const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                          ],
+                        ),
+                      ),
+                    ),
+                    horizontalSpaceSmall,
+                    Expanded(
+                      child: TextField(
+                        keyboardType: TextInputType.phone,
+                        onChanged: (val) => viewModel.phoneNumber = val,
+                        decoration: const InputDecoration(
+                          labelText: 'Téléphone',
+                          prefixIcon: Icon(Icons.phone_outlined),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.zero),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                verticalSpaceMedium,
+                const TextField(
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Mot de passe',
+                    prefixIcon: Icon(Icons.lock_outline),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.zero),
                   ),
-                ],
-              ),
-            ],
+                ),
+                verticalSpaceSmall,
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: viewModel.navigateToForgotPassword,
+                    child: const Text('Mot de passe oublié ?',
+                        style: TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.bold, fontSize: 13)),
+                  ),
+                ),
+                verticalSpaceSmall,
+                SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: viewModel.navigateToHome,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kcPrimaryColor,
+                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                    ),
+                    child: const Text('Se connecter',
+                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                verticalSpaceMedium, // Espacement réduit
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text("Vous n'avez pas de compte ? "),
+                    TextButton(
+                      onPressed: viewModel.navigateToRegister,
+                      child: const Text('Inscrivez-vous', style: TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  String _getFlag(String code) {
+    return code.toUpperCase().replaceAllMapped(RegExp(r'[A-Z]'),
+        (match) => String.fromCharCode(match.group(0)!.codeUnitAt(0) + 127397));
   }
 
   @override

@@ -11,3 +11,14 @@ const Color kcBackgroundColor = Color(0xFFF6F8FC);
 const Color kcCardColor = Colors.white;
 const Color kcAccentColor = Color(0xFFF9A826);
 const Color kcSuccessColor = Color(0xFF34C759);
+const Color kcGoldLight = Color(0xFFFEF9EB);
+const Color kcOchreMuted = Color(0xFFF9F1E1);
+const Color kcSageMuted = Color(0xFFE9F0EE);
+const Color kcClayMuted = Color(0xFFF6EEED);
+const Color kcSecondaryGold = Color(0xFFD4AF37);
+const Color kcAIHighlight = Color(0xFF00E5FF);
+
+// Gradient Mesh Components
+const Color kcMeshDeepBlue = Color(0xFF020A1A);
+const Color kcMeshNavy = Color(0xFF0A1F44);
+const Color kcMeshRoyal = Color(0xFF1E3A8A);

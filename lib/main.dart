@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:promogoai/app/app.bottomsheets.dart';
 import 'package:promogoai/app/app.dialogs.dart';
 import 'package:promogoai/app/app.locator.dart';
@@ -13,6 +14,9 @@ Future<void> main() async {
   setupBottomSheetUi();
   
   await EasyLocalization.ensureInitialized();
+  
+  // Désactiver les bordures de debug si elles ont été activées par erreur
+  debugPaintSizeEnabled = false;
 
   runApp(
     EasyLocalization(
