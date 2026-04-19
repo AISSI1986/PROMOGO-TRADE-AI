@@ -145,31 +145,38 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
         itemCount: promos.length,
         itemBuilder: (context, index) {
           final promo = promos[index];
-          return Container(
-            width: itemWidth,
-            margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: kcVeryLightGrey.withOpacity(0.4),
-              borderRadius: BorderRadius.zero,
-            ),
-            child: Row(
-              children: [
-                Icon(promo['icon'] as IconData, color: kcTabIndicatorColor, size: 22),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    (promo['trKey'] as String).tr(),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 10,
-                      color: kcDarkGreyColor,
+          return InkWell(
+            onTap: () {
+              if (promo['trKey'] == 'home.promo_discount') {
+                viewModel.navigateToPromogoFair();
+              }
+            },
+            child: Container(
+              width: itemWidth,
+              margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: kcVeryLightGrey.withOpacity(0.4),
+                borderRadius: BorderRadius.zero,
+              ),
+              child: Row(
+                children: [
+                  Icon(promo['icon'] as IconData, color: kcTabIndicatorColor, size: 22),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      (promo['trKey'] as String).tr(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 10,
+                        color: kcDarkGreyColor,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },

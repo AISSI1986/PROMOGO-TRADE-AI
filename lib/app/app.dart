@@ -23,6 +23,7 @@ import 'package:promogoai/ui/views/seller_kyc/seller_kyc_view.dart';
 import 'package:promogoai/ui/views/saved/saved_view.dart';
 import 'package:promogoai/ui/views/my_publications/my_publications_view.dart';
 import 'package:promogoai/ui/views/cart/cart_view.dart';
+import 'package:promogoai/ui/views/promogo_fair/promogo_fair_view.dart';
 // @stacked-import
 
 @StackedApp(
@@ -45,6 +46,7 @@ import 'package:promogoai/ui/views/cart/cart_view.dart';
     MaterialRoute(page: SavedView),
     MaterialRoute(page: MyPublicationsView),
     MaterialRoute(page: CartView),
+    MaterialRoute(page: PromogoFairView),
     // @stacked-route
   ],
   dependencies: [

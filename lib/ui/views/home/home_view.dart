@@ -433,9 +433,7 @@ class HomeHeader extends StatelessWidget {
             Container(
               width: double.infinity,
               height: 100, // Augmenté de 60 à 100 pour donner plus d'espace
-
               color: kcPrimaryColor,
-
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Row(
                 children: [
