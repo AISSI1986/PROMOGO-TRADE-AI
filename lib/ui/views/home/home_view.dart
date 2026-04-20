@@ -270,20 +270,11 @@ class _CustomBottomNavBar extends StatelessWidget {
             ),
           ),
 
-          // 3.5 La Couche Blanche Structurée (Forme d'Oeil / Lentille synchronisée)
+          // L'Oeil et le Creux sont maintenant dessinés chimériquement via le _DomePainter
+          // Garantissant un empilement physique réel (trou plus large que la lentille).
+
+
           Positioned(
-            top: -8, // Réaligné: l'équateur Y=48 atterrit pile sur la ligne plate de la barre Y=40
-            left: 0,
-            right: 0,
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: SizedBox(
-                width: 140.0, // <-- Remonté à 140 pour redonner de l'air à l'icône
-                height: 96.0, // <-- Remonté à 96 pour un vrai margin arrondi visible
-                child: CustomPaint(painter: _EyeShapePainter()),
-              ),
-            ),
-          ),          Positioned(
             top: -25, 
             left: 0,
             right: 0,
@@ -325,102 +316,81 @@ class _DomePainter extends CustomPainter {
       ..color = Colors.white
       ..style = PaintingStyle.fill;
 
-    final path = Path();
     final double barTop = size.height - (barHeight + bottomPadding); // 40.0
     final double cx = size.width / 2;
-    
-    // VERROUILLAGE MATHÉMATIQUE : On clone les mensurations exactes de l'Oeill
+
+    // VERROUILLAGE MATHÉMATIQUE (Clone parfait des valeurs d'origine)
     final double eyeWidth = 140.0;
     final double eyeHeight = 96.0;
-    final double notchFloor = -8.0 + eyeHeight; // Profondeur max alignée sur le bas de l'Oeil
+    final double eyeTopOffset = -8.0; 
+    final double notchFloor = eyeTopOffset + eyeHeight; // 88.0
 
-    final double centerX = size.width / 2;
-    final double startX = centerX - (eyeWidth / 2);
-    final double endX = centerX + (eyeWidth / 2);
+    final double startX = cx - (eyeWidth / 2); // cx - 70
+    final double endX = cx + (eyeWidth / 2);   // cx + 70
 
-    path.moveTo(0, barTop);
-    path.lineTo(startX, barTop);
+    // ==========================================
+    // LAYER 1 : LE CREUX (Le support de fond)
+    // ==========================================
+    final Path socketPath = Path();
+    socketPath.moveTo(0, barTop);
+    socketPath.lineTo(startX, barTop);
 
-    // Clone Mathématique EXACT de la moitié inférieure gauche de l'Oeil
-    path.cubicTo(
+    socketPath.cubicTo(
       startX + eyeWidth * 0.15, barTop,
       startX + eyeWidth * 0.25, notchFloor,
-      centerX, notchFloor,
+      cx, notchFloor,
     );
 
-    // Clone Mathématique EXACT de la moitié inférieure droite de l'Oeil
-    path.cubicTo(
+    socketPath.cubicTo(
       endX - eyeWidth * 0.25, notchFloor,
       endX - eyeWidth * 0.15, barTop,
       endX, barTop
     );
+    
+    socketPath.lineTo(size.width, barTop);
+    socketPath.lineTo(size.width, size.height);
+    socketPath.lineTo(0, size.height);
+    socketPath.close();
 
-    path.lineTo(size.width, barTop);
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
+    // Peinture de la bordure principale
+    canvas.drawShadow(socketPath, Colors.black.withOpacity(0.06), 10.0, true);
+    canvas.drawPath(socketPath, paint);
 
-    // Ombre très légère
-    canvas.drawShadow(path, Colors.black.withOpacity(0.06), 10.0, true);
-    canvas.drawPath(path, paint);
+    // ==========================================
+    // LAYER 2 : L'OEIL (Transposé depuis les coordonnées d'origine)
+    // ==========================================
+    final Path eyePath = Path();
+    
+    // Fonction magique pour transposer le dessin (140x96) d'origine dans notre espace absolu !
+    // Cela garantit sans faille que l'Oeil est identique à ton design génial.
+    void cubic(double x1, double y1, double x2, double y2, double x3, double y3) {
+      eyePath.cubicTo(
+        startX + x1, eyeTopOffset + y1, 
+        startX + x2, eyeTopOffset + y2, 
+        startX + x3, eyeTopOffset + y3
+      );
+    }
+
+    // Pointe extrême gauche
+    eyePath.moveTo(startX, eyeTopOffset + (eyeHeight / 2)); // (cx - 70, 40)
+    
+    // HAUT (Les Ailes)
+    cubic(eyeWidth * 0.15, eyeHeight / 2,   eyeWidth * 0.25, 0,                eyeWidth / 2, 0);
+    cubic(eyeWidth * 0.75, 0,               eyeWidth * 0.85, eyeHeight / 2,    eyeWidth, eyeHeight / 2);
+    
+    // BAS (Le ventre qui s'emboîte EXACTEMENT dans le creux et génère l'ombre fine du biseau)
+    cubic(eyeWidth * 0.85, eyeHeight / 2,   eyeWidth * 0.75, eyeHeight,        eyeWidth / 2, eyeHeight);
+    cubic(eyeWidth * 0.25, eyeHeight,       eyeWidth * 0.15, eyeHeight / 2,    0, eyeHeight / 2);
+    
+    eyePath.close();
+
+    // Peinture de l'Oeil avec son ombre légère (crée la limite/bevel visuel)
+    canvas.drawShadow(eyePath, Colors.black.withOpacity(0.05), 5.0, true); // Ombre adoucie 5.0 pour le biseau
+    canvas.drawPath(eyePath, paint);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
-
-// Générateur du fond blanc en forme d'Oeil (Lentille) : pointu horizontalement, rond verticalement
-class _EyeShapePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Path path = Path();
-    final double cx = size.width / 2;
-    final double cy = size.height / 2;
-
-    // Pointe acérée à l'extrême gauche
-    path.moveTo(0, cy);
-    
-    // HAUT : Tire agressivement à l'horizontale (ailes extérieures) MAIS laisse le dôme large
-    path.cubicTo(
-      size.width * 0.15, cy,   // Point reculé vers l'extérieur pour ne pas écraser l'icône
-      size.width * 0.25, 0,    // Le dôme prend toute sa place
-      cx, 0,
-    );
-
-    path.cubicTo(
-      size.width * 0.75, 0,
-      size.width * 0.85, cy,   // Point reculé vers l'extérieur droit
-      size.width, cy,
-    );
-
-    // BAS : S'allonge horizontalement en bordure pour garder le ventre énorme
-    path.cubicTo(
-      size.width * 0.85, cy,
-      size.width * 0.75, size.height,
-      cx, size.height,
-    );
-
-    path.cubicTo(
-      size.width * 0.25, size.height,
-      size.width * 0.15, cy,
-      0, cy,
-    );
-    
-    path.close();
-
-    // Ombre légère pour fusionner visuellement la forme avec le fond de la barre
-    canvas.drawShadow(path, Colors.black.withOpacity(0.04), 10.0, true);
-    
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.fill,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 
