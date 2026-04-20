@@ -212,10 +212,15 @@ class _CustomBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double bottomPadding = MediaQuery.of(context).padding.bottom; // Récupère la marge système du bas (gesture bar)
-    const double barHeight = 60.0; 
-    // Le creux s'arrête pile sur la ligne des icônes (60/2 = 30px de profondeur max)
-    const double notchDepth = 55.0; 
+    final double bottomPadding = MediaQuery.of(context).padding.bottom;
+
+    // AUGMENTATION FORTE DE LA HAUTEUR DE LA BARRE (+15px encore !)
+    // Cela 'remonte' tout le bloc de l'œil et du creux plus haut sur l'écran
+    // en dévoilant une très abondante marge blanche d'appBar en dessous.
+    const double barHeight = 85.0; 
+    const double notchDepth = 40.0; // Variable restaurée pour la compilation
+    
+    // The top padding above the white bar to accommodate the protruding 3D eye/button
     final double totalHeight = barHeight + 40 + bottomPadding; // On ajoute la marge au total
 
     const double centralButtonSize = 120.0; // Format XL Patron stable à 120px
@@ -275,7 +280,10 @@ class _CustomBottomNavBar extends StatelessWidget {
 
 
           Positioned(
-            top: -25, 
+            // Centrage parfait ! Le milieu de l'Oeil est à Y=41.5. 
+            // En descendant l'icône de 4 pixels (top: -18 au lieu de -22), 
+            // le milieu de l'icône tombe exactement au centre de la géométrie de l'Oeil !
+            top: -18, 
             left: 0,
             right: 0,
             child: Align(
@@ -312,81 +320,124 @@ class _DomePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-
     final double barTop = size.height - (barHeight + bottomPadding); // 40.0
     final double cx = size.width / 2;
 
-    // VERROUILLAGE MATHÉMATIQUE (Clone parfait des valeurs d'origine)
-    final double eyeWidth = 140.0;
-    final double eyeHeight = 96.0;
-    final double eyeTopOffset = -8.0; 
-    final double notchFloor = eyeTopOffset + eyeHeight; // 88.0
-
-    final double startX = cx - (eyeWidth / 2); // cx - 70
-    final double endX = cx + (eyeWidth / 2);   // cx + 70
+    // RESTAURATION DE LA FORME ORIGINALE RÉUSSIE (140px)
+    // On restaure cette belle largeur élégante horizontale
+    final double startX = cx - 70;
+    final double endX = cx + 70;
 
     // ==========================================
-    // LAYER 1 : LE CREUX (Le support de fond)
+    // LAYER 1 : LA BARRE BLANCHE MÈRE (Silhouette Solide Ultime)
     // ==========================================
+    // Fini le découpage de trou qui provoquait l'artefact (le "problème en bas").
+    // On dessine une barre SOLIDE qui inclut la bosse du haut. Le "creux" sera juste peint par-dessus !
     final Path socketPath = Path();
     socketPath.moveTo(0, barTop);
     socketPath.lineTo(startX, barTop);
 
+    // CHOC VERTICAL : On abaisse le sommet de -25 à -12 !
+    // Cela coupe instantanément toute la longueur "verticale" excessive de l'Oeil
+    // Pour l'aplatir en un Dôme très fin et élégant.
     socketPath.cubicTo(
-      startX + eyeWidth * 0.15, barTop,
-      startX + eyeWidth * 0.25, notchFloor,
-      cx, notchFloor,
+      cx - 55, barTop, 
+      cx - 40, -12, 
+      cx, -12,
+    );
+    socketPath.cubicTo(
+      cx + 40, -12, 
+      cx + 55, barTop, 
+      endX, barTop,
     );
 
-    socketPath.cubicTo(
-      endX - eyeWidth * 0.25, notchFloor,
-      endX - eyeWidth * 0.15, barTop,
-      endX, barTop
-    );
-    
     socketPath.lineTo(size.width, barTop);
     socketPath.lineTo(size.width, size.height);
     socketPath.lineTo(0, size.height);
     socketPath.close();
 
-    // Peinture de la bordure principale
+    // Peinture de la silhouette Mère. Zéro trou physique = Zéro pixel de fond qui fuite !
+    final Paint barPaint = Paint()..color = Colors.white;
     canvas.drawShadow(socketPath, Colors.black.withOpacity(0.06), 10.0, true);
-    canvas.drawPath(socketPath, paint);
+    canvas.drawPath(socketPath, barPaint);
 
     // ==========================================
-    // LAYER 2 : L'OEIL (Transposé depuis les coordonnées d'origine)
+    // LAYER 1.5 : LE BASSIN GRIS (Peint SUR la barre mère)
+    // ==========================================
+    final Path socketFillPath = Path();
+    socketFillPath.moveTo(startX, barTop);
+    
+    // Vasque resserrée avec l'oeil pour garder l'harmonie fine
+    socketFillPath.cubicTo(cx - 50, barTop, cx - 40, 97, cx, 97);
+    socketFillPath.cubicTo(cx + 40, 97, cx + 50, barTop, endX, barTop);
+    socketFillPath.close();
+
+    final Paint socketFillPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color(0xFFEBEBEB), // Gris très clair en haut du puits
+          Color(0xFFCDCDCD), // Ombre riche et arrondie au fond de la cuvette
+        ],
+      ).createShader(Rect.fromLTRB(startX, barTop, endX, 97))
+      ..style = PaintingStyle.fill;
+      
+    // Peinture du fond du trou
+    canvas.drawPath(socketFillPath, socketFillPaint);
+
+
+    // ==========================================
+    // LAYER 2 : L'OEIL 
     // ==========================================
     final Path eyePath = Path();
-    
-    // Fonction magique pour transposer le dessin (140x96) d'origine dans notre espace absolu !
-    // Cela garantit sans faille que l'Oeil est identique à ton design génial.
-    void cubic(double x1, double y1, double x2, double y2, double x3, double y3) {
-      eyePath.cubicTo(
-        startX + x1, eyeTopOffset + y1, 
-        startX + x2, eyeTopOffset + y2, 
-        startX + x3, eyeTopOffset + y3
-      );
-    }
+    eyePath.moveTo(startX, barTop);
 
-    // Pointe extrême gauche
-    eyePath.moveTo(startX, eyeTopOffset + (eyeHeight / 2)); // (cx - 70, 40)
-    
-    // HAUT (Les Ailes)
-    cubic(eyeWidth * 0.15, eyeHeight / 2,   eyeWidth * 0.25, 0,                eyeWidth / 2, 0);
-    cubic(eyeWidth * 0.75, 0,               eyeWidth * 0.85, eyeHeight / 2,    eyeWidth, eyeHeight / 2);
-    
-    // BAS (Le ventre qui s'emboîte EXACTEMENT dans le creux et génère l'ombre fine du biseau)
-    cubic(eyeWidth * 0.85, eyeHeight / 2,   eyeWidth * 0.75, eyeHeight,        eyeWidth / 2, eyeHeight);
-    cubic(eyeWidth * 0.25, eyeHeight,       eyeWidth * 0.15, eyeHeight / 2,    0, eyeHeight / 2);
-    
+    // Quart Nord-Ouest (Sommet abaissé à -12 pour écraser la hauteur verticale !)
+    eyePath.cubicTo(
+      cx - 55, barTop, 
+      cx - 40, -12, 
+      cx, -12,
+    );
+    // Quart Nord-Est
+    eyePath.cubicTo(
+      cx + 40, -12, 
+      cx + 55, barTop, 
+      endX, barTop,
+    );
+    // Quart Sud-Est (Suit l'icône)
+    eyePath.cubicTo(
+      cx + 55, barTop, 
+      cx + 40, 95, 
+      cx, 95,
+    );
+    // Quart Sud-Ouest
+    eyePath.cubicTo(
+      cx - 40, 95, 
+      cx - 55, barTop, 
+      startX, barTop,
+    );
     eyePath.close();
 
-    // Peinture de l'Oeil avec son ombre légère (crée la limite/bevel visuel)
-    canvas.drawShadow(eyePath, Colors.black.withOpacity(0.05), 5.0, true); // Ombre adoucie 5.0 pour le biseau
-    canvas.drawPath(eyePath, paint);
+    // L'Oeil aura un shader gris très clair pour qu'on puisse
+    // fortement le différencier du trou gris foncé en dessous !
+    final Rect eyeBounds = Rect.fromLTRB(startX, -25, endX, 95); 
+    final Paint eyePaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.white,                     // Sommet blanc pur
+          Color(0xFFFAFAFA),                // Gris extrêmement faible
+          Color(0xFFE5E5E5),                // Ombrage net et doux pour la 3D
+        ],
+        stops: [0.0, 0.4, 1.0],
+      ).createShader(eyeBounds)
+      ..style = PaintingStyle.fill;
+
+    // Peinture de l'Oeil. Il va projeter son ombre sur le fond du "trou" gris !
+    canvas.drawShadow(eyePath, Colors.black.withOpacity(0.08), 8.0, true);
+    canvas.drawPath(eyePath, eyePaint);
   }
 
   @override
