@@ -8,6 +8,7 @@ import 'package:promogoai/ui/views/product_detail/product_detail_view.dart';
 import 'dart:ui';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:promogoai/ui/views/promogo_fair/promogo_fair_view.dart';
+import 'package:promogoai/ui/views/live_viewer/live_viewer_view.dart';
 
 class HomeViewModel extends BaseViewModel {
   final _navigationService = locator<NavigationService>();
@@ -150,6 +151,13 @@ class HomeViewModel extends BaseViewModel {
     _navigationService.navigateWithTransition(
       const PromogoFairView(),
       transitionStyle: Transition.rightToLeft,
+    );
+  }
+
+  void navigateToLiveViewer() {
+    _navigationService.navigateWithTransition(
+      const LiveViewerView(),
+      transitionStyle: Transition.fade,
     );
   }
 }

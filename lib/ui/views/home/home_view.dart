@@ -563,7 +563,7 @@ class HomeHeader extends StatelessWidget {
 
     if (isLiveBadge) {
       return GestureDetector(
-        onTap: () => viewModel.setTopTab(index),
+        onTap: () => viewModel.navigateToLiveViewer(),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
