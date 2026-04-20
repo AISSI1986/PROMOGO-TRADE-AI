@@ -27,6 +27,7 @@ import 'package:promogoai/ui/views/promogo_fair/promogo_fair_view.dart';
 import 'package:promogoai/ui/views/live_viewer/live_viewer_view.dart';
 import 'package:promogoai/ui/views/live_broadcaster/live_broadcaster_view.dart';
 import 'package:promogoai/services/srs_streaming_service.dart';
+import 'package:promogoai/services/local_storage_service.dart';
 // @stacked-import
 
 @StackedApp(
@@ -58,6 +59,7 @@ import 'package:promogoai/services/srs_streaming_service.dart';
     LazySingleton(classType: NavigationService),
     LazySingleton(classType: SettingsService),
     LazySingleton(classType: SrsStreamingService),
+    InitializableSingleton(classType: LocalStorageService),
     // @stacked-service
   ],
   bottomsheets: [

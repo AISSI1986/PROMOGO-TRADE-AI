@@ -4,9 +4,11 @@ import 'package:promogoai/app/app.locator.dart';
 import 'package:promogoai/app/app.router.dart';
 import 'package:stacked_services/stacked_services.dart';
 import 'package:flutter/material.dart';
+import 'package:promogoai/services/local_storage_service.dart';
 
 class OnboardingViewModel extends BaseViewModel {
   final _navigationService = locator<NavigationService>();
+  final _localStorageService = locator<LocalStorageService>();
   final pageController = PageController();
   
   Timer? _autoPlayTimer;
@@ -71,15 +73,18 @@ class OnboardingViewModel extends BaseViewModel {
     navigateToHome();
   }
 
-  void navigateToHome() {
+  void navigateToHome() async {
+    await _localStorageService.setOnboardingComplete();
     _navigationService.replaceWithHomeView();
   }
 
-  void navigateToLogin() {
+  void navigateToLogin() async {
+    await _localStorageService.setOnboardingComplete();
     _navigationService.replaceWithLoginView();
   }
 
-  void navigateToRegister() {
+  void navigateToRegister() async {
+    await _localStorageService.setOnboardingComplete();
     _navigationService.replaceWithRegisterView();
   }
 
