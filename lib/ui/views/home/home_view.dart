@@ -270,11 +270,20 @@ class _CustomBottomNavBar extends StatelessWidget {
             ),
           ),
 
-          // L'ancienne "Layer" a été supprimée pour la remplacer par un fond monolithique parfait
-
-
-
+          // 3.5 La Couche Blanche Structurée (Forme d'Oeil / Lentille synchronisée)
           Positioned(
+            top: -8, // Réaligné: l'équateur Y=48 atterrit pile sur la ligne plate de la barre Y=40
+            left: 0,
+            right: 0,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                width: 140.0, // <-- Remonté à 140 pour redonner de l'air à l'icône
+                height: 96.0, // <-- Remonté à 96 pour un vrai margin arrondi visible
+                child: CustomPaint(painter: _EyeShapePainter()),
+              ),
+            ),
+          ),          Positioned(
             top: -25, 
             left: 0,
             right: 0,
@@ -318,36 +327,32 @@ class _DomePainter extends CustomPainter {
 
     final path = Path();
     final double barTop = size.height - (barHeight + bottomPadding); // 40.0
-    
     final double cx = size.width / 2;
     
-    // Le bouton central est à y=35 (centre) et a un rayon de 60px.
-    // Il descend donc jusqu'à y=95. Notre creux doit descendre un peu plus bas (ex: 102).
-    
+    // VERROUILLAGE MATHÉMATIQUE : On clone les mensurations exactes de l'Oeill
+    final double eyeWidth = 140.0;
+    final double eyeHeight = 96.0;
+    final double notchFloor = -8.0 + eyeHeight; // Profondeur max alignée sur le bas de l'Oeil
+
+    final double centerX = size.width / 2;
+    final double startX = centerX - (eyeWidth / 2);
+    final double endX = centerX + (eyeWidth / 2);
+
     path.moveTo(0, barTop);
-    
-    // Ligne droite jusqu'aux bords du bouton
-    path.lineTo(cx - 75, barTop);
+    path.lineTo(startX, barTop);
 
-    // 1. Descente douce (l'épaule plongeante)
+    // Clone Mathématique EXACT de la moitié inférieure gauche de l'Oeil
     path.cubicTo(
-      cx - 65, barTop, 
-      cx - 65, barTop + 15,
-      cx - 60, barTop + 25,
+      startX + eyeWidth * 0.15, barTop,
+      startX + eyeWidth * 0.25, notchFloor,
+      centerX, notchFloor,
     );
 
-    // 2. Le creux profond qui enlace parfaitement la forme du bouton (le U du bas)
+    // Clone Mathématique EXACT de la moitié inférieure droite de l'Oeil
     path.cubicTo(
-      cx - 45, 102, 
-      cx + 45, 102, 
-      cx + 60, barTop + 25,
-    );
-
-    // 3. Remontée douce (l'épaule sortante)
-    path.cubicTo(
-      cx + 65, barTop + 15, 
-      cx + 65, barTop, 
-      cx + 75, barTop,
+      endX - eyeWidth * 0.25, notchFloor,
+      endX - eyeWidth * 0.15, barTop,
+      endX, barTop
     );
 
     path.lineTo(size.width, barTop);
@@ -355,13 +360,67 @@ class _DomePainter extends CustomPainter {
     path.lineTo(0, size.height);
     path.close();
 
-    // Ombre nette et qualitative
-    canvas.drawShadow(path, Colors.black.withOpacity(0.08), 12.0, true);
+    // Ombre très légère
+    canvas.drawShadow(path, Colors.black.withOpacity(0.06), 10.0, true);
     canvas.drawPath(path, paint);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+// Générateur du fond blanc en forme d'Oeil (Lentille) : pointu horizontalement, rond verticalement
+class _EyeShapePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Path path = Path();
+    final double cx = size.width / 2;
+    final double cy = size.height / 2;
+
+    // Pointe acérée à l'extrême gauche
+    path.moveTo(0, cy);
+    
+    // HAUT : Tire agressivement à l'horizontale (ailes extérieures) MAIS laisse le dôme large
+    path.cubicTo(
+      size.width * 0.15, cy,   // Point reculé vers l'extérieur pour ne pas écraser l'icône
+      size.width * 0.25, 0,    // Le dôme prend toute sa place
+      cx, 0,
+    );
+
+    path.cubicTo(
+      size.width * 0.75, 0,
+      size.width * 0.85, cy,   // Point reculé vers l'extérieur droit
+      size.width, cy,
+    );
+
+    // BAS : S'allonge horizontalement en bordure pour garder le ventre énorme
+    path.cubicTo(
+      size.width * 0.85, cy,
+      size.width * 0.75, size.height,
+      cx, size.height,
+    );
+
+    path.cubicTo(
+      size.width * 0.25, size.height,
+      size.width * 0.15, cy,
+      0, cy,
+    );
+    
+    path.close();
+
+    // Ombre légère pour fusionner visuellement la forme avec le fond de la barre
+    canvas.drawShadow(path, Colors.black.withOpacity(0.04), 10.0, true);
+    
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.fill,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 
