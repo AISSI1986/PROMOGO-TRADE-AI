@@ -212,10 +212,11 @@ class _CustomBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double bottomPadding = MediaQuery.of(context).padding.bottom; // Récupère la marge système du bas (gesture bar)
     const double barHeight = 60.0; 
     // Le creux s'arrête pile sur la ligne des icônes (60/2 = 30px de profondeur max)
     const double notchDepth = 55.0; 
-    const double totalHeight = barHeight + 40; 
+    final double totalHeight = barHeight + 40 + bottomPadding; // On ajoute la marge au total
 
     const double centralButtonSize = 120.0; // Format XL Patron stable à 120px
 
@@ -228,12 +229,12 @@ class _CustomBottomNavBar extends StatelessWidget {
           // 1. Le CustomPainter dessinant le background en forme de dôme fluide
           CustomPaint(
             size: Size(MediaQuery.of(context).size.width, totalHeight),
-            painter: _DomePainter(barHeight: barHeight, domeHeight: notchDepth),
+            painter: _DomePainter(barHeight: barHeight, domeHeight: notchDepth, bottomPadding: bottomPadding),
           ),
 
           // 2. Les icônes latérales
           Positioned(
-            bottom: 0,
+            bottom: bottomPadding, // On surélève les icônes pour éviter la barre système
             left: 0,
             right: 0,
             height: barHeight,
@@ -269,20 +270,9 @@ class _CustomBottomNavBar extends StatelessWidget {
             ),
           ),
 
-          // 3.5 La Couche Blanche Structurée (Forme d'Oeil / Lentille synchronisée)
-          Positioned(
-            top: -8, // Réaligné: l'équateur Y=48 atterrit pile sur la ligne plate de la barre Y=40
-            left: 0,
-            right: 0,
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: SizedBox(
-                width: 140.0, // <-- Remonté à 140 pour redonner de l'air à l'icône
-                height: 96.0, // <-- Remonté à 96 pour un vrai margin arrondi visible
-                child: CustomPaint(painter: _EyeShapePainter()),
-              ),
-            ),
-          ),
+          // L'ancienne "Layer" a été supprimée pour la remplacer par un fond monolithique parfait
+
+
 
           Positioned(
             top: -25, 
@@ -298,7 +288,11 @@ class _CustomBottomNavBar extends StatelessWidget {
                   color: Colors.transparent,
                 ),
                 child: ClipOval(
-                  child: IaButton(onTap: viewModel.onVoiceIAClicked),
+                  // Nudge optical : Le logo "P" est asymétrique. On le décale manuellement de 4 pixels vers la gauche.
+                  child: Transform.translate(
+                    offset: const Offset(-4.0, 0),
+                    child: IaButton(onTap: viewModel.onVoiceIAClicked),
+                  ),
                 ),
               ),
             ),
@@ -312,8 +306,9 @@ class _CustomBottomNavBar extends StatelessWidget {
 class _DomePainter extends CustomPainter {
   final double barHeight;
   final double domeHeight;
+  final double bottomPadding;
 
-  _DomePainter({required this.barHeight, required this.domeHeight});
+  _DomePainter({required this.barHeight, required this.domeHeight, required this.bottomPadding});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -322,32 +317,37 @@ class _DomePainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     final path = Path();
-    final double barTop = size.height - barHeight;
+    final double barTop = size.height - (barHeight + bottomPadding); // 40.0
     
-    // VERROUILLAGE MATHÉMATIQUE : On clone les mensurations exactes de l'Oeill
-    final double eyeWidth = 140.0;
-    final double eyeHeight = 96.0;
-    final double notchFloor = -8.0 + eyeHeight; // Profondeur max alignée sur le bas de l'Oeil
-
-    final double centerX = size.width / 2;
-    final double startX = centerX - (eyeWidth / 2);
-    final double endX = centerX + (eyeWidth / 2);
-
+    final double cx = size.width / 2;
+    
+    // Le bouton central est à y=35 (centre) et a un rayon de 60px.
+    // Il descend donc jusqu'à y=95. Notre creux doit descendre un peu plus bas (ex: 102).
+    
     path.moveTo(0, barTop);
-    path.lineTo(startX, barTop);
+    
+    // Ligne droite jusqu'aux bords du bouton
+    path.lineTo(cx - 75, barTop);
 
-    // Clone Mathématique EXACT de la moitié inférieure gauche de l'Oeil
+    // 1. Descente douce (l'épaule plongeante)
     path.cubicTo(
-      startX + eyeWidth * 0.15, barTop,
-      startX + eyeWidth * 0.25, notchFloor,
-      centerX, notchFloor,
+      cx - 65, barTop, 
+      cx - 65, barTop + 15,
+      cx - 60, barTop + 25,
     );
 
-    // Clone Mathématique EXACT de la moitié inférieure droite de l'Oeil
+    // 2. Le creux profond qui enlace parfaitement la forme du bouton (le U du bas)
     path.cubicTo(
-      endX - eyeWidth * 0.25, notchFloor,
-      endX - eyeWidth * 0.15, barTop,
-      endX, barTop
+      cx - 45, 102, 
+      cx + 45, 102, 
+      cx + 60, barTop + 25,
+    );
+
+    // 3. Remontée douce (l'épaule sortante)
+    path.cubicTo(
+      cx + 65, barTop + 15, 
+      cx + 65, barTop, 
+      cx + 75, barTop,
     );
 
     path.lineTo(size.width, barTop);
@@ -355,8 +355,8 @@ class _DomePainter extends CustomPainter {
     path.lineTo(0, size.height);
     path.close();
 
-    // Ombre très légère
-    canvas.drawShadow(path, Colors.black.withOpacity(0.06), 10.0, true);
+    // Ombre nette et qualitative
+    canvas.drawShadow(path, Colors.black.withOpacity(0.08), 12.0, true);
     canvas.drawPath(path, paint);
   }
 
@@ -364,59 +364,6 @@ class _DomePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
-// Générateur du fond blanc en forme d'Oeil (Lentille) : pointu horizontalement, rond verticalement
-class _EyeShapePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Path path = Path();
-    final double cx = size.width / 2;
-    final double cy = size.height / 2;
-
-    // Pointe acérée à l'extrême gauche
-    path.moveTo(0, cy);
-    
-    // HAUT : Tire agressivement à l'horizontale (ailes extérieures) MAIS laisse le dôme large
-    path.cubicTo(
-      size.width * 0.15, cy,   // Point reculé vers l'extérieur pour ne pas écraser l'icône
-      size.width * 0.25, 0,    // Le dôme prend toute sa place
-      cx, 0,
-    );
-
-    path.cubicTo(
-      size.width * 0.75, 0,
-      size.width * 0.85, cy,   // Point reculé vers l'extérieur droit
-      size.width, cy,
-    );
-
-    // BAS : S'allonge horizontalement en bordure pour garder le ventre énorme
-    path.cubicTo(
-      size.width * 0.85, cy,
-      size.width * 0.75, size.height,
-      cx, size.height,
-    );
-
-    path.cubicTo(
-      size.width * 0.25, size.height,
-      size.width * 0.15, cy,
-      0, cy,
-    );
-    
-    path.close();
-
-    // Ombre légère pour fusionner visuellement la forme avec le fond de la barre
-    canvas.drawShadow(path, Colors.black.withOpacity(0.04), 10.0, true);
-    
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.fill,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
 
 class HomeHeader extends StatelessWidget {
   final HomeViewModel viewModel;
