@@ -149,6 +149,8 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
             onTap: () {
               if (promo['trKey'] == 'home.promo_discount') {
                 viewModel.navigateToPromogoFair();
+              } else if (promo['trKey'] == 'home.promo_categories') {
+                viewModel.navigateToMonAcademie();
               }
             },
             child: Container(

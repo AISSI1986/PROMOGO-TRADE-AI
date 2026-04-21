@@ -216,7 +216,22 @@
     "negotiate": "هل أنت منفتح على التفاوض؟",
     "section_promo": "ترقية الإعلان",
     "btn_submit": "نشر إعلاني",
-    "gallery": "المعرض",
+    "gallery": "معرض الصور",
     "camera": "الكاميرا"
+  },
+  "academy": {
+    "title": "أكاديميتي",
+    "formations": "الدورات",
+    "visio": "جلسة مرئية",
+    "espace": "مساحتي",
+    "certifications": "الشهادات",
+    "subtitle": "{count} دورات لإتقان التجارة الذكية والتسويق الرقمي.",
+    "filter_all": "الكل",
+    "level_all": "الكل",
+    "level_beginner": "مبتدئ",
+    "level_intermediate": "متوسط",
+    "level_advanced": "متقدم",
+    "see_course": "عرض الدورة",
+    "modules": "{count} وحدات"
   }
 }

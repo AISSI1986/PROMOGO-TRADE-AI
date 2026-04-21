@@ -214,5 +214,22 @@
     "btn_submit": "PUBLIER MON ANNONCE",
     "gallery": "Galerie",
     "camera": "Appareil photo"
+  },
+  "academy": {
+    "title": "Mon Académie",
+    "formations": "Formations",
+    "visio": "Séance Visio",
+    "espace": "Mon Espace",
+    "certifications": "Certifications",
+    "subtitle": "{count} formations pour maîtriser le commerce intelligent et le marketing digital.",
+    "filter_all": "Toutes",
+    "level_all": "Tous",
+    "level_beginner": "Débutant",
+    "level_intermediate": "Intermédiaire",
+    "level_advanced": "Avancé",
+    "see_course": "Voir la formation",
+    "modules": "{count} modules",
+    "coming_soon": "En cours de développement...",
+    "coming_soon_desc": "Cette fonctionnalité sera bientôt disponible."
   }
 }

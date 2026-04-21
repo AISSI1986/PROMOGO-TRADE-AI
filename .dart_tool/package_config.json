@@ -362,6 +362,12 @@
       "languageVersion": "2.18"
     },
     {
+      "name": "google_fonts",
+      "rootUri": "file:///C:/Users/kambi/AppData/Local/Pub/Cache/hosted/pub.flutter-io.cn/google_fonts-6.3.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.7"
+    },
+    {
       "name": "graphs",
       "rootUri": "file:///C:/Users/kambi/AppData/Local/Pub/Cache/hosted/pub.flutter-io.cn/graphs-2.3.2",
       "packageUri": "lib/",
@@ -1004,7 +1010,7 @@
       "languageVersion": "3.0"
     }
   ],
-  "generated": "2026-04-20T09:52:34.537777Z",
+  "generated": "2026-04-21T05:49:05.646507Z",
   "generator": "pub",
   "generatorVersion": "3.7.2",
   "flutterRoot": "file:///E:/FLU/flutter",

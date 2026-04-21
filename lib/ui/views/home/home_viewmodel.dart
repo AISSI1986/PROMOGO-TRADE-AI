@@ -9,6 +9,7 @@ import 'dart:ui';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:promogoai/ui/views/promogo_fair/promogo_fair_view.dart';
 import 'package:promogoai/ui/views/live_viewer/live_viewer_view.dart';
+import 'package:promogoai/ui/views/mon_academie/mon_academie_view.dart';
 
 class HomeViewModel extends BaseViewModel {
   final _navigationService = locator<NavigationService>();
@@ -158,6 +159,13 @@ class HomeViewModel extends BaseViewModel {
     _navigationService.navigateWithTransition(
       const LiveViewerView(),
       transitionStyle: Transition.fade,
+    );
+  }
+
+  void navigateToMonAcademie() {
+    _navigationService.navigateWithTransition(
+      const MonAcademieView(),
+      transitionStyle: Transition.rightToLeft,
     );
   }
 }

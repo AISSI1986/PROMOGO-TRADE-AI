@@ -214,5 +214,22 @@
     "btn_submit": "POST MY AD",
     "gallery": "Gallery",
     "camera": "Camera"
+  },
+  "academy": {
+    "title": "My Academy",
+    "formations": "Courses",
+    "visio": "Video Session",
+    "espace": "My Space",
+    "certifications": "Certifications",
+    "subtitle": "{count} courses to master intelligent commerce and digital marketing.",
+    "filter_all": "All",
+    "level_all": "All",
+    "level_beginner": "Beginner",
+    "level_intermediate": "Intermediate",
+    "level_advanced": "Advanced",
+    "see_course": "View Course",
+    "modules": "{count} modules",
+    "coming_soon": "Under development...",
+    "coming_soon_desc": "This feature will be available soon."
   }
 }
