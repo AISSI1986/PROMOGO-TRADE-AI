@@ -188,6 +188,7 @@ class ModeIaView extends StackedView<ModeIaViewModel> {
                         ],
                       ),
                     ),
+                    SizedBox(height: getBottomNavHeight(context) + 20), // Responsive space for the custom bottom nav bar
                   ],
                 ),
               ),

@@ -151,6 +151,8 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
                 viewModel.navigateToPromogoFair();
               } else if (promo['trKey'] == 'home.promo_categories') {
                 viewModel.navigateToMonAcademie();
+              } else if (promo['trKey'] == 'home.promo_devis') {
+                viewModel.navigateToDemandeDevis();
               }
             },
             child: Container(

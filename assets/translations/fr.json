@@ -231,5 +231,32 @@
     "modules": "{count} modules",
     "coming_soon": "En cours de développement...",
     "coming_soon_desc": "Cette fonctionnalité sera bientôt disponible."
+  },
+  "rfq": {
+    "title": "Demander un devis",
+    "hero_title": "Obtenez des devis pour votre demande personnalisée",
+    "hero_subtitle": "Trouvez rapidement les meilleurs prix et des fournisseurs adaptés à vos besoins",
+    "frequent_title": "Demandes de devis fréquentes",
+    "frequent_design": "Personnalisation du design",
+    "frequent_logo": "Personnalisation du logo",
+    "frequent_lot": "Personnalisation d'un lot",
+    "learn_more": "En savoir plus",
+    "form_title": "De quoi avez-vous besoin ?",
+    "form_hint": "Joignez une image ou saisissez des mots-clés. Par exemple : « 100 ours en peluche, voir la pièce jointe pour référence de design ».",
+    "form_ai": "Générer facilement des demandes de devis avec l'IA",
+    "form_submit": "Rédiger la demande",
+    "recommendations_history": "Recommandations de devis basées sur votre historique",
+    "recommendations_suggested": "Envoyez une demande à partir de ces produits recommandés",
+    "get_quotes_now": "Obtenez des devis maintenant",
+    "suppliers_count": "Plus de {count} fournisseurs pour...",
+    "form_description_placeholder": "Pour obtenir des devis plus précis de la part des fournisseurs, vous pouvez décrire vos exigences en détail, tels que vos besoins en matière de personnalisation, d'emballage et d'expédition.",
+    "form_ai_btn": "Rédiger grâce à l'IA",
+    "form_upload_title": "Téléverser des pièces jointes",
+    "form_add_image": "Ajouter une image",
+    "form_quantity_title": "Quantité d'approvisionnement",
+    "form_quantity_hint": "Veuillez entrer",
+    "form_share_card": "Je suis d'accord de partager ma carte de visite avec les fournisseurs desquels j'ai reçu des offres.",
+    "form_accept_terms": "J'ai lu, compris et accepté de respecter les règles de publication des demandes d'achat",
+    "form_post_btn": "Postez votre demande pour obtenir des devis précis"
   }
 }

@@ -231,5 +231,32 @@
     "modules": "{count} modules",
     "coming_soon": "Under development...",
     "coming_soon_desc": "This feature will be available soon."
+  },
+  "rfq": {
+    "title": "Request a Quote",
+    "hero_title": "Get quotes for your personalized request",
+    "hero_subtitle": "Quickly find the best prices and suppliers tailored to your needs",
+    "frequent_title": "Frequent quote requests",
+    "frequent_design": "Design customization",
+    "frequent_logo": "Logo customization",
+    "frequent_lot": "Batch customization",
+    "learn_more": "Learn more",
+    "form_title": "What do you need?",
+    "form_hint": "Attach an image or enter keywords. For example: '100 teddy bears, see attachment for design reference'.",
+    "form_ai": "Easily generate quote requests with AI",
+    "form_submit": "Draft request",
+    "recommendations_history": "Quote recommendations based on your history",
+    "recommendations_suggested": "Send a request from these recommended products",
+    "get_quotes_now": "Get quotes now",
+    "suppliers_count": "More than {count} suppliers for...",
+    "form_description_placeholder": "To get more precise quotes from suppliers, you can describe your requirements in detail, such as your needs for customization, packaging and shipping.",
+    "form_ai_btn": "Write with AI",
+    "form_upload_title": "Upload attachments",
+    "form_add_image": "Add an image",
+    "form_quantity_title": "Procurement quantity",
+    "form_quantity_hint": "Please enter",
+    "form_share_card": "I agree to share my business card with the suppliers from whom I received offers.",
+    "form_accept_terms": "I have read, understood and accepted to respect the purchase request publication rules",
+    "form_post_btn": "Post your request to get precise quotes"
   }
 }

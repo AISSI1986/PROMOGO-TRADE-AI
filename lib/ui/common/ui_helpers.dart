@@ -90,3 +90,10 @@ double getResponsiveFontSize(
 
   return responsiveSize;
 }
+
+double getBottomNavHeight(BuildContext context) {
+  final double bottomPadding = MediaQuery.of(context).padding.bottom;
+  const double baseBarHeight = 85.0;
+  const double notchHeight = 40.0;
+  return baseBarHeight + notchHeight + bottomPadding;
+}

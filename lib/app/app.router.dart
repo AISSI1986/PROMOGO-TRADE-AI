@@ -5,15 +5,19 @@
 // **************************************************************************
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'package:flutter/material.dart' as _i21;
+import 'package:flutter/material.dart' as _i24;
 import 'package:flutter/material.dart';
-import 'package:promogoai/models/product.dart' as _i22;
+import 'package:promogoai/models/product.dart' as _i25;
 import 'package:promogoai/ui/views/cart/cart_view.dart' as _i19;
+import 'package:promogoai/ui/views/demande_devis/demande_devis_view.dart'
+    as _i22;
+import 'package:promogoai/ui/views/demande_devis/form_devis_view.dart' as _i23;
 import 'package:promogoai/ui/views/home/home_view.dart' as _i2;
 import 'package:promogoai/ui/views/language/language_view.dart' as _i12;
 import 'package:promogoai/ui/views/login/login_view.dart' as _i8;
 import 'package:promogoai/ui/views/mode_ia/mode_ia_view.dart' as _i4;
 import 'package:promogoai/ui/views/moi/moi_view.dart' as _i5;
+import 'package:promogoai/ui/views/mon_academie/mon_academie_view.dart' as _i21;
 import 'package:promogoai/ui/views/my_publications/my_publications_view.dart'
     as _i18;
 import 'package:promogoai/ui/views/onboarding/onboarding_view.dart' as _i7;
@@ -31,7 +35,7 @@ import 'package:promogoai/ui/views/startup/startup_view.dart' as _i3;
 import 'package:promogoai/ui/views/support/support_view.dart' as _i14;
 import 'package:promogoai/ui/views/vendre/vendre_view.dart' as _i11;
 import 'package:stacked/stacked.dart' as _i1;
-import 'package:stacked_services/stacked_services.dart' as _i23;
+import 'package:stacked_services/stacked_services.dart' as _i26;
 
 class Routes {
   static const homeView = '/home-view';
@@ -72,6 +76,12 @@ class Routes {
 
   static const promogoFairView = '/promogo-fair-view';
 
+  static const monAcademieView = '/mon-academie-view';
+
+  static const demandeDevisView = '/demande-devis-view';
+
+  static const formDevisView = '/form-devis-view';
+
   static const all = <String>{
     homeView,
     startupView,
@@ -92,6 +102,9 @@ class Routes {
     myPublicationsView,
     cartView,
     promogoFairView,
+    monAcademieView,
+    demandeDevisView,
+    formDevisView,
   };
 }
 
@@ -173,124 +186,154 @@ class StackedRouter extends _i1.RouterBase {
       Routes.promogoFairView,
       page: _i20.PromogoFairView,
     ),
+    _i1.RouteDef(
+      Routes.monAcademieView,
+      page: _i21.MonAcademieView,
+    ),
+    _i1.RouteDef(
+      Routes.demandeDevisView,
+      page: _i22.DemandeDevisView,
+    ),
+    _i1.RouteDef(
+      Routes.formDevisView,
+      page: _i23.FormDevisView,
+    ),
   ];
 
   final _pagesMap = <Type, _i1.StackedRouteFactory>{
     _i2.HomeView: (data) {
-      return _i21.MaterialPageRoute<dynamic>(
+      return _i24.MaterialPageRoute<dynamic>(
         builder: (context) => const _i2.HomeView(),
         settings: data,
       );
     },
     _i3.StartupView: (data) {
-      return _i21.MaterialPageRoute<dynamic>(
+      return _i24.MaterialPageRoute<dynamic>(
         builder: (context) => const _i3.StartupView(),
         settings: data,
       );
     },
     _i4.ModeIaView: (data) {
-      return _i21.MaterialPageRoute<dynamic>(
+      return _i24.MaterialPageRoute<dynamic>(
         builder: (context) => const _i4.ModeIaView(),
         settings: data,
       );
     },
     _i5.MoiView: (data) {
-      return _i21.MaterialPageRoute<dynamic>(
+      return _i24.MaterialPageRoute<dynamic>(
         builder: (context) => const _i5.MoiView(),
         settings: data,
       );
     },
     _i6.ReglagesView: (data) {
-      return _i21.MaterialPageRoute<dynamic>(
+      return _i24.MaterialPageRoute<dynamic>(
         builder: (context) => const _i6.ReglagesView(),
         settings: data,
       );
     },
     _i7.OnboardingView: (data) {
-      return _i21.MaterialPageRoute<dynamic>(
+      return _i24.MaterialPageRoute<dynamic>(
         builder: (context) => const _i7.OnboardingView(),
         settings: data,
       );
     },
     _i8.LoginView: (data) {
-      return _i21.MaterialPageRoute<dynamic>(
+      return _i24.MaterialPageRoute<dynamic>(
         builder: (context) => const _i8.LoginView(),
         settings: data,
       );
     },
     _i9.RegisterView: (data) {
-      return _i21.MaterialPageRoute<dynamic>(
+      return _i24.MaterialPageRoute<dynamic>(
         builder: (context) => const _i9.RegisterView(),
         settings: data,
       );
     },
     _i10.OtpView: (data) {
       final args = data.getArgs<OtpViewArguments>(nullOk: false);
-      return _i21.MaterialPageRoute<dynamic>(
+      return _i24.MaterialPageRoute<dynamic>(
         builder: (context) =>
             _i10.OtpView(key: args.key, phoneNumber: args.phoneNumber),
         settings: data,
       );
     },
     _i11.VendreView: (data) {
-      return _i21.MaterialPageRoute<dynamic>(
+      return _i24.MaterialPageRoute<dynamic>(
         builder: (context) => const _i11.VendreView(),
         settings: data,
       );
     },
     _i12.LanguageView: (data) {
-      return _i21.MaterialPageRoute<dynamic>(
+      return _i24.MaterialPageRoute<dynamic>(
         builder: (context) => const _i12.LanguageView(),
         settings: data,
       );
     },
     _i13.ProductDetailView: (data) {
       final args = data.getArgs<ProductDetailViewArguments>(nullOk: false);
-      return _i21.MaterialPageRoute<dynamic>(
+      return _i24.MaterialPageRoute<dynamic>(
         builder: (context) =>
             _i13.ProductDetailView(key: args.key, product: args.product),
         settings: data,
       );
     },
     _i14.SupportView: (data) {
-      return _i21.MaterialPageRoute<dynamic>(
+      return _i24.MaterialPageRoute<dynamic>(
         builder: (context) => const _i14.SupportView(),
         settings: data,
       );
     },
     _i15.SellerDashboardView: (data) {
-      return _i21.MaterialPageRoute<dynamic>(
+      return _i24.MaterialPageRoute<dynamic>(
         builder: (context) => const _i15.SellerDashboardView(),
         settings: data,
       );
     },
     _i16.SellerKycView: (data) {
-      return _i21.MaterialPageRoute<dynamic>(
+      return _i24.MaterialPageRoute<dynamic>(
         builder: (context) => const _i16.SellerKycView(),
         settings: data,
       );
     },
     _i17.SavedView: (data) {
-      return _i21.MaterialPageRoute<dynamic>(
+      return _i24.MaterialPageRoute<dynamic>(
         builder: (context) => const _i17.SavedView(),
         settings: data,
       );
     },
     _i18.MyPublicationsView: (data) {
-      return _i21.MaterialPageRoute<dynamic>(
+      return _i24.MaterialPageRoute<dynamic>(
         builder: (context) => const _i18.MyPublicationsView(),
         settings: data,
       );
     },
     _i19.CartView: (data) {
-      return _i21.MaterialPageRoute<dynamic>(
+      return _i24.MaterialPageRoute<dynamic>(
         builder: (context) => const _i19.CartView(),
         settings: data,
       );
     },
     _i20.PromogoFairView: (data) {
-      return _i21.MaterialPageRoute<dynamic>(
+      return _i24.MaterialPageRoute<dynamic>(
         builder: (context) => const _i20.PromogoFairView(),
+        settings: data,
+      );
+    },
+    _i21.MonAcademieView: (data) {
+      return _i24.MaterialPageRoute<dynamic>(
+        builder: (context) => const _i21.MonAcademieView(),
+        settings: data,
+      );
+    },
+    _i22.DemandeDevisView: (data) {
+      return _i24.MaterialPageRoute<dynamic>(
+        builder: (context) => const _i22.DemandeDevisView(),
+        settings: data,
+      );
+    },
+    _i23.FormDevisView: (data) {
+      return _i24.MaterialPageRoute<dynamic>(
+        builder: (context) => const _i23.FormDevisView(),
         settings: data,
       );
     },
@@ -309,7 +352,7 @@ class OtpViewArguments {
     required this.phoneNumber,
   });
 
-  final _i21.Key? key;
+  final _i24.Key? key;
 
   final String phoneNumber;
 
@@ -336,9 +379,9 @@ class ProductDetailViewArguments {
     required this.product,
   });
 
-  final _i21.Key? key;
+  final _i24.Key? key;
 
-  final _i22.Product product;
+  final _i25.Product product;
 
   @override
   String toString() {
@@ -357,7 +400,7 @@ class ProductDetailViewArguments {
   }
 }
 
-extension NavigatorStateExtension on _i23.NavigationService {
+extension NavigatorStateExtension on _i26.NavigationService {
   Future<dynamic> navigateToHomeView([
     int? routerId,
     bool preventDuplicates = true,
@@ -471,7 +514,7 @@ extension NavigatorStateExtension on _i23.NavigationService {
   }
 
   Future<dynamic> navigateToOtpView({
-    _i21.Key? key,
+    _i24.Key? key,
     required String phoneNumber,
     int? routerId,
     bool preventDuplicates = true,
@@ -516,8 +559,8 @@ extension NavigatorStateExtension on _i23.NavigationService {
   }
 
   Future<dynamic> navigateToProductDetailView({
-    _i21.Key? key,
-    required _i22.Product product,
+    _i24.Key? key,
+    required _i25.Product product,
     int? routerId,
     bool preventDuplicates = true,
     Map<String, String>? parameters,
@@ -624,6 +667,48 @@ extension NavigatorStateExtension on _i23.NavigationService {
         transition,
   ]) async {
     return navigateTo<dynamic>(Routes.promogoFairView,
+        id: routerId,
+        preventDuplicates: preventDuplicates,
+        parameters: parameters,
+        transition: transition);
+  }
+
+  Future<dynamic> navigateToMonAcademieView([
+    int? routerId,
+    bool preventDuplicates = true,
+    Map<String, String>? parameters,
+    Widget Function(BuildContext, Animation<double>, Animation<double>, Widget)?
+        transition,
+  ]) async {
+    return navigateTo<dynamic>(Routes.monAcademieView,
+        id: routerId,
+        preventDuplicates: preventDuplicates,
+        parameters: parameters,
+        transition: transition);
+  }
+
+  Future<dynamic> navigateToDemandeDevisView([
+    int? routerId,
+    bool preventDuplicates = true,
+    Map<String, String>? parameters,
+    Widget Function(BuildContext, Animation<double>, Animation<double>, Widget)?
+        transition,
+  ]) async {
+    return navigateTo<dynamic>(Routes.demandeDevisView,
+        id: routerId,
+        preventDuplicates: preventDuplicates,
+        parameters: parameters,
+        transition: transition);
+  }
+
+  Future<dynamic> navigateToFormDevisView([
+    int? routerId,
+    bool preventDuplicates = true,
+    Map<String, String>? parameters,
+    Widget Function(BuildContext, Animation<double>, Animation<double>, Widget)?
+        transition,
+  ]) async {
+    return navigateTo<dynamic>(Routes.formDevisView,
         id: routerId,
         preventDuplicates: preventDuplicates,
         parameters: parameters,
@@ -743,7 +828,7 @@ extension NavigatorStateExtension on _i23.NavigationService {
   }
 
   Future<dynamic> replaceWithOtpView({
-    _i21.Key? key,
+    _i24.Key? key,
     required String phoneNumber,
     int? routerId,
     bool preventDuplicates = true,
@@ -788,8 +873,8 @@ extension NavigatorStateExtension on _i23.NavigationService {
   }
 
   Future<dynamic> replaceWithProductDetailView({
-    _i21.Key? key,
-    required _i22.Product product,
+    _i24.Key? key,
+    required _i25.Product product,
     int? routerId,
     bool preventDuplicates = true,
     Map<String, String>? parameters,
@@ -896,6 +981,48 @@ extension NavigatorStateExtension on _i23.NavigationService {
         transition,
   ]) async {
     return replaceWith<dynamic>(Routes.promogoFairView,
+        id: routerId,
+        preventDuplicates: preventDuplicates,
+        parameters: parameters,
+        transition: transition);
+  }
+
+  Future<dynamic> replaceWithMonAcademieView([
+    int? routerId,
+    bool preventDuplicates = true,
+    Map<String, String>? parameters,
+    Widget Function(BuildContext, Animation<double>, Animation<double>, Widget)?
+        transition,
+  ]) async {
+    return replaceWith<dynamic>(Routes.monAcademieView,
+        id: routerId,
+        preventDuplicates: preventDuplicates,
+        parameters: parameters,
+        transition: transition);
+  }
+
+  Future<dynamic> replaceWithDemandeDevisView([
+    int? routerId,
+    bool preventDuplicates = true,
+    Map<String, String>? parameters,
+    Widget Function(BuildContext, Animation<double>, Animation<double>, Widget)?
+        transition,
+  ]) async {
+    return replaceWith<dynamic>(Routes.demandeDevisView,
+        id: routerId,
+        preventDuplicates: preventDuplicates,
+        parameters: parameters,
+        transition: transition);
+  }
+
+  Future<dynamic> replaceWithFormDevisView([
+    int? routerId,
+    bool preventDuplicates = true,
+    Map<String, String>? parameters,
+    Widget Function(BuildContext, Animation<double>, Animation<double>, Widget)?
+        transition,
+  ]) async {
+    return replaceWith<dynamic>(Routes.formDevisView,
         id: routerId,
         preventDuplicates: preventDuplicates,
         parameters: parameters,

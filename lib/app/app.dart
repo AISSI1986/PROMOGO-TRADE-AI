@@ -29,6 +29,8 @@ import 'package:promogoai/ui/views/live_broadcaster/live_broadcaster_view.dart';
 import 'package:promogoai/services/srs_streaming_service.dart';
 import 'package:promogoai/services/local_storage_service.dart';
 import 'package:promogoai/ui/views/mon_academie/mon_academie_view.dart';
+import 'package:promogoai/ui/views/demande_devis/demande_devis_view.dart';
+import 'package:promogoai/ui/views/demande_devis/form_devis_view.dart';
 // @stacked-import
 
 @StackedApp(
@@ -53,6 +55,8 @@ import 'package:promogoai/ui/views/mon_academie/mon_academie_view.dart';
     MaterialRoute(page: CartView),
     MaterialRoute(page: PromogoFairView),
     MaterialRoute(page: MonAcademieView),
+    MaterialRoute(page: DemandeDevisView),
+    MaterialRoute(page: FormDevisView),
     // @stacked-route
   ],
   dependencies: [

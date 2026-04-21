@@ -4,6 +4,7 @@ import 'package:stacked/stacked.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:promogoai/ui/common/app_colors.dart';
 import 'package:promogoai/ui/views/mode_ia/mode_ia_view.dart';
+import 'package:promogoai/ui/common/ui_helpers.dart';
 import 'package:promogoai/ui/views/home/widgets/ia_button.dart';
 
 
@@ -214,14 +215,12 @@ class _CustomBottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final double bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    // AUGMENTATION FORTE DE LA HAUTEUR DE LA BARRE (+15px encore !)
-    // Cela 'remonte' tout le bloc de l'œil et du creux plus haut sur l'écran
-    // en dévoilant une très abondante marge blanche d'appBar en dessous.
-    const double barHeight = 85.0; 
-    const double notchDepth = 40.0; // Variable restaurée pour la compilation
+    final double totalHeight = getBottomNavHeight(context);
+    const double barHeight = 85.0;
+    const double notchDepth = 40.0;
     
     // The top padding above the white bar to accommodate the protruding 3D eye/button
-    final double totalHeight = barHeight + 40 + bottomPadding; // On ajoute la marge au total
+    // totalHeight est déjà calculé responsivement via getBottomNavHeight.
 
     const double centralButtonSize = 120.0; // Format XL Patron stable à 120px
 
@@ -490,7 +489,7 @@ class HomeHeader extends StatelessWidget {
             ),
           Stack(
             children: [
-              if (viewModel.showPromotion) Container(height: 110, color: kcPrimaryColor), // Augmenté pour correspondre à la nouvelle hauteur
+              if (viewModel.showPromotion) Container(height: 40, color: kcPrimaryColor),
 
 
               Container(
@@ -593,14 +592,14 @@ class HomeHeader extends StatelessWidget {
         onTap: () => viewModel.navigateToLiveViewer(),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFFF2D55) : Colors.transparent,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: const Color(0xFFFF2D55),
-              width: 1.5,
+            decoration: BoxDecoration(
+              color: isSelected ? const Color(0xFFFF2D55).withOpacity(0.08) : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: const Color(0xFFFF2D55).withOpacity(isSelected ? 0.3 : 0.15),
+                width: 1.0,
+              ),
             ),
-          ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -613,10 +612,10 @@ class HomeHeader extends StatelessWidget {
               Text(
                 title.toUpperCase(),
                 style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                  color: isSelected ? Colors.white : const Color(0xFFFF2D55),
-                  letterSpacing: 0.5,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFFFF2D55),
+                  letterSpacing: 0.8,
                 ),
               ),
             ],
