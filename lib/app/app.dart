@@ -4,6 +4,7 @@ import 'package:promogoai/ui/views/register/register_view.dart';
 import 'package:promogoai/ui/views/otp/otp_view.dart';
 import 'package:promogoai/ui/bottom_sheets/otp/otp_sheet.dart';
 import 'package:promogoai/ui/bottom_sheets/settings/settings_sheet.dart';
+import 'package:promogoai/ui/bottom_sheets/ai_voice/ai_voice_sheet.dart';
 import 'package:promogoai/ui/dialogs/info_alert/info_alert_dialog.dart';
 import 'package:promogoai/ui/views/home/home_view.dart';
 import 'package:promogoai/ui/views/startup/startup_view.dart';
@@ -27,10 +28,13 @@ import 'package:promogoai/ui/views/promogo_fair/promogo_fair_view.dart';
 import 'package:promogoai/ui/views/live_viewer/live_viewer_view.dart';
 import 'package:promogoai/ui/views/live_broadcaster/live_broadcaster_view.dart';
 import 'package:promogoai/services/srs_streaming_service.dart';
+import 'package:promogoai/services/category_service.dart';
 import 'package:promogoai/services/local_storage_service.dart';
 import 'package:promogoai/ui/views/mon_academie/mon_academie_view.dart';
 import 'package:promogoai/ui/views/demande_devis/demande_devis_view.dart';
 import 'package:promogoai/ui/views/demande_devis/form_devis_view.dart';
+import 'package:promogoai/services/ai_voice_service.dart';
+import 'package:promogoai/services/auth_service.dart';
 // @stacked-import
 
 @StackedApp(
@@ -63,15 +67,20 @@ import 'package:promogoai/ui/views/demande_devis/form_devis_view.dart';
     LazySingleton(classType: BottomSheetService),
     LazySingleton(classType: DialogService),
     LazySingleton(classType: NavigationService),
+    LazySingleton(classType: SnackbarService),
     LazySingleton(classType: SettingsService),
     LazySingleton(classType: SrsStreamingService),
+    LazySingleton(classType: AiVoiceService),
     InitializableSingleton(classType: LocalStorageService),
+    LazySingleton(classType: AuthService),
+    LazySingleton(classType: CategoryService),
     // @stacked-service
   ],
   bottomsheets: [
     StackedBottomsheet(classType: NoticeSheet),
     StackedBottomsheet(classType: SettingsSheet),
     StackedBottomsheet(classType: OtpSheet),
+    StackedBottomsheet(classType: AiVoiceSheet),
     // @stacked-bottom-sheet
   ],
   dialogs: [

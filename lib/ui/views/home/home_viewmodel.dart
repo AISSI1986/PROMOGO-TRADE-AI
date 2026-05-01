@@ -11,9 +11,11 @@ import 'package:promogoai/ui/views/promogo_fair/promogo_fair_view.dart';
 import 'package:promogoai/ui/views/live_viewer/live_viewer_view.dart';
 import 'package:promogoai/ui/views/mon_academie/mon_academie_view.dart';
 import 'package:promogoai/ui/views/demande_devis/demande_devis_view.dart';
+import 'package:promogoai/app/app.bottomsheets.dart';
 
 class HomeViewModel extends BaseViewModel {
   final _navigationService = locator<NavigationService>();
+  final _bottomSheetService = locator<BottomSheetService>();
 
   int _currentIndex = 0;
   int get currentIndex => _currentIndex;
@@ -35,13 +37,7 @@ class HomeViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  // Voice recording state
-  bool _isRecording = false;
-  bool get isRecording => _isRecording;
 
-  // Controls whether the voice recording bottom sheet should be shown
-  bool _showVoiceSheet = false;
-  bool get showVoiceSheet => _showVoiceSheet;
 
   void togglePromotion(bool value) {
     _showPromotion = value;
@@ -104,42 +100,19 @@ class HomeViewModel extends BaseViewModel {
   }
 
   /// Called when the IA button is tapped.
-  /// Requests microphone permission and toggles the voice recording sheet.
+  /// Requests microphone permission and shows the AI Voice sheet.
   Future<void> onVoiceIAClicked() async {
     final status = await Permission.microphone.request();
     if (status.isGranted) {
-      _showVoiceSheet = true;
-      notifyListeners();
+      // Use Stacked BottomSheetService to show the newly created AiVoiceSheet
+      await _bottomSheetService.showCustomSheet(
+        variant: BottomSheetType.aiVoice,
+        isScrollControlled: true,
+        barrierColor: const Color(0x00000000), // N'assombrit pas l'écran
+      );
     } else {
       print('Microphone permission denied');
     }
-  }
-
-  /// Toggles recording state (called from the voice sheet UI)
-  void toggleRecording() {
-    _isRecording = !_isRecording;
-    notifyListeners();
-
-    if (!_isRecording) {
-      // Recording stopped — later, send audio to transformer model
-      _processVoiceResult();
-    }
-  }
-
-  /// Closes the voice sheet
-  void closeVoiceSheet() {
-    _showVoiceSheet = false;
-    _isRecording = false;
-    notifyListeners();
-  }
-
-  /// Placeholder: process voice result
-  /// Later this will send audio data to a transformer model
-  void _processVoiceResult() {
-    print('Audio enregistré — prêt à envoyer au modèle transformer');
-    // TODO: Envoyer l'audio au modèle transformer pour:
-    // - Recherche de produit
-    // - Navigation (ex: "panier", "profil", etc.)
   }
 
   void navigateToProductDetail(Product product) {

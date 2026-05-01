@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:promogoai/ui/common/app_colors.dart';
 import 'package:promogoai/ui/common/ui_helpers.dart';
 import 'package:stacked/stacked.dart';
@@ -79,22 +80,28 @@ class LoginView extends StackedView<LoginViewModel> {
                       child: TextField(
                         keyboardType: TextInputType.phone,
                         onChanged: (val) => viewModel.phoneNumber = val,
-                        decoration: const InputDecoration(
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        decoration: InputDecoration(
                           labelText: 'Téléphone',
-                          prefixIcon: Icon(Icons.phone_outlined),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.zero),
+                          errorText: viewModel.phoneError,
+                          prefixIcon: const Icon(Icons.phone_outlined),
+                          border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
                         ),
                       ),
                     ),
                   ],
                 ),
                 verticalSpaceMedium,
-                const TextField(
+                TextField(
                   obscureText: true,
+                  onChanged: (val) => viewModel.password = val,
                   decoration: InputDecoration(
                     labelText: 'Mot de passe',
-                    prefixIcon: Icon(Icons.lock_outline),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.zero),
+                    errorText: viewModel.passwordError,
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
                   ),
                 ),
                 verticalSpaceSmall,
@@ -111,13 +118,20 @@ class LoginView extends StackedView<LoginViewModel> {
                   width: double.infinity,
                   height: 55,
                   child: ElevatedButton(
-                    onPressed: viewModel.navigateToHome,
+                    onPressed: viewModel.isBusy ? null : viewModel.login,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: kcPrimaryColor,
+                      foregroundColor: Colors.white,
                       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                     ),
-                    child: const Text('Se connecter',
-                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    child: viewModel.isBusy 
+                      ? const SizedBox(
+                          height: 20, 
+                          width: 20, 
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                        )
+                      : const Text('Se connecter',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   ),
                 ),
                 verticalSpaceMedium, // Espacement réduit

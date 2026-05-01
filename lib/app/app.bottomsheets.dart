@@ -1,4 +1,5 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// dart format width=80
 
 // **************************************************************************
 // StackedBottomsheetGenerator
@@ -7,6 +8,7 @@
 import 'package:stacked_services/stacked_services.dart';
 
 import 'app.locator.dart';
+import '../ui/bottom_sheets/ai_voice/ai_voice_sheet.dart';
 import '../ui/bottom_sheets/notice/notice_sheet.dart';
 import '../ui/bottom_sheets/otp/otp_sheet.dart';
 import '../ui/bottom_sheets/settings/settings_sheet.dart';
@@ -15,6 +17,7 @@ enum BottomSheetType {
   notice,
   settings,
   otp,
+  aiVoice,
 }
 
 void setupBottomSheetUi() {
@@ -27,6 +30,8 @@ void setupBottomSheetUi() {
         SettingsSheet(request: request, completer: completer),
     BottomSheetType.otp: (context, request, completer) =>
         OtpSheet(request: request, completer: completer),
+    BottomSheetType.aiVoice: (context, request, completer) =>
+        AiVoiceSheet(request: request, completer: completer),
   };
 
   bottomsheetService.setCustomSheetBuilders(builders);

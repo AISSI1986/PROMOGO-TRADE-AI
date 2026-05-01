@@ -11,50 +11,13 @@ import 'package:promogoai/ui/views/home/widgets/ia_button.dart';
 import 'package:promogoai/ui/views/moi/moi_view.dart';
 import 'package:promogoai/ui/views/vendre/vendre_view.dart';
 import 'widgets/produits_component.dart';
-import 'widgets/voice_recording_sheet.dart';
-
 import 'home_viewmodel.dart';
 
 class HomeView extends StackedView<HomeViewModel> {
   const HomeView({Key? key}) : super(key: key);
 
   @override
-  void onViewModelReady(HomeViewModel viewModel) {
-    super.onViewModelReady(viewModel);
-    // Listen for showVoiceSheet changes to show the bottom sheet
-    viewModel.addListener(() {
-      if (viewModel.showVoiceSheet) {
-        _showVoiceBottomSheet(viewModel);
-        viewModel.closeVoiceSheet(); // Reset the flag
-      }
-    });
-  }
-
-  void _showVoiceBottomSheet(HomeViewModel viewModel) {
-    // We need to use a global key or the navigation service to get the context
-  }
-
-  @override
   Widget builder(BuildContext context, HomeViewModel viewModel, Widget? child) {
-    // Show voice bottom sheet when triggered
-    if (viewModel.showVoiceSheet) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        showModalBottomSheet(
-          context: context,
-          backgroundColor: Colors.transparent,
-          isScrollControlled: true,
-          builder: (_) => VoiceRecordingSheet(
-            isRecording: viewModel.isRecording,
-            onToggleRecording: viewModel.toggleRecording,
-            onClose: () {
-              viewModel.closeVoiceSheet();
-              Navigator.of(context).pop();
-            },
-          ),
-        );
-      });
-    }
-
     return Scaffold(
       backgroundColor: kcBackgroundColor,
       resizeToAvoidBottomInset: false,

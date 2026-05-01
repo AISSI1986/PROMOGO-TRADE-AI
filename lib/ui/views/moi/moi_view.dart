@@ -64,7 +64,28 @@ class MoiView extends StackedView<MoiViewModel> {
                 ],
               ),
             ),
-            const SizedBox(height: 32),
+
+            // 5. Action de déconnexion (Stand-alone en bas)
+            if (viewModel.isLogged)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                child: Center(
+                  child: TextButton.icon(
+                    onPressed: viewModel.logout,
+                    icon: const Icon(Icons.logout, color: Colors.red, size: 20),
+                    label: const Text(
+                      'Se déconnecter',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            
+            const SizedBox(height: 120),
           ],
         ),
       ),
@@ -91,7 +112,18 @@ class MoiView extends StackedView<MoiViewModel> {
               shape: BoxShape.circle,
               border: Border.all(color: kcPrimaryColor.withOpacity(0.1), width: 2),
             ),
-            child: Icon(Icons.person, color: kcMediumGrey, size: isSmallScreen ? 30 : 40),
+            child: viewModel.isLogged 
+              ? Center(
+                  child: Text(
+                    viewModel.userInitials,
+                    style: TextStyle(
+                      color: kcPrimaryColor,
+                      fontSize: isSmallScreen ? 20 : 26,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
+              : Icon(Icons.person, color: kcMediumGrey, size: isSmallScreen ? 30 : 40),
           ),
           const SizedBox(width: 12),
           
@@ -102,21 +134,24 @@ class MoiView extends StackedView<MoiViewModel> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'moi.welcome'.tr(),
+                  viewModel.isLogged 
+                    ? 'Bienvenue, ${viewModel.userName} !' 
+                    : 'moi.welcome'.tr(),
                   style: TextStyle(
-                    fontSize: getResponsiveFontSize(context, fontSize: 24, max: 28),
+                    fontSize: getResponsiveFontSize(context, fontSize: 18, max: 20),
                     fontWeight: FontWeight.w900,
                     color: kcPrimaryColor,
-                    height: 1.1,
                   ),
+                  maxLines: 2,
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'moi.welcome_subtitle'.tr(),
+                  viewModel.isLogged 
+                    ? 'Ravi de vous revoir sur PROMOGO AI'
+                    : 'moi.welcome_subtitle'.tr(),
                   style: TextStyle(
-                    fontSize: getResponsiveFontSize(context, fontSize: 14, max: 16), 
+                    fontSize: getResponsiveFontSize(context, fontSize: 13, max: 14), 
                     color: kcMediumGrey,
-                    height: 1.3,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -127,32 +162,27 @@ class MoiView extends StackedView<MoiViewModel> {
           
           const SizedBox(width: 8),
 
-          // Bouton Se Connecter
-          Flexible(
-            flex: 0,
-            child: ElevatedButton(
-              onPressed: viewModel.onConnectOrRegister,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kcPrimaryColor,
-                foregroundColor: kcTabIndicatorColor,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                padding: EdgeInsets.symmetric(
-                  horizontal: isSmallScreen ? 10 : 16, 
-                  vertical: isSmallScreen ? 8 : 10
+          // Bouton Se Connecter (Seulement si NON connecté)
+          if (!viewModel.isLogged)
+            Flexible(
+              flex: 0,
+              child: ElevatedButton(
+                onPressed: viewModel.onConnectOrRegister,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kcPrimaryColor,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Text(
-                'moi.connect'.tr(),
-                style: TextStyle(
-                  fontWeight: FontWeight.bold, 
-                  fontSize: getResponsiveFontSize(context, fontSize: 13, max: 14)
+                child: Text(
+                  'moi.connect'.tr(),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -244,17 +274,35 @@ class MoiView extends StackedView<MoiViewModel> {
   }
 
 
-  Widget _buildListItem({required IconData icon, required String title, VoidCallback? onTap}) {
+  Widget _buildListItem({
+    required IconData icon, 
+    required String title, 
+    Color? color,
+    bool showArrow = true,
+    VoidCallback? onTap
+  }) {
     return ListTile(
-      leading: Icon(icon, color: kcTabIndicatorColor, size: 22),
-      title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kcPrimaryColor)),
-      trailing: const Icon(Icons.chevron_right, size: 18, color: kcMediumGrey),
+      leading: Icon(icon, color: color ?? kcTabIndicatorColor, size: 22),
+      title: Text(
+        title, 
+        style: TextStyle(
+          fontSize: 14, 
+          fontWeight: FontWeight.w600, 
+          color: color ?? kcPrimaryColor
+        )
+      ),
+      trailing: showArrow 
+        ? const Icon(Icons.chevron_right, size: 18, color: kcMediumGrey)
+        : null,
       onTap: onTap ?? () {},
     );
   }
 
   @override
   MoiViewModel viewModelBuilder(BuildContext context) => MoiViewModel();
+
+  @override
+  void onViewModelReady(MoiViewModel viewModel) => viewModel.init();
 }
 
 class _FeatureItem extends StatelessWidget {

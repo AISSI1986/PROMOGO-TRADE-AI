@@ -41,6 +41,9 @@ class RegisterView extends StackedView<RegisterViewModel> {
 
   @override
   RegisterViewModel viewModelBuilder(BuildContext context) => RegisterViewModel();
+
+  @override
+  void onViewModelReady(RegisterViewModel viewModel) => viewModel.init();
 }
 
 class _StepPersonalInfo extends ViewModelWidget<RegisterViewModel> {
@@ -67,13 +70,72 @@ class _StepPersonalInfo extends ViewModelWidget<RegisterViewModel> {
             _buildTextField(
               label: 'Votre Nom',
               icon: Icons.person_outline,
-              onChanged: (val) => viewModel.lastName = val,
+              controller: viewModel.lastNameController,
+              onChanged: (val) {
+                viewModel.lastName = val;
+                viewModel.updateField();
+              },
             ),
             verticalSpaceMedium,
             _buildTextField(
               label: 'Votre Prénom',
               icon: Icons.person_outline,
-              onChanged: (val) => viewModel.firstName = val,
+              controller: viewModel.firstNameController,
+              onChanged: (val) {
+                viewModel.firstName = val;
+                viewModel.updateField();
+              },
+            ),
+            verticalSpaceMedium,
+            _buildTextField(
+              label: 'Adresse E-mail',
+              icon: Icons.email_outlined,
+              controller: viewModel.emailController,
+              onChanged: (val) {
+                viewModel.email = val;
+                viewModel.updateField();
+              },
+            ),
+            verticalSpaceMedium,
+            _buildTextField(
+              label: 'Votre Adresse (Ville, Pays)',
+              icon: Icons.location_on,
+              controller: viewModel.adresseController,
+              onChanged: (val) {
+                viewModel.adresse = val;
+                viewModel.updateField();
+              },
+            ),
+            verticalSpaceMedium,
+
+            // --- RÔLE (Client / Vendeur) ---
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0, left: 2.0),
+              child: Text(
+                'QUEL EST VOTRE PROFIL ?',
+                style: TextStyle(color: Colors.grey[500], fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+              ),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildRoleOption(
+                    viewModel,
+                    title: 'Client',
+                    isSeller: false,
+                    icon: Icons.shopping_bag_outlined,
+                  ),
+                ),
+                horizontalSpaceMedium,
+                Expanded(
+                  child: _buildRoleOption(
+                    viewModel,
+                    title: 'Vendeur',
+                    isSeller: true,
+                    icon: Icons.storefront_outlined,
+                  ),
+                ),
+              ],
             ),
             verticalSpaceMedium,
 
@@ -140,7 +202,11 @@ class _StepPersonalInfo extends ViewModelWidget<RegisterViewModel> {
             _buildTextField(
               label: 'Profession',
               icon: Icons.work_outline,
-              onChanged: (val) => viewModel.profession = val,
+              controller: viewModel.professionController,
+              onChanged: (val) {
+                viewModel.profession = val;
+                viewModel.updateField();
+              },
             ),
             verticalSpaceMedium,
 
@@ -148,15 +214,23 @@ class _StepPersonalInfo extends ViewModelWidget<RegisterViewModel> {
             _buildTextField(
               label: 'Votre mot de passe',
               icon: Icons.lock_outline,
+              controller: viewModel.passwordController,
               obscureText: true,
-              onChanged: (val) => viewModel.password = val,
+              onChanged: (val) {
+                viewModel.password = val;
+                viewModel.updateField();
+              },
             ),
             verticalSpaceMedium,
             _buildTextField(
               label: 'Confirmer votre mot de passe',
               icon: Icons.lock_outline,
+              controller: viewModel.confirmPasswordController,
               obscureText: true,
-              onChanged: (val) => viewModel.confirmPassword = val,
+              onChanged: (val) {
+                viewModel.confirmPassword = val;
+                viewModel.updateField();
+              },
             ),
             const SizedBox(height: 40),
 
@@ -231,6 +305,32 @@ class _StepPersonalInfo extends ViewModelWidget<RegisterViewModel> {
       ),
     );
   }
+
+  Widget _buildRoleOption(RegisterViewModel viewModel, {required String title, required bool isSeller, required IconData icon}) {
+    bool isSelected = viewModel.isSeller == isSeller;
+    return InkWell(
+      onTap: () => viewModel.updateRole(isSeller),
+      child: Container(
+        height: 80,
+        decoration: BoxDecoration(
+          border: Border.all(color: isSelected ? kcPrimaryColor : Colors.grey[300]!, width: 2.0),
+          color: isSelected ? kcPrimaryColor.withOpacity(0.05) : Colors.white,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: isSelected ? kcPrimaryColor : Colors.grey[400], size: 28),
+            const SizedBox(height: 4),
+            Text(title, style: TextStyle(
+              fontSize: 14, 
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+              color: isSelected ? kcPrimaryColor : Colors.black87
+            )),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _StepPhone extends ViewModelWidget<RegisterViewModel> {
@@ -283,12 +383,26 @@ class _StepPhone extends ViewModelWidget<RegisterViewModel> {
                 horizontalSpaceMedium,
                 Expanded(
                   child: TextField(
+                    controller: viewModel.phoneController,
                     keyboardType: TextInputType.phone,
-                    onChanged: (val) => viewModel.phoneNumber = val,
-                    decoration: const InputDecoration(
+                    onChanged: (val) {
+                      viewModel.phoneNumber = val;
+                      viewModel.updateField();
+                      if (viewModel.hasPhoneError) {
+                         viewModel.hasPhoneError = false;
+                         viewModel.notifyListeners();
+                      }
+                    },
+                    decoration: InputDecoration(
                       hintText: 'Numéro de téléphone',
+                      errorText: viewModel.hasPhoneError ? viewModel.phoneErrorMessage : null,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.zero,
+                        borderSide: BorderSide(color: viewModel.hasPhoneError ? Colors.red : Colors.grey),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.zero,
+                        borderSide: BorderSide(color: viewModel.hasPhoneError ? Colors.red : Colors.grey),
                       ),
                     ),
                   ),
@@ -341,11 +455,13 @@ class _StepPhone extends ViewModelWidget<RegisterViewModel> {
 Widget _buildTextField(
     {required String label,
     required IconData icon,
+    TextEditingController? controller,
     bool obscureText = false,
     required Function(String) onChanged}) {
   return SizedBox(
-    height: 60, // Hauteur très stricte et uniforme pour TOUS les champs (Zéro-Radius)
+    height: 60, 
     child: TextField(
+      controller: controller,
       onChanged: onChanged,
       obscureText: obscureText,
       style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),

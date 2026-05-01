@@ -1,4 +1,5 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// dart format width=80
 
 // **************************************************************************
 // StackedLocatorGenerator
@@ -9,18 +10,20 @@
 import 'package:stacked_services/src/bottom_sheet/bottom_sheet_service.dart';
 import 'package:stacked_services/src/dialog/dialog_service.dart';
 import 'package:stacked_services/src/navigation/navigation_service.dart';
+import 'package:stacked_services/src/snackbar/snackbar_service.dart';
 import 'package:stacked_shared/stacked_shared.dart';
 
+import '../services/ai_voice_service.dart';
+import '../services/auth_service.dart';
+import '../services/category_service.dart';
 import '../services/local_storage_service.dart';
 import '../services/settings_service.dart';
 import '../services/srs_streaming_service.dart';
 
 final locator = StackedLocator.instance;
 
-Future<void> setupLocator({
-  String? environment,
-  EnvironmentFilter? environmentFilter,
-}) async {
+Future<void> setupLocator(
+    {String? environment, EnvironmentFilter? environmentFilter}) async {
 // Register environments
   locator.registerEnvironment(
       environment: environment, environmentFilter: environmentFilter);
@@ -29,9 +32,14 @@ Future<void> setupLocator({
   locator.registerLazySingleton(() => BottomSheetService());
   locator.registerLazySingleton(() => DialogService());
   locator.registerLazySingleton(() => NavigationService());
+  locator.registerLazySingleton(() => SnackbarService());
   locator.registerLazySingleton(() => SettingsService());
   locator.registerLazySingleton(() => SrsStreamingService());
+  locator.registerLazySingleton(() => AiVoiceService());
   final localStorageService = LocalStorageService();
   await localStorageService.init();
   locator.registerSingleton(localStorageService);
+
+  locator.registerLazySingleton(() => AuthService());
+  locator.registerLazySingleton(() => CategoryService());
 }

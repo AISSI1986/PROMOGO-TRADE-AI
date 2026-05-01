@@ -45,6 +45,38 @@ class ModeIaView extends StackedView<ModeIaViewModel> {
                             icon: const Icon(Icons.history, color: kcMediumGrey),
                             onPressed: () {},
                           ),
+                          horizontalSpaceTiny,
+                          // Sélecteur de Langue IA
+                          PopupMenuButton<String>(
+                            initialValue: viewModel.selectedLanguage,
+                            onSelected: viewModel.setLanguage,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: kcPrimaryColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.language, size: 16, color: kcPrimaryColor),
+                                  horizontalSpaceTiny,
+                                  Text(
+                                    viewModel.selectedLanguage.toUpperCase(),
+                                    style: const TextStyle(
+                                      color: kcPrimaryColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(value: 'fra', child: Text('🇫🇷 Français')),
+                              const PopupMenuItem(value: 'eng', child: Text('🇺🇸 English')),
+                              const PopupMenuItem(value: 'hau', child: Text('🇳🇬 Haoussa')),
+                            ],
+                          ),
                           const Spacer(),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

@@ -9,121 +9,272 @@ class VendreView extends StackedView<VendreViewModel> {
   const VendreView({Key? key}) : super(key: key);
 
   @override
+  void onViewModelReady(VendreViewModel viewModel) {
+    viewModel.init();
+  }
+
+  @override
   Widget builder(
     BuildContext context,
     VendreViewModel viewModel,
     Widget? child,
   ) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildCard(
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final bool isKeyboardOpen = bottomInset > 0;
 
-                    child: Column(
-                      children: [
-                        _buildTitleInput(viewModel),
-                        const SizedBox(height: 20),
-                        _buildPriceInput(viewModel),
-                        const SizedBox(height: 16),
-                        _buildDropdown(
-                          label: 'post_ad.category'.tr(),
-                          value: viewModel.selectedCategory,
-                          items: viewModel.categories,
-                          onChanged: viewModel.setCategory,
-                        ),
-                        if (viewModel.selectedCategory != null) ...[
-                          const SizedBox(height: 16),
-                          _buildDropdown(
-                            label: 'post_ad.subcategory'.tr(),
-                            value: viewModel.selectedSubCategory,
-                            items: viewModel.subCategories[viewModel.selectedCategory] ?? [],
-                            onChanged: viewModel.setSubCategory,
-                          ),
-                        ],
-                      ],
-                    ),
+    return Stack(
+      children: [
+        // 1. Formulaire Scrollable
+        SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildCard(
+                  child: Column(
+                    children: [
+                      _buildTitleInput(viewModel),
+                      const SizedBox(height: 20),
+                      _buildPriceInput(viewModel),
+                      const SizedBox(height: 16),
+                      
+                      // SÉLECTEUR DE CATÉGORIE PREMIUM
+                      _buildCategorySelector(context, viewModel),
+                    ],
                   ),
-                  const SizedBox(height: 24),
+                ),
+                const SizedBox(height: 24),
 
-                  // Photos Section
-                  _buildSectionHeader('post_ad.section_photos'.tr()),
-                  const SizedBox(height: 8),
-                  _buildCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'post_ad.instruction'.tr(),
-                          style: TextStyle(fontSize: 11, color: kcMediumGrey.withOpacity(0.8), height: 1.5),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildImagePicker(viewModel),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Location and Video
-                  _buildSectionHeader('post_ad.section_location'.tr()),
-                  _buildCard(
-                    child: _buildDropdown(
-                      label: 'post_ad.region'.tr(),
-                      value: viewModel.selectedRegion,
-                      items: viewModel.regions,
-                      onChanged: viewModel.setRegion,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  _buildSectionHeader('post_ad.section_video'.tr()),
-                  _buildCard(
-                    child: _buildTextField(
-                      label: 'post_ad.video_hint'.tr(),
-                      onChanged: viewModel.setVideoLink,
-                      maxLength: 1024,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Dynamic Specs
-                  if (viewModel.selectedSubCategory != null) ...[
-                    _buildSectionHeader('post_ad.section_specs'.tr()),
-                    _buildCard(
-                      child: Column(
-                        children: [
-                          _buildTextField(label: 'post_ad.brand'.tr(), onChanged: (_) {}),
-                          _buildTextField(label: 'post_ad.condition'.tr(), onChanged: (_) {}),
-                          if (viewModel.selectedSubCategory == 'Computer') ...[
-                            _buildTextField(label: 'post_ad.slots'.tr(), onChanged: (_) {}),
-                            _buildTextField(label: 'post_ad.power'.tr(), onChanged: (_) {}),
-                            _buildTextField(label: 'post_ad.docking'.tr(), onChanged: (_) {}),
-                          ],
-                          _buildTextField(label: 'post_ad.description'.tr(), onChanged: (_) {}, maxLines: 4),
-                        ],
+                // Photos Section
+                _buildSectionHeader('post_ad.section_photos'.tr()),
+                const SizedBox(height: 8),
+                _buildCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'post_ad.instruction'.tr(),
+                        style: TextStyle(fontSize: 11, color: kcMediumGrey.withOpacity(0.8), height: 1.5),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+                      const SizedBox(height: 16),
+                      _buildImagePicker(viewModel),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
 
-                  // Bulk Price
-                  _buildBulkPriceSection(viewModel),
-                  const SizedBox(height: 24),
+                // Location and Video
+                _buildSectionHeader('post_ad.section_location'.tr()),
+                _buildCard(
+                  child: _buildTextField(
+                    label: 'post_ad.location'.tr(),
+                    onChanged: viewModel.setLocation,
+                  ),
+                ),
+                const SizedBox(height: 24),
 
-                  // Subscription
-                  _buildSectionHeader('post_ad.section_promo'.tr()),
-                  _buildCard(child: _buildSubscriptionOptions(viewModel)),
-                  const SizedBox(height: 40),
+                _buildSectionHeader('post_ad.section_video'.tr()),
+                _buildCard(
+                  child: _buildTextField(
+                    label: 'post_ad.video_hint'.tr(),
+                    onChanged: viewModel.setVideoLink,
+                    maxLength: 1024,
+                  ),
+                ),
+                const SizedBox(height: 24),
 
-                  // Submit Button
-                  // Submit Button
-                  _buildSubmitButton(viewModel),
-                  const SizedBox(height: 120),
-                ],
+                // Description Simple
+                _buildSectionHeader('post_ad.description'.tr()),
+                _buildCard(
+                  child: _buildTextField(
+                    label: 'Décrivez votre article en quelques mots...',
+                    onChanged: viewModel.setDescription,
+                    maxLines: 5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Bulk Price
+                _buildBulkPriceSection(viewModel),
+                const SizedBox(height: 24),
+
+                // Subscription
+                _buildSectionHeader('post_ad.section_promo'.tr()),
+                _buildCard(child: _buildSubscriptionOptions(viewModel)),
+                
+                const SizedBox(height: 32),
+
+                // BOUTON NORMAL (Visible seulement si le clavier est FERMÉ)
+                if (!isKeyboardOpen) 
+                  viewModel.isBusy 
+                    ? const Center(child: CircularProgressIndicator(color: kcPrimaryColor))
+                    : _buildSubmitButton(viewModel),
+                
+                // ESPACE pour éviter l'icône IA en bas de scroll
+                const SizedBox(height: 120),
+              ],
+            ),
+          ),
+        ),
+
+        // 2. BOUTON FLOTTANT (Visible seulement si le clavier est OUVERT)
+        if (isKeyboardOpen)
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: bottomInset + 10,
+            child: viewModel.isBusy 
+              ? const Center(child: CircularProgressIndicator(color: kcPrimaryColor))
+              : _buildSubmitButton(viewModel),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCategorySelector(BuildContext context, VendreViewModel viewModel) {
+    return GestureDetector(
+      onTap: () => _showCategoryBottomSheet(context, viewModel),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        decoration: BoxDecoration(
+          border: Border.all(color: kcVeryLightGrey),
+          color: Colors.white,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                viewModel.selectedCategory ?? 'post_ad.category'.tr().toUpperCase(),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: viewModel.selectedCategory != null ? FontWeight.w600 : FontWeight.bold,
+                  color: viewModel.selectedCategory != null ? Colors.black : kcPrimaryColor,
+                ),
               ),
             ),
+            const Icon(Icons.keyboard_arrow_down, color: kcTabIndicatorColor),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCategoryBottomSheet(BuildContext context, VendreViewModel viewModel) {
+    // Reset search query when opening
+    viewModel.setSearchQuery('');
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        maxChildSize: 0.9,
+        minChildSize: 0.5,
+        builder: (_, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 10, bottom: 20),
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: kcVeryLightGrey,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              
+              Text(
+                'SÉLECTIONNEZ UNE CATÉGORIE',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: kcPrimaryColor.withOpacity(0.8),
+                  letterSpacing: 1.2,
+                ),
+              ),
+              
+              const SizedBox(height: 15),
+              
+              // Barre de Recherche
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: TextField(
+                  onChanged: viewModel.setSearchQuery,
+                  decoration: InputDecoration(
+                    hintText: 'Rechercher une catégorie...',
+                    prefixIcon: const Icon(Icons.search, color: kcPrimaryColor),
+                    filled: true,
+                    fillColor: kcVeryLightGrey.withOpacity(0.5),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 10),
+              
+              // Liste des Catégories
+              Expanded(
+                child: viewModel.categories.isEmpty 
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.search_off, size: 48, color: kcMediumGrey.withOpacity(0.5)),
+                          const SizedBox(height: 10),
+                          const Text("Aucune catégorie trouvée", style: TextStyle(color: kcMediumGrey)),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: scrollController,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                      itemCount: viewModel.categories.length,
+                      itemBuilder: (context, index) {
+                        final cat = viewModel.categories[index];
+                        final catName = cat['libele'] as String;
+                        final isSelected = viewModel.selectedCategory == catName;
+                        
+                        return ListTile(
+                          onTap: () {
+                            viewModel.setCategory(cat);
+                            Navigator.pop(context);
+                          },
+                          leading: Icon(
+                            Icons.category_outlined, 
+                            color: isSelected ? kcPrimaryColor : kcMediumGrey.withOpacity(0.5)
+                          ),
+                          title: Text(
+                            catName,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              color: isSelected ? kcPrimaryColor : Colors.black87,
+                            ),
+                          ),
+                          trailing: isSelected 
+                            ? const Icon(Icons.check_circle, color: kcPrimaryColor)
+                            : null,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          tileColor: isSelected ? kcPrimaryColor.withOpacity(0.05) : null,
+                        );
+                      },
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -289,7 +440,7 @@ class VendreView extends StackedView<VendreViewModel> {
     required String label,
     required String? value,
     required List<String> items,
-    required Function(String?) onChanged,
+    required Function(String?)? onChanged,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),

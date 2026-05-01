@@ -9,6 +9,12 @@ class OtpView extends StackedView<OtpViewModel> {
   const OtpView({Key? key, required this.phoneNumber}) : super(key: key);
 
   @override
+  void onViewModelReady(OtpViewModel viewModel) {
+    viewModel.init(phoneNumber);
+    super.onViewModelReady(viewModel);
+  }
+
+  @override
   Widget builder(BuildContext context, OtpViewModel viewModel, Widget? child) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -32,13 +38,13 @@ class OtpView extends StackedView<OtpViewModel> {
               ),
               verticalSpaceSmall,
               Text(
-                'Un code a été envoyé au +$phoneNumber. Veuillez le saisir ci-dessous.',
+                'Un code a été envoyé au $phoneNumber. Veuillez le saisir ci-dessous.',
                 style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
               verticalSpaceLarge,
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(4, (index) => _OtpDigitInput()),
+                children: List.generate(6, (index) => _OtpDigitInput(index: index, viewModel: viewModel)),
               ),
               verticalSpaceLarge,
               SizedBox(
@@ -55,9 +61,22 @@ class OtpView extends StackedView<OtpViewModel> {
               ),
               verticalSpaceMedium,
               Center(
+                child: Text(
+                  viewModel.formattedTime,
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+                ),
+              ),
+              verticalSpaceMedium,
+              Center(
                 child: TextButton(
-                  onPressed: () {},
-                  child: const Text('Renvoyer le code', style: TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.bold)),
+                  onPressed: viewModel.timerSeconds == 0 ? viewModel.resendCode : null,
+                  child: Text(
+                    'Renvoyer le code',
+                    style: TextStyle(
+                      color: viewModel.timerSeconds == 0 ? kcPrimaryColor : Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
               verticalSpaceLarge,
@@ -73,15 +92,33 @@ class OtpView extends StackedView<OtpViewModel> {
 }
 
 class _OtpDigitInput extends StatelessWidget {
+  final int index;
+  final OtpViewModel viewModel;
+
+  const _OtpDigitInput({Key? key, required this.index, required this.viewModel}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
+    // Controller pour gérer la valeur (utile pour le coller automatique)
+    final controller = TextEditingController(text: viewModel.otpDigits[index]);
+    controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
+
     return SizedBox(
-      width: 60,
-      height: 65,
+      width: 48,
+      height: 55,
       child: TextField(
+        controller: controller,
         textAlign: TextAlign.center,
         keyboardType: TextInputType.number,
-        maxLength: 1,
+        maxLength: 6,
+        onChanged: (value) {
+          viewModel.updateDigit(index, value);
+          if (value.isNotEmpty && index < 5) {
+            FocusScope.of(context).nextFocus();
+          } else if (value.isEmpty && index > 0) {
+            FocusScope.of(context).previousFocus();
+          }
+        },
         style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         decoration: InputDecoration(
           counterText: '',
