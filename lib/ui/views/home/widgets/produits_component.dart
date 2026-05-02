@@ -158,29 +158,71 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
             },
             child: Container(
               width: itemWidth,
-              margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
               decoration: BoxDecoration(
-                color: kcVeryLightGrey.withOpacity(0.4),
-                borderRadius: BorderRadius.zero,
-              ),
-              child: Row(
-                children: [
-                  Icon(promo['icon'] as IconData, color: kcTabIndicatorColor, size: 22),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      (promo['trKey'] as String).tr(),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 10,
-                        color: kcDarkGreyColor,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(4), // Très léger arrondi pour la modernité
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
                   ),
                 ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Stack(
+                  children: [
+                    // --- ÉLÉMENT DÉCORATIF "GHOST ICON" ---
+                    Positioned(
+                      right: -10,
+                      top: -10,
+                      child: Icon(
+                        promo['icon'] as IconData,
+                        size: 60,
+                        color: kcTabIndicatorColor.withOpacity(0.05),
+                      ),
+                    ),
+                    // --- CONTENU PRINCIPAL ---
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          // Badge d'icône élégant
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: kcTabIndicatorColor.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              promo['icon'] as IconData, 
+                              color: kcTabIndicatorColor, 
+                              size: 20
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              (promo['trKey'] as String).tr(),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 11,
+                                color: kcDarkGreyColor,
+                                height: 1.1,
+                                letterSpacing: -0.2,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
