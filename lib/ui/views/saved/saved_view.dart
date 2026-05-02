@@ -3,10 +3,21 @@ import 'package:stacked/stacked.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:promogoai/ui/common/app_colors.dart';
 import 'package:promogoai/ui/common/ui_helpers.dart';
+import 'package:stacked_services/stacked_services.dart';
+import 'package:promogoai/app/app.locator.dart';
 import 'saved_viewmodel.dart';
+
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:promogoai/models/product.dart';
 
 class SavedView extends StackedView<SavedViewModel> {
   const SavedView({Key? key}) : super(key: key);
+
+  @override
+  void onViewModelReady(SavedViewModel viewModel) {
+    viewModel.fetchMyAds();
+    super.onViewModelReady(viewModel);
+  }
 
   @override
   Widget builder(
@@ -15,20 +26,20 @@ class SavedView extends StackedView<SavedViewModel> {
     Widget? child,
   ) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: kcBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: kcTabIndicatorColor),
-          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.arrow_back_ios, color: kcTabIndicatorColor, size: 20),
+          onPressed: () => locator<NavigationService>().back(),
         ),
         title: Text(
           'saved.title'.tr(),
           style: const TextStyle(
             color: kcPrimaryColor,
             fontWeight: FontWeight.bold,
-            fontSize: 20,
+            fontSize: 18,
           ),
         ),
       ),
@@ -36,7 +47,9 @@ class SavedView extends StackedView<SavedViewModel> {
         children: [
           _buildTabs(viewModel),
           Expanded(
-            child: _buildContent(viewModel),
+            child: viewModel.isBusy 
+              ? const Center(child: CircularProgressIndicator(color: kcPrimaryColor))
+              : _buildContent(viewModel),
           ),
         ],
       ),
@@ -71,18 +84,96 @@ class SavedView extends StackedView<SavedViewModel> {
   }
 
   Widget _buildContent(SavedViewModel viewModel) {
-    bool isEmpty = true; // Placeholder for now
+    // Onglet Publications (Index 0)
+    if (viewModel.currentIndex == 0) {
+      if (viewModel.myAds.isEmpty) {
+        return _buildEmptyState(
+          'saved.empty_publications'.tr(),
+          Icons.inventory_2_outlined,
+        );
+      }
 
-    if (isEmpty) {
-      return _buildEmptyState(
-        viewModel.currentIndex == 0
-            ? 'saved.empty_publications'.tr()
-            : 'saved.empty_searches'.tr(),
-        viewModel.currentIndex == 0 ? Icons.inventory_2_outlined : Icons.search,
+      return GridView.builder(
+        padding: const EdgeInsets.all(12),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.8,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+        ),
+        itemCount: viewModel.myAds.length,
+        itemBuilder: (context, index) {
+          final ad = viewModel.myAds[index];
+          final product = viewModel.mapToProduct(ad);
+          return _buildAdCard(context, product);
+        },
       );
     }
 
-    return const SizedBox.shrink();
+    // Onglet Recherches (Index 1) - Toujours vide pour l'instant
+    return _buildEmptyState(
+      'saved.empty_searches'.tr(),
+      Icons.search,
+    );
+  }
+
+  Widget _buildAdCard(BuildContext context, Product product) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+              child: CachedNetworkImage(
+                imageUrl: product.imageUrl,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(color: Colors.grey[100]),
+                errorWidget: (context, url, error) => Container(
+                  color: Colors.grey[100],
+                  child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  product.price,
+                  style: const TextStyle(
+                    color: kcPrimaryColor,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildEmptyState(String message, IconData icon) {

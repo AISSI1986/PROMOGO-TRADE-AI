@@ -22,6 +22,13 @@ class VendreViewModel extends BaseViewModel {
   final _snackbarService = locator<SnackbarService>();
   final _localStorageService = locator<LocalStorageService>();
   final _imagePicker = ImagePicker();
+ 
+   // Contrôleurs pour l'UI (pour afficher les brouillons)
+   final titleController = TextEditingController();
+   final priceController = TextEditingController();
+   final locationController = TextEditingController();
+   final descriptionController = TextEditingController();
+   final videoController = TextEditingController();
 
   static const String _draftFileName = 'ad_draft.json';
   Timer? _debounceTimer;
@@ -37,6 +44,11 @@ class VendreViewModel extends BaseViewModel {
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    titleController.dispose();
+    priceController.dispose();
+    locationController.dispose();
+    descriptionController.dispose();
+    videoController.dispose();
     super.dispose();
   }
 
@@ -59,6 +71,7 @@ class VendreViewModel extends BaseViewModel {
           'selectedCategory': _selectedCategory,
           'negotiation': _negotiation,
           'selectedSubscription': _selectedSubscription,
+          'bulkPrices': _bulkPrices,
           'imagePaths': _images.map((f) => f.path).toList(),
         };
         await _localStorageService.saveData(_draftFileName, jsonEncode(draftData));
@@ -84,6 +97,16 @@ class VendreViewModel extends BaseViewModel {
         _negotiation = data['negotiation'];
         _selectedSubscription = data['selectedSubscription'] ?? 'Free';
         
+        final List<dynamic> savedBulk = data['bulkPrices'] ?? [];
+        _bulkPrices = savedBulk.map((item) => Map<String, String>.from(item as Map)).toList();
+        
+        // Mettre à jour les contrôleurs pour l'UI
+        titleController.text = _title;
+        priceController.text = _price;
+        locationController.text = _location;
+        descriptionController.text = _description;
+        videoController.text = _videoLink;
+        
         final List<dynamic> paths = data['imagePaths'] ?? [];
         _images = paths.map((p) => File(p as String)).where((f) => f.existsSync()).toList();
         
@@ -105,6 +128,14 @@ class VendreViewModel extends BaseViewModel {
     _videoLink = '';
     _selectedCategory = null;
     _selectedCategoryId = null;
+
+    // Vider les contrôleurs
+    titleController.clear();
+    priceController.clear();
+    locationController.clear();
+    descriptionController.clear();
+    videoController.clear();
+
     notifyListeners();
   }
 
@@ -139,15 +170,9 @@ class VendreViewModel extends BaseViewModel {
   String _price = '';
   String get price => _price;
   
-  // Bulk Price
+  // Bulk Price Visibility
   bool _showBulkPriceForm = false;
   bool get showBulkPriceForm => _showBulkPriceForm;
-  
-  String? _selectedBulkSize;
-  String? get selectedBulkSize => _selectedBulkSize;
-  
-  List<Map<String, String>> _bulkPrices = [];
-  List<Map<String, String>> get bulkPrices => _bulkPrices;
 
   String? _negotiation;
   String? get negotiation => _negotiation;
@@ -155,15 +180,44 @@ class VendreViewModel extends BaseViewModel {
   String? _selectedSubscription = 'Free';
   String? get selectedSubscription => _selectedSubscription;
 
+  // --- ÉTATS D'ERREUR POUR LA VALIDATION VISUELLE ---
+  bool _titleHasError = false;
+  bool get titleHasError => _titleHasError;
+
+  bool _categoryHasError = false;
+  bool get categoryHasError => _categoryHasError;
+
+  bool _priceHasError = false;
+  bool get priceHasError => _priceHasError;
+
+  bool _locationHasError = false;
+  bool get locationHasError => _locationHasError;
+
+  bool _descriptionHasError = false;
+  bool get descriptionHasError => _descriptionHasError;
+
+  bool _bulkPricesHasError = false;
+  bool get bulkPricesHasError => _bulkPricesHasError;
+
+  bool _imagesHasError = false;
+  bool get imagesHasError => _imagesHasError;
+
+  bool _shouldScrollToError = false;
+  bool get shouldScrollToError => _shouldScrollToError;
+
+  void clearScrollSignal() {
+    _shouldScrollToError = false;
+  }
+
   // Validation
   bool get isTitleValid => _title.length >= 10;
   String get titleError => _title.isEmpty ? '' : 'post_ad.error_title';
 
-  final List<String> bulkSizes = ['2', '5', '10', '20', '50'];
   final List<String> negotiationOptions = ['Yes', 'No', 'Not sure'];
 
   void setTitle(String value) {
     _title = value;
+    _titleHasError = false; // Reset error when user types
     saveDraft();
     notifyListeners();
   }
@@ -172,6 +226,7 @@ class VendreViewModel extends BaseViewModel {
     if (category != null) {
       _selectedCategory = category['libele'];
       _selectedCategoryId = category['id'];
+      _categoryHasError = false; // Reset error
     } else {
       _selectedCategory = null;
       _selectedCategoryId = null;
@@ -182,12 +237,14 @@ class VendreViewModel extends BaseViewModel {
 
   void setDescription(String value) {
     _description = value;
+    _descriptionHasError = false; // Reset error
     saveDraft();
     notifyListeners();
   }
 
   void setLocation(String value) {
     _location = value;
+    _locationHasError = false; // Reset error
     saveDraft();
     notifyListeners();
   }
@@ -212,6 +269,7 @@ class VendreViewModel extends BaseViewModel {
 
   void setPrice(String value) {
     _price = value;
+    _priceHasError = false; // Reset error
     saveDraft();
     notifyListeners();
   }
@@ -228,6 +286,7 @@ class VendreViewModel extends BaseViewModel {
       );
       if (image != null) {
         _images.add(File(image.path));
+        _imagesHasError = false; // Reset error
         saveDraft();
         notifyListeners();
       }
@@ -256,15 +315,29 @@ class VendreViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  void setBulkSize(String? value) {
-    _selectedBulkSize = value;
+  // --- LOGIQUE PRIX EN GROS (DÉGRESSIF) ---
+  final List<String> bulkSizes = ['2', '5', '10', '20', '50', '100'];
+  List<Map<String, String>> _bulkPrices = [];
+  List<Map<String, String>> get bulkPrices => _bulkPrices;
+
+  bool get canAddBulkPriceRow {
+    if (_bulkPrices.isEmpty) return true;
+    final lastRow = _bulkPrices.last;
+    return lastRow['size']!.isNotEmpty && lastRow['price']!.isNotEmpty;
+  }
+
+  void addBulkPriceRow() {
+    if (!canAddBulkPriceRow) return;
+    _bulkPrices.add({'size': '', 'price': ''});
     notifyListeners();
   }
 
-  void addBulkPrice(String size, String price) {
-    _bulkPrices.add({'size': size, 'price': price});
-    _selectedBulkSize = null;
-    notifyListeners();
+  void updateBulkPriceRow(int index, String key, String value) {
+    if (index >= 0 && index < _bulkPrices.length) {
+      _bulkPrices[index][key] = value;
+      _bulkPricesHasError = false; // Reset error on change
+      notifyListeners();
+    }
   }
 
   void removeBulkPrice(int index) {
@@ -284,20 +357,51 @@ class VendreViewModel extends BaseViewModel {
       return;
     }
 
-    // 1. Validations Locales
-    if (_title.isEmpty || _price.isEmpty || _location.isEmpty || _selectedCategoryId == null) {
-      _snackbarService.showCustomSnackBar(
-        message: "Veuillez remplir tous les champs obligatoires (Titre, Prix, Localisation, Catégorie).",
-        variant: SnackbarType.warning,
-      );
-      return;
+    // 1. Validations Locales avec signalement visuel
+    bool hasLocalErrors = false;
+
+    if (_title.isEmpty || _title.length < 10) {
+      _titleHasError = true;
+      hasLocalErrors = true;
+    }
+    if (_selectedCategoryId == null) {
+      _categoryHasError = true;
+      hasLocalErrors = true;
+    }
+    if (_price.isEmpty) {
+      _priceHasError = true;
+      hasLocalErrors = true;
+    }
+    if (_location.isEmpty) {
+      _locationHasError = true;
+      hasLocalErrors = true;
+    }
+    if (_description.isEmpty) {
+      _descriptionHasError = true;
+      hasLocalErrors = true;
+    }
+
+    // Validation des prix en gros (si activé)
+    if (_showBulkPriceForm && _bulkPrices.isNotEmpty) {
+      bool incompleteRow = _bulkPrices.any((row) => row['size']!.isEmpty || row['price']!.isEmpty);
+      if (incompleteRow) {
+        _bulkPricesHasError = true;
+        hasLocalErrors = true;
+      }
     }
 
     if (_images.isEmpty) {
+      _imagesHasError = true;
+      hasLocalErrors = true;
+    }
+
+    if (hasLocalErrors) {
+      _shouldScrollToError = true;
       _snackbarService.showCustomSnackBar(
-        message: "Veuillez ajouter au moins une photo de votre article.",
+        message: "Veuillez remplir correctement tous les champs obligatoires.",
         variant: SnackbarType.warning,
       );
+      notifyListeners(); // Déclenche l'affichage des bordures rouges et le scroll
       return;
     }
 
@@ -328,12 +432,35 @@ class VendreViewModel extends BaseViewModel {
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 201) {
+        final adData = jsonDecode(response.body);
+        final int adId = adData['id'];
+
+        // --- ENVOI DES PRIX EN GROS (MÉTHODE INDÉPENDANTE) ---
+        if (_showBulkPriceForm && _bulkPrices.isNotEmpty) {
+          try {
+            await http.post(
+              Uri.parse(ApiConstants.getBulkPricesEndpoint(adId)),
+              headers: {
+                'Authorization': 'Bearer $token',
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode({'bulk_prices': _bulkPrices}),
+            );
+            print("📦 [SubmitAd] Prix en gros enregistrés avec succès.");
+          } catch (e) {
+            print("⚠️ [SubmitAd] Erreur lors de l'envoi des prix en gros: $e");
+            // On ne bloque pas le succès de l'annonce car elle est déjà créée
+          }
+        }
+
         _snackbarService.showCustomSnackBar(
           message: "Annonce publiée avec succès ! 🚀",
           variant: SnackbarType.success,
         );
         clearDraft();
-        _navigationService.back();
+        // Petit délai pour laisser le temps de lire le message de succès
+        await Future.delayed(const Duration(seconds: 2));
+        _navigationService.replaceWithSavedView();
       } else if (response.statusCode == 401) {
         // Session expirée
         _snackbarService.showCustomSnackBar(

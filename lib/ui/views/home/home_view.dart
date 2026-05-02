@@ -142,7 +142,7 @@ class HomeView extends StackedView<HomeViewModel> {
           ),
         );
       case 2:
-        return const VendreView();
+        return VendreView();
       case 3:
         return const MoiView();
       default:

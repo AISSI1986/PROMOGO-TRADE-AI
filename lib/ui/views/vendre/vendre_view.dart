@@ -6,7 +6,46 @@ import 'package:promogoai/ui/common/app_colors.dart';
 import 'vendre_viewmodel.dart';
 
 class VendreView extends StackedView<VendreViewModel> {
-  const VendreView({Key? key}) : super(key: key);
+  VendreView({Key? key}) : super(key: key);
+
+  // Controllers & Keys pour le scroll automatique
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _titleKey = GlobalKey();
+  final GlobalKey _categoryKey = GlobalKey();
+  final GlobalKey _priceKey = GlobalKey();
+  final GlobalKey _imagesKey = GlobalKey();
+  final GlobalKey _locationKey = GlobalKey();
+  final GlobalKey _descriptionKey = GlobalKey();
+  final GlobalKey _bulkKey = GlobalKey();
+
+  void _scrollToFirstError(VendreViewModel viewModel) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      GlobalKey? keyToScroll;
+      if (viewModel.titleHasError) {
+        keyToScroll = _titleKey;
+      } else if (viewModel.categoryHasError) {
+        keyToScroll = _categoryKey;
+      } else if (viewModel.priceHasError) {
+        keyToScroll = _priceKey;
+      } else if (viewModel.imagesHasError) {
+        keyToScroll = _imagesKey;
+      } else if (viewModel.locationHasError) {
+        keyToScroll = _locationKey;
+      } else if (viewModel.descriptionHasError) {
+        keyToScroll = _descriptionKey;
+      } else if (viewModel.bulkPricesHasError) {
+        keyToScroll = _bulkKey;
+      }
+
+      if (keyToScroll != null && keyToScroll.currentContext != null) {
+        Scrollable.ensureVisible(
+          keyToScroll.currentContext!,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
 
   @override
   void onViewModelReady(VendreViewModel viewModel) {
@@ -22,10 +61,17 @@ class VendreView extends StackedView<VendreViewModel> {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final bool isKeyboardOpen = bottomInset > 0;
 
+    // Déclencher le scroll seulement si le ViewModel le demande explicitement
+    if (viewModel.shouldScrollToError) {
+       _scrollToFirstError(viewModel);
+       viewModel.clearScrollSignal(); // On consomme le signal pour ne pas rescroller à chaque frappe
+    }
+
     return Stack(
       children: [
         // 1. Formulaire Scrollable
         SingleChildScrollView(
+          controller: _scrollController,
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -34,22 +80,23 @@ class VendreView extends StackedView<VendreViewModel> {
                 _buildCard(
                   child: Column(
                     children: [
-                      _buildTitleInput(viewModel),
+                      _buildTitleInput(viewModel, key: _titleKey),
                       const SizedBox(height: 20),
-                      _buildPriceInput(viewModel),
+                      _buildPriceInput(viewModel, key: _priceKey),
                       const SizedBox(height: 16),
                       
                       // SÉLECTEUR DE CATÉGORIE PREMIUM
-                      _buildCategorySelector(context, viewModel),
+                      _buildCategorySelector(context, viewModel, key: _categoryKey),
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
 
                 // Photos Section
-                _buildSectionHeader('post_ad.section_photos'.tr()),
+                _buildSectionHeader('post_ad.section_photos'.tr(), key: _imagesKey, isRequired: true),
                 const SizedBox(height: 8),
                 _buildCard(
+                  hasError: viewModel.imagesHasError,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -65,11 +112,16 @@ class VendreView extends StackedView<VendreViewModel> {
                 const SizedBox(height: 24),
 
                 // Location and Video
-                _buildSectionHeader('post_ad.section_location'.tr()),
+                _buildSectionHeader('post_ad.section_location'.tr(), isRequired: true),
                 _buildCard(
+                  key: _locationKey,
                   child: _buildTextField(
+                    viewModel,
                     label: 'post_ad.location'.tr(),
+                    controller: viewModel.locationController,
                     onChanged: viewModel.setLocation,
+                    isRequired: true,
+                    hasError: viewModel.locationHasError,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -77,7 +129,9 @@ class VendreView extends StackedView<VendreViewModel> {
                 _buildSectionHeader('post_ad.section_video'.tr()),
                 _buildCard(
                   child: _buildTextField(
+                    viewModel,
                     label: 'post_ad.video_hint'.tr(),
+                    controller: viewModel.videoController,
                     onChanged: viewModel.setVideoLink,
                     maxLength: 1024,
                   ),
@@ -85,12 +139,17 @@ class VendreView extends StackedView<VendreViewModel> {
                 const SizedBox(height: 24),
 
                 // Description Simple
-                _buildSectionHeader('post_ad.description'.tr()),
+                _buildSectionHeader('post_ad.description'.tr(), isRequired: true),
                 _buildCard(
+                  key: _descriptionKey,
                   child: _buildTextField(
+                    viewModel,
                     label: 'Décrivez votre article en quelques mots...',
+                    controller: viewModel.descriptionController,
                     onChanged: viewModel.setDescription,
                     maxLines: 5,
+                    isRequired: true,
+                    hasError: viewModel.descriptionHasError,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -132,24 +191,35 @@ class VendreView extends StackedView<VendreViewModel> {
     );
   }
 
-  Widget _buildCategorySelector(BuildContext context, VendreViewModel viewModel) {
+  Widget _buildCategorySelector(BuildContext context, VendreViewModel viewModel, {Key? key}) {
     return GestureDetector(
+      key: key,
       onTap: () => _showCategoryBottomSheet(context, viewModel),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
-          border: Border.all(color: kcVeryLightGrey),
+          border: Border.all(color: viewModel.categoryHasError ? Colors.red : kcVeryLightGrey),
           color: Colors.white,
         ),
         child: Row(
           children: [
             Expanded(
-              child: Text(
-                viewModel.selectedCategory ?? 'post_ad.category'.tr().toUpperCase(),
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: viewModel.selectedCategory != null ? FontWeight.w600 : FontWeight.bold,
-                  color: viewModel.selectedCategory != null ? Colors.black : kcPrimaryColor,
+              child: RichText(
+                text: TextSpan(
+                  text: viewModel.selectedCategory ?? 'post_ad.category'.tr().toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: viewModel.selectedCategory != null ? FontWeight.w600 : FontWeight.bold,
+                    color: viewModel.selectedCategory != null ? Colors.black : kcPrimaryColor,
+                    fontFamily: 'Outfit',
+                  ),
+                  children: [
+                    if (viewModel.selectedCategory == null)
+                      const TextSpan(
+                        text: ' *',
+                        style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -167,11 +237,14 @@ class VendreView extends StackedView<VendreViewModel> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      isDismissible: true, // Permet de cliquer à l'extérieur pour fermer
+      enableDrag: true,    // Permet de glisser vers le bas pour fermer
       backgroundColor: Colors.transparent,
       builder: (context) => DraggableScrollableSheet(
         initialChildSize: 0.7,
         maxChildSize: 0.9,
         minChildSize: 0.5,
+        expand: false, // Empêche de prendre tout l'écran pour laisser le clic extérieur fonctionner
         builder: (_, scrollController) => Container(
           decoration: const BoxDecoration(
             color: Colors.white,
@@ -278,13 +351,14 @@ class VendreView extends StackedView<VendreViewModel> {
     );
   }
 
-  Widget _buildCard({required Widget child}) {
+  Widget _buildCard({required Widget child, Key? key, bool hasError = false}) {
     return Container(
+      key: key,
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: kcVeryLightGrey),
+        border: Border.all(color: hasError ? Colors.red : kcVeryLightGrey),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -297,32 +371,53 @@ class VendreView extends StackedView<VendreViewModel> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, {Key? key, bool isRequired = false}) {
     return Padding(
+      key: key,
       padding: const EdgeInsets.only(bottom: 12.0),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w800,
-          color: kcPrimaryColor,
-          letterSpacing: 1.2,
+      child: RichText(
+        text: TextSpan(
+          text: title.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            color: kcPrimaryColor,
+            letterSpacing: 1.2,
+            fontFamily: 'Outfit',
+          ),
+          children: [
+            if (isRequired)
+              const TextSpan(
+                text: ' *',
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildTitleInput(VendreViewModel viewModel) {
-    bool hasError = !viewModel.isTitleValid && viewModel.title.isNotEmpty;
+  Widget _buildTitleInput(VendreViewModel viewModel, {Key? key}) {
+    bool hasValidationError = viewModel.titleHasError || (!viewModel.isTitleValid && viewModel.title.isNotEmpty);
     return Column(
+      key: key,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'post_ad.input_label_title'.tr().toUpperCase(),
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kcPrimaryColor),
+        RichText(
+          text: TextSpan(
+            text: 'post_ad.input_label_title'.tr().toUpperCase(),
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kcPrimaryColor, fontFamily: 'Outfit'),
+            children: const [
+              TextSpan(
+                text: ' *',
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 8),
         TextField(
+          controller: viewModel.titleController,
           maxLength: 70,
           onChanged: viewModel.setTitle,
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
@@ -336,15 +431,15 @@ class VendreView extends StackedView<VendreViewModel> {
             border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.zero,
-              borderSide: BorderSide(color: hasError ? Colors.red : kcVeryLightGrey.withOpacity(0.5)),
+              borderSide: BorderSide(color: hasValidationError ? Colors.red : kcVeryLightGrey.withOpacity(0.5)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.zero,
-              borderSide: BorderSide(color: hasError ? Colors.red : kcTabIndicatorColor, width: 1.5),
+              borderSide: BorderSide(color: hasValidationError ? Colors.red : kcTabIndicatorColor, width: 1.5),
             ),
           ),
         ),
-        if (hasError)
+        if (!viewModel.isTitleValid && viewModel.title.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 4.0),
             child: Text(
@@ -356,16 +451,26 @@ class VendreView extends StackedView<VendreViewModel> {
     );
   }
 
-  Widget _buildPriceInput(VendreViewModel viewModel) {
+  Widget _buildPriceInput(VendreViewModel viewModel, {Key? key}) {
     return Column(
+      key: key,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'post_ad.price'.tr().toUpperCase(),
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kcPrimaryColor),
+        RichText(
+          text: TextSpan(
+            text: 'post_ad.price'.tr().toUpperCase(),
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kcPrimaryColor, fontFamily: 'Outfit'),
+            children: const [
+              TextSpan(
+                text: ' *',
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 8),
         TextField(
+          controller: viewModel.priceController,
           onChanged: viewModel.setPrice,
           keyboardType: TextInputType.number,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kcTabIndicatorColor),
@@ -381,11 +486,11 @@ class VendreView extends StackedView<VendreViewModel> {
             border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.zero,
-              borderSide: BorderSide(color: kcVeryLightGrey.withOpacity(0.5)),
+              borderSide: BorderSide(color: viewModel.priceHasError ? Colors.red : kcVeryLightGrey.withOpacity(0.5)),
             ),
-            focusedBorder: const OutlineInputBorder(
+            focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.zero,
-              borderSide: BorderSide(color: kcTabIndicatorColor, width: 1.5),
+              borderSide: BorderSide(color: viewModel.priceHasError ? Colors.red : kcTabIndicatorColor, width: 1.5),
             ),
           ),
         ),
@@ -393,24 +498,38 @@ class VendreView extends StackedView<VendreViewModel> {
     );
   }
 
-  Widget _buildTextField({
+  Widget _buildTextField(
+    VendreViewModel viewModel, {
     required String label,
     required Function(String) onChanged,
+    TextEditingController? controller,
     int? maxLength,
     int maxLines = 1,
     TextInputType keyboardType = TextInputType.text,
+    bool isRequired = false,
+    bool hasError = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label.toUpperCase(),
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kcPrimaryColor),
+          RichText(
+            text: TextSpan(
+              text: label.toUpperCase(),
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kcPrimaryColor, fontFamily: 'Outfit'),
+              children: [
+                if (isRequired)
+                  const TextSpan(
+                    text: ' *',
+                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  ),
+              ],
+            ),
           ),
           const SizedBox(height: 8),
           TextField(
+            controller: controller,
             onChanged: onChanged,
             maxLength: maxLength,
             maxLines: maxLines,
@@ -423,11 +542,11 @@ class VendreView extends StackedView<VendreViewModel> {
               border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.zero,
-                borderSide: BorderSide(color: kcVeryLightGrey.withOpacity(0.5)),
+                borderSide: BorderSide(color: hasError ? Colors.red : kcVeryLightGrey.withOpacity(0.5)),
               ),
-              focusedBorder: const OutlineInputBorder(
+              focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.zero,
-                borderSide: BorderSide(color: kcTabIndicatorColor, width: 1.5),
+                borderSide: BorderSide(color: hasError ? Colors.red : kcTabIndicatorColor, width: 1.5),
               ),
             ),
           ),
@@ -575,58 +694,113 @@ class VendreView extends StackedView<VendreViewModel> {
         ),
         if (viewModel.showBulkPriceForm)
           _buildCard(
+            key: _bulkKey,
+            hasError: viewModel.bulkPricesHasError,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildDropdown(
-                  label: 'post_ad.bulk_size'.tr(),
-                  value: viewModel.selectedBulkSize,
-                  items: viewModel.bulkSizes,
-                  onChanged: viewModel.setBulkSize,
-                ),
-                if (viewModel.selectedBulkSize != null) ...[
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    label: 'post_ad.bulk_price_from'.tr(namedArgs: {'size': viewModel.selectedBulkSize!}),
-                    onChanged: (val) {},
-                    keyboardType: TextInputType.number,
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextButton(
-                          onPressed: () => viewModel.addBulkPrice(viewModel.selectedBulkSize!, '0'),
-                          style: TextButton.styleFrom(
-                            backgroundColor: kcPrimaryColor,
-                            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: Text('post_ad.btn_save_bulk'.tr(), style: const TextStyle(color: kcTabIndicatorColor, fontSize: 11, fontWeight: FontWeight.bold)),
-                        ),
+                if (viewModel.bulkPrices.isEmpty)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Text(
+                        "Aucun palier défini. Ajoutez-en un ci-dessous.",
+                        style: TextStyle(color: kcMediumGrey.withOpacity(0.7), fontSize: 12),
                       ),
-                    ],
+                    ),
                   ),
-                ],
-                if (viewModel.bulkPrices.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  const Divider(),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: viewModel.bulkPrices.length,
-                    itemBuilder: (context, index) {
-                      final bp = viewModel.bulkPrices[index];
-                      return ListTile(
-                        dense: true,
-                        title: Text('${bp['size']} pieces', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        trailing: Text('${bp['price']} GHS', style: const TextStyle(color: kcTabIndicatorColor, fontWeight: FontWeight.bold)),
-                        leading: IconButton(
-                          icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20),
-                          onPressed: () => viewModel.removeBulkPrice(index),
-                        ),
-                      );
-                    },
+                
+                // LISTE DES PALIERS (LIGNES DYNAMIQUES)
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: viewModel.bulkPrices.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: Row(
+                        children: [
+                          // 1. Quantité (Menu Déroulant)
+                          Expanded(
+                            flex: 2,
+                            child: DropdownButtonFormField<String>(
+                              value: viewModel.bulkPrices[index]['size']!.isEmpty ? null : viewModel.bulkPrices[index]['size'],
+                              items: viewModel.bulkSizes.map((size) => DropdownMenuItem(
+                                value: size,
+                                child: Text(size, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                              )).toList(),
+                              onChanged: (val) => viewModel.updateBulkPriceRow(index, 'size', val ?? ''),
+                              decoration: InputDecoration(
+                                hintText: 'Qté',
+                                hintStyle: TextStyle(fontSize: 12, color: kcMediumGrey.withOpacity(0.5)),
+                                prefixIcon: const Icon(Icons.shopping_basket_outlined, size: 16, color: kcTabIndicatorColor),
+                                filled: true,
+                                fillColor: kcVeryLightGrey.withOpacity(0.15),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.zero,
+                                  borderSide: BorderSide(color: (viewModel.bulkPricesHasError && viewModel.bulkPrices[index]['size']!.isEmpty) ? Colors.red : Colors.transparent),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.zero,
+                                  borderSide: BorderSide(color: (viewModel.bulkPricesHasError && viewModel.bulkPrices[index]['size']!.isEmpty) ? Colors.red : Colors.transparent),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // 2. Prix
+                          Expanded(
+                            flex: 3,
+                            child: TextField(
+                              keyboardType: TextInputType.number,
+                              onChanged: (val) => viewModel.updateBulkPriceRow(index, 'price', val),
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kcTabIndicatorColor),
+                              decoration: InputDecoration(
+                                hintText: 'Prix total (GHS)',
+                                hintStyle: TextStyle(fontSize: 12, color: kcMediumGrey.withOpacity(0.5)),
+                                prefixIcon: const Icon(Icons.payments_outlined, size: 16, color: kcTabIndicatorColor),
+                                filled: true,
+                                fillColor: kcVeryLightGrey.withOpacity(0.15),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.zero,
+                                  borderSide: BorderSide(color: (viewModel.bulkPricesHasError && viewModel.bulkPrices[index]['price']!.isEmpty) ? Colors.red : Colors.transparent),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.zero,
+                                  borderSide: BorderSide(color: (viewModel.bulkPricesHasError && viewModel.bulkPrices[index]['price']!.isEmpty) ? Colors.red : Colors.transparent),
+                                ),
+                              ),
+                            ),
+                          ),
+                          // 3. Bouton Supprimer
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 22),
+                            onPressed: () => viewModel.removeBulkPrice(index),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                
+                const SizedBox(height: 10),
+                
+                // BOUTON AJOUTER UNE LIGNE
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: viewModel.canAddBulkPriceRow ? viewModel.addBulkPriceRow : null,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text("AJOUTER UN PALIER DE PRIX", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: viewModel.canAddBulkPriceRow ? kcPrimaryColor : kcMediumGrey,
+                      side: BorderSide(color: viewModel.canAddBulkPriceRow ? kcPrimaryColor : kcMediumGrey),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                    ),
                   ),
-                ],
+                ),
               ],
             ),
           ),

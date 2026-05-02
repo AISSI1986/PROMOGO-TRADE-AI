@@ -133,6 +133,7 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
     final promos = [
       {'trKey': 'home.promo_devis', 'icon': Icons.track_changes},
       {'trKey': 'home.promo_categories', 'icon': Icons.grid_view_rounded},
+      {'trKey': 'home.comparator_title', 'icon': Icons.balance_rounded},
       {'trKey': 'home.promo_top_ranking', 'icon': Icons.emoji_events_outlined},
       {'trKey': 'home.promo_discount', 'icon': Icons.local_offer_outlined},
     ];

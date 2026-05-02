@@ -3,13 +3,13 @@ class ApiConstants {
   // En local avec l'émulateur Android : '10.0.2.2:8000'
   // En production : 'api.promogo.com' ou 'votre-ip:8000'
   // --- Serveur FastAPI (Moteur IA) ---
-  static const String iaServerHost = '10.0.2.2:8001';
-  static const String wsBaseUrl = 'ws://$iaServerHost';
+  static const String iaServerHost = 'affirmation-promogo-voice-search.hf.space';
+  static const String wsBaseUrl = 'wss://$iaServerHost';
   static String getAnalyseAudioWs(String langue) => '$wsBaseUrl/ws/analyser-audio/$langue';
 
   // --- Serveur Django (Backend Principal) ---
-  static const String djangoServerHost = '10.0.2.2:8000';
-  static const String djangoBaseUrl = 'http://$djangoServerHost/api';
+  static const String djangoServerHost = '6dee-74-244-119-137.ngrok-free.app';
+  static const String djangoBaseUrl = 'https://$djangoServerHost/api';
 
   // Routes Authentification
   static const String sendOtpEndpoint = '$djangoBaseUrl/auth/otp/send/';
@@ -20,5 +20,7 @@ class ApiConstants {
   static const String refreshTokenEndpoint = '$djangoBaseUrl/auth/token/refresh/';
   static const String categoriesEndpoint = '$djangoBaseUrl/categories/';
   static const String addAdEndpoint = '$djangoBaseUrl/ads/add/';
+  static const String myAdsEndpoint = '$djangoBaseUrl/ads/me/';
+  static String getBulkPricesEndpoint(int adId) => '$djangoBaseUrl/ads/$adId/bulk-prices/';
 }
 
