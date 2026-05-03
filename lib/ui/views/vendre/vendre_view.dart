@@ -161,7 +161,7 @@ class VendreView extends StackedView<VendreViewModel> {
 
                 // Subscription
                 _buildSectionHeader('post_ad.section_promo'.tr()),
-                _buildCard(child: _buildSubscriptionOptions(viewModel)),
+                _buildSubscriptionOptions(context, viewModel),
                 
                 const SizedBox(height: 32),
 
@@ -807,7 +807,7 @@ class VendreView extends StackedView<VendreViewModel> {
     );
   }
 
-  Widget _buildSubscriptionOptions(VendreViewModel viewModel) {
+  Widget _buildSubscriptionOptions(BuildContext context, VendreViewModel viewModel) {
     if (viewModel.subscriptionPlans.isEmpty) {
       return const Center(
         child: Padding(
@@ -817,39 +817,146 @@ class VendreView extends StackedView<VendreViewModel> {
       );
     }
 
+    // Group plans by name to show duration options
+    final Map<String, List<SubscriptionPlan>> groupedPlans = {};
+    for (var plan in viewModel.subscriptionPlans) {
+      if (!groupedPlans.containsKey(plan.nom)) {
+        groupedPlans[plan.nom] = [];
+      }
+      groupedPlans[plan.nom]!.add(plan);
+    }
+
     return Column(
-      children: viewModel.subscriptionPlans.map((plan) {
-        bool isSelected = viewModel.selectedSubscription == plan.nom;
-        return Container(
-          margin: const EdgeInsets.only(bottom: 4),
-          decoration: BoxDecoration(
-            border: Border.all(color: isSelected ? kcTabIndicatorColor : kcVeryLightGrey, width: isSelected ? 2 : 1),
-          ),
-          child: RadioListTile<SubscriptionPlan>(
-            visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: groupedPlans.entries.map((entry) {
+        final planName = entry.key;
+        final variations = entry.value;
+        variations.sort((a, b) => a.dureeJours.compareTo(b.dureeJours));
+        
+        final bool isSelected = viewModel.selectedSubscription == planName;
+        
+        return GestureDetector(
+          onTap: () => viewModel.setSubscription(variations.first),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.fastOutSlowIn,
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: isSelected ? Colors.white : const Color(0xFFFBFBFB),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSelected ? kcTabIndicatorColor : Colors.grey[200]!,
+                width: isSelected ? 2 : 1,
+              ),
+              boxShadow: isSelected ? [
+                BoxShadow(
+                  color: kcTabIndicatorColor.withOpacity(0.12),
+                  blurRadius: 15,
+                  offset: const Offset(0, 6),
+                )
+              ] : [],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(plan.nom, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? kcPrimaryColor : kcMediumGrey)),
-                Text(
-                  plan.prix > 0 ? '${plan.prix} ${plan.devise}' : 'FREE',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: plan.prix > 0 ? kcTabIndicatorColor : Colors.green,
-                    fontSize: 12,
+                // HEADER COMPACT
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        planName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15,
+                          color: isSelected ? kcPrimaryColor : Colors.black87,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      Text(
+                        '${variations.first.prix.toInt()} ${variations.first.devise}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                          color: isSelected ? kcTabIndicatorColor : Colors.black45,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                
+                // DÉTAILS DÉROULANTS (Si sélectionné)
+                if (isSelected)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                        const SizedBox(height: 12),
+                        Text(
+                          _getPlanDescription(planName),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          "DURÉE DE L'ANNONCE",
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: kcMediumGrey,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: variations.map((v) {
+                            bool isThisDurationSelected = viewModel.selectedPlan?.id == v.id;
+                            return GestureDetector(
+                              onTap: () => viewModel.setSubscription(v),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: isThisDurationSelected ? kcTabIndicatorColor : Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isThisDurationSelected ? kcTabIndicatorColor : Colors.grey[300]!,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (isThisDurationSelected)
+                                      const Padding(
+                                        padding: EdgeInsets.only(right: 6.0),
+                                        child: Icon(Icons.check_rounded, color: Colors.white, size: 14),
+                                      ),
+                                    Text(
+                                      '${v.dureeJours} jours',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w800,
+                                        color: isThisDurationSelected ? Colors.white : Colors.black87,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
-            ),
-            value: plan,
-            groupValue: viewModel.selectedPlan,
-            onChanged: viewModel.setSubscription,
-            activeColor: kcTabIndicatorColor,
-            secondary: Icon(
-              plan.nom == 'BASIC' ? Icons.fiber_new_outlined : plan.nom == 'BOOST' ? Icons.trending_up : Icons.star_outline,
-              color: isSelected ? kcTabIndicatorColor : kcMediumGrey,
-              size: 20,
             ),
           ),
         );
@@ -857,36 +964,75 @@ class VendreView extends StackedView<VendreViewModel> {
     );
   }
 
+  String _getPlanDescription(String planName) {
+    switch (planName.toUpperCase()) {
+      case 'BASIC':
+        return "Annonce standard gratuite sans options de boost.";
+      case 'BOOST':
+        return "Visibilité accrue : votre annonce apparaîtra en haut des résultats de recherche.";
+      case 'PREMIUM':
+        return "Meilleur choix pour une vente rapide. Jusqu'à 15x plus de trafic et options IA.";
+      case 'DIAMOND':
+        return "Exposition maximale sur toute la plateforme et support VIP dédié.";
+      default:
+        return "Profitez de plus de visibilité et vendez plus rapidement vos articles.";
+    }
+  }
+
   Widget _buildSubmitButton(VendreViewModel viewModel) {
-    return Container(
-      width: double.infinity,
-      height: 60,
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: kcPrimaryColor.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+    final bool isPaid = viewModel.isPaidPlan;
+    final String priceText = isPaid ? " (${viewModel.selectedPlan!.prix.toInt()} ${viewModel.selectedPlan!.devise})" : "";
+    final String btnText = isPaid 
+        ? "Buy ${viewModel.selectedPlan!.nom} & Post ad$priceText"
+        : "Post ad";
+
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          height: 60,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: (isPaid ? kcTabIndicatorColor : kcPrimaryColor).withOpacity(0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: ElevatedButton(
-        onPressed: viewModel.submitAd,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: kcPrimaryColor,
-          foregroundColor: kcTabIndicatorColor,
-          elevation: 0,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        ),
-        child: Text(
-          viewModel.submitButtonText.tr(),
-          style: const TextStyle(
-            fontWeight: FontWeight.w900,
-            fontSize: 16,
-            letterSpacing: 2.0,
+          child: ElevatedButton(
+            onPressed: viewModel.submitAd,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isPaid ? kcTabIndicatorColor : kcPrimaryColor,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            child: Text(
+              btnText.toUpperCase(),
+              style: const TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 15,
+                letterSpacing: 0.5,
+              ),
+            ),
           ),
         ),
-      ),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: Text(
+            "By clicking on Post ad, you accept the Terms of Use, confirm that you will abide by the Safety Tips, and declare that this posting does not include any Prohibited Items.",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[600],
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

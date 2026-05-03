@@ -138,7 +138,7 @@ class _IAEffectsPainter extends CustomPainter {
     // Restauration de la forme originale : pas de zoom, pas de décalage
     final double zoom = 1.0; 
     // On crée un point spécifique pour le logo, décalé de 1 pixel vers le haut
-    final ui.Offset logoPoint = Offset(size.width / 2, (size.height / 2) - 1);
+    final ui.Offset logoPoint = Offset(size.width / 2, size.height / 2);
     final ui.Offset centralPoint = Offset(size.width / 2, size.height / 2);
     
     final Rect destRect = Rect.fromCenter(
@@ -153,14 +153,12 @@ class _IAEffectsPainter extends CustomPainter {
       Paint(),
     );
 
-    // Le "Tracer" Cyan - Cercle de lumière COLLÉ AU BORD NATUREL
-    // On l'ajuste pour qu'il suive le bord de l'image 1.0
+    // Le "Tracer" Cyan - SEUL cet élément est décalé de +5px vers la droite
     final tracerPaint = Paint()
       ..color = Colors.cyanAccent
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5;
     
-    // On décale le cercle de 5px vers la droite pour parfaire le centrage visuel
     final ui.Offset circleCenter = Offset(centralPoint.dx + 5, centralPoint.dy);
 
     // Le rayon est ajusté pour coller au bord brillant sans couper l'image

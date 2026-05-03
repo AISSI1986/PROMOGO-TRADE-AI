@@ -1,3 +1,5 @@
+import 'package:promogoai/models/subscription_plan.dart';
+
 class Product {
   final String name;
   final String price;
@@ -7,6 +9,7 @@ class Product {
   final String sellerName;
   final double rating;
   final int reviewsCount;
+  final SubscriptionPlan? plan; // L'abonnement du vendeur
 
   Product({
     required this.name,
@@ -17,5 +20,6 @@ class Product {
     this.sellerName = 'Vendeur Certifié',
     this.rating = 4.8,
     this.reviewsCount = 124,
+    this.plan,
   }) : gallery = gallery ?? [imageUrl];
 }

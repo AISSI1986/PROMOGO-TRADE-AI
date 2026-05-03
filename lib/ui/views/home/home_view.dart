@@ -274,30 +274,22 @@ class _DomePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final double barTop = size.height - (barHeight + bottomPadding); // 40.0
     final double cx = size.width / 2;
-    // RESSERREMENT MILLIMÉTRÉ (Halo ultra-fin, Radius ~60.2)
-    final double startX = cx - 75; 
-    final double endX = cx + 75;
-    const double peakY = -18.2;
-    const double bottomY = 102.2;
+    // VISIBILITÉ ACCRUE (Radius 52 pour un dôme affirmé)
+    final double startX = cx - 68; 
+    final double endX = cx + 68;
+    const double peakY = -10.0;
+    const double bottomY = 94.0;
 
     // ==========================================
-    // LAYER 1 : LA BARRE BLANCHE MÈRE (Silhouette Solide Ultime)
+    // LAYER 1 : LA BARRE BLANCHE MÈRE (Silhouette Oeil)
     // ==========================================
     final Path socketPath = Path();
     socketPath.moveTo(0, barTop);
     socketPath.lineTo(startX, barTop);
 
-    // Courbe "Soft Circle" ultra-ajustée
-    socketPath.cubicTo(
-      cx - 60, barTop, 
-      cx - 33, peakY, 
-      cx, peakY,
-    );
-    socketPath.cubicTo(
-      cx + 33, peakY, 
-      cx + 60, barTop, 
-      endX, barTop,
-    );
+    // Arc supérieur affirmé
+    socketPath.cubicTo(startX + 15, barTop - 12, cx - 35, peakY, cx, peakY);
+    socketPath.cubicTo(cx + 35, peakY, endX - 15, barTop - 12, endX, barTop);
 
     socketPath.lineTo(size.width, barTop);
     socketPath.lineTo(size.width, size.height);
@@ -310,14 +302,14 @@ class _DomePainter extends CustomPainter {
     canvas.drawPath(socketPath, barPaint);
 
     // ==========================================
-    // LAYER 1.5 : LE BASSIN GRIS (Peint SUR la barre mère)
+    // LAYER 1.5 : LE BASSIN GRIS (Fond de l'oeil)
     // ==========================================
     final Path socketFillPath = Path();
     socketFillPath.moveTo(startX, barTop);
     
-    // Vasque circulaire millimétrée
-    socketFillPath.cubicTo(cx - 55, barTop, cx - 33, bottomY, cx, bottomY);
-    socketFillPath.cubicTo(cx + 33, bottomY, cx + 55, barTop, endX, barTop);
+    // Arc inférieur affirmé
+    socketFillPath.cubicTo(startX + 15, barTop + 12, cx - 35, bottomY, cx, bottomY);
+    socketFillPath.cubicTo(cx + 35, bottomY, endX - 15, barTop + 12, endX, barTop);
     socketFillPath.close();
 
     final Paint socketFillPaint = Paint()
@@ -328,41 +320,25 @@ class _DomePainter extends CustomPainter {
           Color(0xFFEBEBEB),
           Color(0xFFCDCDCD),
         ],
-      ).createShader(Rect.fromCircle(center: Offset(cx, 42), radius: 60.2))
+      ).createShader(Rect.fromCircle(center: Offset(cx, 42), radius: 52))
       ..style = PaintingStyle.fill;
       
     canvas.drawPath(socketFillPath, socketFillPaint);
 
     // ==========================================
-    // LAYER 2 : L'OEIL (Liseré ultra-fin)
+    // LAYER 2 : L'OEIL (Liseré amande impactant)
     // ==========================================
     final Path eyePath = Path();
     eyePath.moveTo(startX, barTop);
 
-    // Forme parfaitement collée au bouton
-    eyePath.cubicTo(
-      cx - 60, barTop, 
-      cx - 33, peakY, 
-      cx, peakY,
-    );
-    eyePath.cubicTo(
-      cx + 33, peakY, 
-      cx + 60, barTop, 
-      endX, barTop,
-    );
-    eyePath.cubicTo(
-      cx + 60, barTop, 
-      cx + 33, bottomY, 
-      cx, bottomY,
-    );
-    eyePath.cubicTo(
-      cx - 33, bottomY, 
-      cx - 60, barTop, 
-      startX, barTop,
-    );
+    // Contour amande généreux
+    eyePath.cubicTo(startX + 15, barTop - 12, cx - 35, peakY, cx, peakY);
+    eyePath.cubicTo(cx + 35, peakY, endX - 15, barTop - 12, endX, barTop);
+    eyePath.cubicTo(endX - 15, barTop + 12, cx + 35, bottomY, cx, bottomY);
+    eyePath.cubicTo(cx - 35, bottomY, startX + 15, barTop + 12, startX, barTop);
     eyePath.close();
 
-    final Rect eyeBounds = Rect.fromCircle(center: Offset(cx, 42), radius: 60.2); 
+    final Rect eyeBounds = Rect.fromCircle(center: Offset(cx, 42), radius: 52); 
     final Paint eyePaint = Paint()
       ..shader = const LinearGradient(
         begin: Alignment.topCenter,
