@@ -12,8 +12,10 @@ import 'package:promogoai/ui/views/live_viewer/live_viewer_view.dart';
 import 'package:promogoai/ui/views/mon_academie/mon_academie_view.dart';
 import 'package:promogoai/ui/views/demande_devis/demande_devis_view.dart';
 import 'package:promogoai/app/app.bottomsheets.dart';
+import 'package:promogoai/services/ad_service.dart';
 
 class HomeViewModel extends BaseViewModel {
+  final _adService = AdService();
   final _navigationService = locator<NavigationService>();
   final _bottomSheetService = locator<BottomSheetService>();
 
@@ -50,6 +52,14 @@ class HomeViewModel extends BaseViewModel {
 
   HomeViewModel() {
     _startPromoTimer();
+  }
+
+  List<Product> get allAds => _adService.ads;
+
+  Future<void> init() async {
+    setBusy(true);
+    await _adService.loadAds();
+    setBusy(false);
   }
 
   @override
@@ -104,12 +114,21 @@ class HomeViewModel extends BaseViewModel {
   Future<void> onVoiceIAClicked() async {
     final status = await Permission.microphone.request();
     if (status.isGranted) {
-      // Use Stacked BottomSheetService to show the newly created AiVoiceSheet
-      await _bottomSheetService.showCustomSheet(
+      final response = await _bottomSheetService.showCustomSheet(
         variant: BottomSheetType.aiVoice,
         isScrollControlled: true,
         barrierColor: const Color(0x00000000), // N'assombrit pas l'écran
       );
+
+      // Si le bottom sheet nous renvoie un vecteur
+      if (response != null && response.confirmed && response.data != null) {
+        final vector = response.data['vector'];
+        if (vector != null) {
+          setBusy(true);
+          await _adService.searchAdsByVector(vector);
+          setBusy(false);
+        }
+      }
     } else {
       print('Microphone permission denied');
     }

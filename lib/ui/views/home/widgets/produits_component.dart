@@ -46,6 +46,21 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
 
   @override
   Widget build(BuildContext context, HomeViewModel viewModel) {
+    if (viewModel.isBusy && viewModel.allAds.isEmpty) {
+      return const SizedBox(
+        height: 300,
+        child: Center(
+          child: CircularProgressIndicator(color: kcPrimaryColor),
+        ),
+      );
+    }
+
+    final allAds = viewModel.allAds;
+    final catAds = allAds.take(4).toList();
+    final offerAds = allAds.skip(4).take(4).toList();
+    final customAds = allAds.skip(8).take(4).toList();
+    final gridAds = allAds.skip(12).toList();
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,74 +68,60 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
           _buildPromoCards(context, viewModel),
           _buildInfoBanner(),
           _buildCategorySelector(context, viewModel),
-          _buildProductList(
-            context, 
-            viewModel,
-            title: 'home.section_produits_cat'.tr(),
-            subtitle: 'home.section_produits_cat_sub'.tr(),
-            backgroundGradient: const LinearGradient(
-              colors: [kcOchreMuted, Color(0xFFFDF8EE)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+          if (catAds.isNotEmpty)
+            _buildProductList(
+              context, 
+              viewModel,
+              title: 'home.section_produits_cat'.tr(),
+              subtitle: 'home.section_produits_cat_sub'.tr(),
+              backgroundGradient: const LinearGradient(
+                colors: [kcOchreMuted, Color(0xFFFDF8EE)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              titleColor: Colors.black,
+              backgroundDecorationIcon: Icons.double_arrow_rounded,
+              decorationColor: Colors.orange.shade800,
+              decorationRotation: 0.5,
+              products: catAds,
             ),
-            titleColor: Colors.black,
-            backgroundDecorationIcon: Icons.double_arrow_rounded,
-            decorationColor: Colors.orange.shade800,
-            decorationRotation: 0.5,
-            productNames: ['Chemise Slim', 'Sac Luxe', 'Veste Urbaine', 'Sac Cuir'],
-            productImages: [
-              'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500&q=80',
-              'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=500&q=80',
-              'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=500&q=80',
-              'https://images.unsplash.com/photo-1548033511-c7a30241161d?w=500&q=80',
-            ],
-          ),
-          _buildProductList(
-            context, 
-            viewModel,
-            title: 'home.section_meilleures_offres'.tr(),
-            subtitle: 'home.section_meilleures_offres_sub'.tr(),
-            backgroundGradient: const LinearGradient(
-              colors: [kcSageMuted, Color(0xFFF0F5F3)],
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
+          if (offerAds.isNotEmpty)
+            _buildProductList(
+              context, 
+              viewModel,
+              title: 'home.section_meilleures_offres'.tr(),
+              subtitle: 'home.section_meilleures_offres_sub'.tr(),
+              backgroundGradient: const LinearGradient(
+                colors: [kcSageMuted, Color(0xFFF0F5F3)],
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+              ),
+              titleColor: Colors.black,
+              backgroundDecorationIcon: Icons.bolt_rounded,
+              decorationColor: Colors.blue.shade800,
+              decorationRotation: 0.0,
+              products: offerAds,
             ),
-            titleColor: Colors.black,
-            backgroundDecorationIcon: Icons.bolt_rounded,
-            decorationColor: Colors.blue.shade800,
-            decorationRotation: 0.0,
-            productNames: ['Basket Sport', 'Smart Watch', 'Casque Audio', 'Lunettes'],
-            productImages: [
-              'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&q=80',
-              'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80',
-              'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80',
-              'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=500&q=80',
-            ],
-          ),
-          _buildProductList(
-            context, 
-            viewModel,
-            title: 'home.section_selection_sur_mesure'.tr(),
-            subtitle: 'home.section_selection_sur_mesure_sub'.tr(),
-            backgroundGradient: const LinearGradient(
-              colors: [kcClayMuted, Color(0xFFFEF9F8)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+          if (customAds.isNotEmpty)
+            _buildProductList(
+              context, 
+              viewModel,
+              title: 'home.section_selection_sur_mesure'.tr(),
+              subtitle: 'home.section_selection_sur_mesure_sub'.tr(),
+              backgroundGradient: const LinearGradient(
+                colors: [kcClayMuted, Color(0xFFFEF9F8)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              titleColor: Colors.black,
+              backgroundDecorationIcon: Icons.auto_awesome_rounded,
+              decorationColor: Colors.amber.shade800,
+              decorationRotation: -0.2,
+              products: customAds,
             ),
-            titleColor: Colors.black,
-            backgroundDecorationIcon: Icons.auto_awesome_rounded,
-            decorationColor: Colors.amber.shade800,
-            decorationRotation: -0.2,
-            productNames: ['Montre Or', 'Ceinture Cuir', 'Parfum', 'Bijoux'],
-            productImages: [
-              'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=500&q=80',
-              'https://images.unsplash.com/photo-1624222247344-550fb80583dc?w=500&q=80',
-              'https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&q=80',
-              'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=500&q=80',
-            ],
-          ),
           _buildBottomPromoWidgets(),
-          _buildVerticalProductGrid(context, viewModel),
+          if (gridAds.isNotEmpty)
+            _buildVerticalProductGrid(context, viewModel, gridAds),
           verticalSpaceLarge,
         ],
       ),
@@ -400,8 +401,7 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
     required Color titleColor,
     required IconData backgroundDecorationIcon,
     required Color decorationColor,
-    required List<String> productNames,
-    required List<String> productImages,
+    required List<Product> products,
     double decorationRotation = 0.0,
   }) {
     return Container(
@@ -472,13 +472,12 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
-                  itemCount: productNames.length,
+                  itemCount: products.length,
                   itemBuilder: (context, index) {
                     final itemWidth = (MediaQuery.of(context).size.width - 20) / 2.5;
                     return _buildProductCard(
                       viewModel,
-                      productNames[index], 
-                      productImages[index], 
+                      products[index], 
                       itemWidth
                     );
                   },
@@ -491,7 +490,7 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
     );
   }
 
-  Widget _buildVerticalProductGrid(BuildContext context, HomeViewModel viewModel) {
+  Widget _buildVerticalProductGrid(BuildContext context, HomeViewModel viewModel, List<Product> gridAds) {
     final itemWidth = (MediaQuery.of(context).size.width - 40) / 2;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -513,32 +512,19 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
             crossAxisSpacing: 0,
             mainAxisSpacing: 0,
           ),
-          itemCount: 8,
+          itemCount: gridAds.length,
           itemBuilder: (context, index) {
-            final isShirt = index % 2 == 0;
-            final name = isShirt ? 'Vêtement' : 'Accessoire';
-            final imageUrl = isShirt 
-              ? 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=500&q=80'
-              : 'https://images.unsplash.com/photo-1591561954557-26941169b49e?w=500&q=80';
-            return _buildProductCard(viewModel, name, imageUrl, itemWidth);
+            return _buildProductCard(viewModel, gridAds[index], itemWidth);
           },
         ),
       ],
     );
   }
 
-  Widget _buildProductCard(HomeViewModel viewModel, String name, String imageUrl, double width) {
+  Widget _buildProductCard(HomeViewModel viewModel, Product product, double width) {
     return InkWell(
       onTap: () {
-        viewModel.navigateToProductDetail(
-          Product(
-            name: name,
-            price: '7 134 F CFA',
-            imageUrl: imageUrl,
-            gallery: _getMockGallery(name, imageUrl),
-            description: "Ceci est une description détaillée du produit $name. Qualité supérieure, disponible dès maintenant sur PROMOGO AI.",
-          ),
-        );
+        viewModel.navigateToProductDetail(product);
       },
       child: Container(
         width: width,
@@ -571,7 +557,7 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
                     fit: StackFit.expand,
                     children: [
                       CachedNetworkImage(
-                        imageUrl: imageUrl,
+                        imageUrl: product.imageUrl,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => const Center(
                           child: SizedBox(
@@ -595,9 +581,9 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
                             color: Color.fromRGBO(255, 255, 255, 0.9),
                             borderRadius: BorderRadius.zero,
                           ),
-                          child: const Text(
-                            '7 134 F CFA',
-                            style: TextStyle(
+                          child: Text(
+                            product.price,
+                            style: const TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
                               color: Colors.black87,
@@ -618,7 +604,7 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
                   SizedBox(
                     width: double.infinity,
                     child: Text(
-                      name,
+                      product.name,
                       textAlign: TextAlign.center,
                       style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                       maxLines: 1,

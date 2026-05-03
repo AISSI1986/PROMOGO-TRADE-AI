@@ -156,6 +156,12 @@ class HomeView extends StackedView<HomeViewModel> {
     }
   }
   @override
+  void onViewModelReady(HomeViewModel viewModel) {
+    viewModel.init();
+    super.onViewModelReady(viewModel);
+  }
+
+  @override
   HomeViewModel viewModelBuilder(BuildContext context) => HomeViewModel();
 }
 

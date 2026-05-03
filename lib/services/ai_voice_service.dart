@@ -21,6 +21,9 @@ class AiVoiceService {
     _logger.i('Langue IA changée pour : $langue');
   }
 
+  /// Expose le stream d'amplitude pour le visualiseur
+  Stream<Amplitude> get onAmplitudeChanged => _audioRecorder.onAmplitudeChanged(const Duration(milliseconds: 50));
+
   /// Lance l'enregistrement audio
   Future<void> startRecording() async {
     try {
@@ -41,8 +44,18 @@ class AiVoiceService {
     }
   }
 
+  /// Arrête et annule l'enregistrement sans l'envoyer
+  Future<void> cancelRecording() async {
+    try {
+      await _audioRecorder.stop();
+      _logger.i('Enregistrement annulé.');
+    } catch (e) {
+      _logger.e('Erreur lors de l\'annulation du micro: $e');
+    }
+  }
+
   /// Arrête l'enregistrement et envoie le fichier au backend
-  Future<String> stopRecordingAndSend({Function(String)? onProgress}) async {
+  Future<Map<String, dynamic>> stopRecordingAndSend({Function(String)? onProgress}) async {
     _logger.i('Arrêt de l\'enregistrement (Langue actuelle: $_selectedLangue)...');
     try {
       final path = await _audioRecorder.stop();
@@ -52,11 +65,11 @@ class AiVoiceService {
     } catch (e) {
       _logger.e('Erreur lors de l\'arrêt du micro: $e');
     }
-    return "Erreur lors de l'enregistrement vocal.";
+    return {"error": "Erreur lors de l'enregistrement vocal."};
   }
 
   /// Envoie le fichier audio au backend FastAPI via WebSocket
-  Future<String> sendVoiceToBackend(String audioFilePath, {Function(String)? onProgress}) async {
+  Future<Map<String, dynamic>> sendVoiceToBackend(String audioFilePath, {Function(String)? onProgress}) async {
     _logger.i('Connexion WebSocket au moteur IA ($_selectedLangue)...');
     
     // On utilise la langue mémorisée dans le service
@@ -86,11 +99,12 @@ class AiVoiceService {
           }
           
           if (data.containsKey('transcription')) {
-            finalResult = data['transcription']?.toString() ?? "Analyse terminée.";
-            break; 
+            return {
+              "transcription": data['transcription']?.toString() ?? "Analyse terminée.",
+              "vector": data['vector']
+            };
           } else if (data.containsKey('error')) {
-            finalResult = "Erreur: ${data['error']}";
-            break;
+            return {"error": "Erreur: ${data['error']}"};
           }
         } catch (e) {
           finalResult = message.toString();
@@ -98,11 +112,11 @@ class AiVoiceService {
       }
       
       channel.sink.close();
-      return finalResult;
+      return {"transcription": finalResult};
       
     } catch (e) {
       _logger.e('Erreur de connexion WebSocket: $e');
-      return "Erreur de connexion au serveur IA.";
+      return {"error": "Erreur de connexion au serveur IA."};
     }
   }
 
