@@ -11,9 +11,11 @@ import 'package:http/http.dart' as http;
 import 'package:promogoai/app/app.router.dart';
 import 'package:promogoai/ui/common/setup_snackbar_ui.dart';
 
+import 'package:promogoai/services/local_storage_service.dart';
+import 'package:promogoai/services/subscription_service.dart';
 import 'package:promogoai/services/category_service.dart';
 import 'package:promogoai/services/auth_service.dart';
-import 'package:promogoai/services/local_storage_service.dart';
+import 'package:promogoai/models/subscription_plan.dart';
 
 class VendreViewModel extends BaseViewModel {
   final _navigationService = locator<NavigationService>();
@@ -21,6 +23,7 @@ class VendreViewModel extends BaseViewModel {
   final _authService = locator<AuthService>();
   final _snackbarService = locator<SnackbarService>();
   final _localStorageService = locator<LocalStorageService>();
+  final _subscriptionService = locator<SubscriptionService>();
   final _imagePicker = ImagePicker();
  
    // Contrôleurs pour l'UI (pour afficher les brouillons)
@@ -37,8 +40,30 @@ class VendreViewModel extends BaseViewModel {
   String _categorySearchQuery = '';
   List<Map<String, dynamic>> get categories => _categoryService.filterCategories(_categorySearchQuery);
 
-  void init() {
+  void init() async {
     loadDraft();
+    if (_subscriptionService.cachedPlans == null) {
+      try {
+        await _subscriptionService.fetchPlans();
+        // After fetching, try to map the draft subscription name to a plan object
+        _syncSelectedPlanFromDraft();
+        notifyListeners();
+      } catch (e) {
+        debugPrint("❌ [VendreViewModel] Erreur fetchPlans: $e");
+      }
+    } else {
+      _syncSelectedPlanFromDraft();
+    }
+  }
+
+  void _syncSelectedPlanFromDraft() {
+    if (_selectedSubscription != null && _subscriptionService.cachedPlans != null) {
+      _selectedPlan = _subscriptionService.cachedPlans!.firstWhere(
+        (p) => p.nom == _selectedSubscription,
+        orElse: () => _subscriptionService.cachedPlans!.first,
+      );
+      _selectedSubscription = _selectedPlan?.nom;
+    }
   }
 
   @override
@@ -177,8 +202,17 @@ class VendreViewModel extends BaseViewModel {
   String? _negotiation;
   String? get negotiation => _negotiation;
 
-  String? _selectedSubscription = 'Free';
+  String? _selectedSubscription = 'BASIC'; // Changed from 'Free' to match API
   String? get selectedSubscription => _selectedSubscription;
+
+  SubscriptionPlan? _selectedPlan;
+  SubscriptionPlan? get selectedPlan => _selectedPlan;
+
+  List<SubscriptionPlan> get subscriptionPlans => _subscriptionService.cachedPlans ?? [];
+
+  bool get isPaidPlan => _selectedPlan != null && _selectedPlan!.prix > 0;
+
+  String get submitButtonText => isPaidPlan ? 'post_ad.btn_pay_submit' : 'post_ad.btn_submit';
 
   // --- ÉTATS D'ERREUR POUR LA VALIDATION VISUELLE ---
   bool _titleHasError = false;
@@ -261,10 +295,13 @@ class VendreViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  void setSubscription(String? value) {
-    _selectedSubscription = value;
-    saveDraft();
-    notifyListeners();
+  void setSubscription(SubscriptionPlan? plan) {
+    if (plan != null) {
+      _selectedPlan = plan;
+      _selectedSubscription = plan.nom;
+      saveDraft();
+      notifyListeners();
+    }
   }
 
   void setPrice(String value) {

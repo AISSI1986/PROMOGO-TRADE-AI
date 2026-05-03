@@ -663,48 +663,176 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
             child: Container(
               height: 280,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: const Color(0xFF0F172A), // Bleu nuit très pro (Slate 900)
                 borderRadius: BorderRadius.circular(5),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
                   ),
                 ],
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'home.comparator_title'.tr(),
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: kcDarkGreyColor),
+              child: Stack(
+                children: [
+                  // --- GRILLE TECHNIQUE EN FOND ---
+                  Positioned.fill(
+                    child: Opacity(
+                      opacity: 0.1,
+                      child: CustomPaint(
+                        painter: _GridPainter(),
+                      ),
                     ),
-                    verticalSpaceSmall,
-                    InkWell(
-                      onTap: () {},
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: const BoxDecoration(
-                          color: kcPrimaryColor,
-                          borderRadius: BorderRadius.zero,
-                        ),
-                        child: Center(
-                          child: Text(
-                            'home.comparator_action'.tr(),
-                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                  // --- GRAPHIQUE EN FOND (Sparkline avec Glow) ---
+                  Positioned(
+                    bottom: 50,
+                    left: 0,
+                    right: 0,
+                    height: 90,
+                    child: CustomPaint(
+                      painter: _SparklinePainter(),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // EN-TÊTE AVEC FITTEDBOX POUR ÉVITER TOUT OVERFLOW
+                        SizedBox(
+                          height: 20,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              children: [
+                                Text(
+                                  'home.comparator_title'.tr().toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.greenAccent.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: Colors.greenAccent.withOpacity(0.5), width: 0.5),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 4,
+                                        height: 4,
+                                        decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Text("LIVE", style: TextStyle(color: Colors.greenAccent, fontSize: 8, fontWeight: FontWeight.w900)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    )
-                  ],
-                ),
+                        const SizedBox(height: 18),
+                        // --- MARCHÉ DATA ---
+                        _buildMarketRow("Riz (Sac 50kg)", "24 500", "+2.4%", true),
+                        _buildMarketRow("Huile (5L)", "6 200", "-0.8%", false),
+                        _buildMarketRow("Sucre (Kg)", "850", "+1.1%", true),
+                        
+                        const Spacer(),
+                        
+                        // --- BOUTON TRADING ---
+                        InkWell(
+                          onTap: () {},
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E293B).withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Colors.cyanAccent.withOpacity(0.3)),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.insights_rounded, color: Colors.cyanAccent, size: 14),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'home.comparator_action'.tr().toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Colors.cyanAccent, 
+                                    fontSize: 9, 
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMarketRow(String label, String price, String change, bool isUp) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 9, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Text(
+                isUp ? "▲" : "▼",
+                style: TextStyle(color: isUp ? Colors.greenAccent : Colors.redAccent, fontSize: 8),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                change,
+                style: TextStyle(
+                  color: isUp ? Colors.greenAccent : Colors.redAccent,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(
+                price,
+                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, fontFamily: 'monospace'),
+              ),
+              const SizedBox(width: 2),
+              Text("F", style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 8)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Divider(color: Colors.white.withOpacity(0.05), height: 1),
         ],
       ),
     );
@@ -732,6 +860,72 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
     }
     return [mainImage, 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80'];
   }
+}
+
+class _GridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.1)
+      ..strokeWidth = 0.5;
+
+    for (double i = 0; i <= size.width; i += 20) {
+      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
+    }
+    for (double i = 0; i <= size.height; i += 20) {
+      canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
+
+class _SparklinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.greenAccent
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round;
+
+    final path = Path();
+    path.moveTo(0, size.height * 0.7);
+    path.cubicTo(
+      size.width * 0.2, size.height * 0.8,
+      size.width * 0.3, size.height * 0.2,
+      size.width * 0.5, size.height * 0.4,
+    );
+    path.cubicTo(
+      size.width * 0.7, size.height * 0.6,
+      size.width * 0.8, size.height * 0.1,
+      size.width, size.height * 0.3,
+    );
+
+    // Effet de Glow sous la courbe
+    final gradientPath = Path.from(path);
+    gradientPath.lineTo(size.width, size.height);
+    gradientPath.lineTo(0, size.height);
+    gradientPath.close();
+
+    final gradientPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Colors.greenAccent.withOpacity(0.2), Colors.transparent],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    canvas.drawPath(gradientPath, gradientPaint);
+    canvas.drawPath(path, paint);
+
+    // Point d'arrivée brillant
+    canvas.drawCircle(Offset(size.width, size.height * 0.3), 3, Paint()..color = Colors.white);
+    canvas.drawCircle(Offset(size.width, size.height * 0.3), 6, Paint()..color = Colors.greenAccent.withOpacity(0.3));
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
 
 class _CategoryItem extends StatelessWidget {

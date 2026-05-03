@@ -137,9 +137,12 @@ class _IAEffectsPainter extends CustomPainter {
 
     // Restauration de la forme originale : pas de zoom, pas de décalage
     final double zoom = 1.0; 
+    // On crée un point spécifique pour le logo, décalé de 1 pixel vers le haut
+    final ui.Offset logoPoint = Offset(size.width / 2, (size.height / 2) - 1);
     final ui.Offset centralPoint = Offset(size.width / 2, size.height / 2);
+    
     final Rect destRect = Rect.fromCenter(
-      center: centralPoint,
+      center: logoPoint,
       width: size.width,
       height: size.height,
     );

@@ -35,6 +35,8 @@ import 'package:promogoai/ui/views/demande_devis/demande_devis_view.dart';
 import 'package:promogoai/ui/views/demande_devis/form_devis_view.dart';
 import 'package:promogoai/services/ai_voice_service.dart';
 import 'package:promogoai/services/auth_service.dart';
+import 'package:promogoai/services/subscription_service.dart';
+import 'package:promogoai/ui/views/abonnement/abonnement_view.dart';
 // @stacked-import
 
 @StackedApp(
@@ -61,6 +63,7 @@ import 'package:promogoai/services/auth_service.dart';
     MaterialRoute(page: MonAcademieView),
     MaterialRoute(page: DemandeDevisView),
     MaterialRoute(page: FormDevisView),
+    MaterialRoute(page: AbonnementView),
     // @stacked-route
   ],
   dependencies: [
@@ -74,6 +77,7 @@ import 'package:promogoai/services/auth_service.dart';
     InitializableSingleton(classType: LocalStorageService),
     LazySingleton(classType: AuthService),
     LazySingleton(classType: CategoryService),
+    LazySingleton(classType: SubscriptionService),
     // @stacked-service
   ],
   bottomsheets: [

@@ -6,7 +6,8 @@ import 'package:promogoai/ui/common/ui_helpers.dart';
 import 'moi_viewmodel.dart';
 
 class MoiView extends StackedView<MoiViewModel> {
-  const MoiView({Key? key}) : super(key: key);
+  final VoidCallback? onBack;
+  const MoiView({Key? key, this.onBack}) : super(key: key);
 
   @override
   Widget builder(BuildContext context, MoiViewModel viewModel, Widget? child) {
@@ -15,7 +16,17 @@ class MoiView extends StackedView<MoiViewModel> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        centerTitle: false,
+        leading: onBack != null 
+          ? IconButton(
+              onPressed: onBack,
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: kcTabIndicatorColor,
+                size: 20,
+              ),
+            )
+          : null,
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.headset_mic_outlined, color: kcTabIndicatorColor),
@@ -85,7 +96,7 @@ class MoiView extends StackedView<MoiViewModel> {
                 ),
               ),
             
-            const SizedBox(height: 120),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -260,6 +271,8 @@ class MoiView extends StackedView<MoiViewModel> {
             onTap: () {
               if (feature['label'] == 'moi.saved'.tr()) {
                 viewModel.navigateToSaved();
+              } else if (feature['label'] == 'moi.subscription'.tr()) {
+                viewModel.navigateToAbonnement();
               }
             },
             child: _FeatureItem(

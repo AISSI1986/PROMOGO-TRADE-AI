@@ -19,6 +19,7 @@ import '../services/category_service.dart';
 import '../services/local_storage_service.dart';
 import '../services/settings_service.dart';
 import '../services/srs_streaming_service.dart';
+import '../services/subscription_service.dart';
 
 final locator = StackedLocator.instance;
 
@@ -42,4 +43,5 @@ Future<void> setupLocator(
 
   locator.registerLazySingleton(() => AuthService());
   locator.registerLazySingleton(() => CategoryService());
+  locator.registerLazySingleton(() => SubscriptionService());
 }

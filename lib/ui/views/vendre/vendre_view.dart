@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:stacked/stacked.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:promogoai/ui/common/app_colors.dart';
+import 'package:promogoai/models/subscription_plan.dart';
 import 'vendre_viewmodel.dart';
 
 class VendreView extends StackedView<VendreViewModel> {
@@ -147,7 +148,7 @@ class VendreView extends StackedView<VendreViewModel> {
                     label: 'Décrivez votre article en quelques mots...',
                     controller: viewModel.descriptionController,
                     onChanged: viewModel.setDescription,
-                    maxLines: 5,
+                    maxLines: 4,
                     isRequired: true,
                     hasError: viewModel.descriptionHasError,
                   ),
@@ -170,8 +171,8 @@ class VendreView extends StackedView<VendreViewModel> {
                     ? const Center(child: CircularProgressIndicator(color: kcPrimaryColor))
                     : _buildSubmitButton(viewModel),
                 
-                // ESPACE pour éviter l'icône IA en bas de scroll
-                const SizedBox(height: 120),
+                // ESPACE pour une finition propre en bas de scroll
+                const SizedBox(height: 40),
               ],
             ),
           ),
@@ -355,7 +356,7 @@ class VendreView extends StackedView<VendreViewModel> {
     return Container(
       key: key,
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: hasError ? Colors.red : kcVeryLightGrey),
@@ -415,7 +416,7 @@ class VendreView extends StackedView<VendreViewModel> {
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         TextField(
           controller: viewModel.titleController,
           maxLength: 70,
@@ -427,7 +428,7 @@ class VendreView extends StackedView<VendreViewModel> {
             counterText: '${viewModel.title.length}/70',
             filled: true,
             fillColor: kcVeryLightGrey.withOpacity(0.15),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.zero,
@@ -468,7 +469,7 @@ class VendreView extends StackedView<VendreViewModel> {
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         TextField(
           controller: viewModel.priceController,
           onChanged: viewModel.setPrice,
@@ -482,7 +483,7 @@ class VendreView extends StackedView<VendreViewModel> {
             suffixStyle: const TextStyle(fontWeight: FontWeight.bold, color: kcMediumGrey),
             filled: true,
             fillColor: kcVeryLightGrey.withOpacity(0.15),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.zero,
@@ -509,49 +510,46 @@ class VendreView extends StackedView<VendreViewModel> {
     bool isRequired = false,
     bool hasError = false,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          RichText(
-            text: TextSpan(
-              text: label.toUpperCase(),
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kcPrimaryColor, fontFamily: 'Outfit'),
-              children: [
-                if (isRequired)
-                  const TextSpan(
-                    text: ' *',
-                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                  ),
-              ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          text: TextSpan(
+            text: label.toUpperCase(),
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kcPrimaryColor, fontFamily: 'Outfit'),
+            children: [
+              if (isRequired)
+                const TextSpan(
+                  text: ' *',
+                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        TextField(
+          controller: controller,
+          onChanged: onChanged,
+          maxLength: maxLength,
+          maxLines: maxLines,
+          keyboardType: keyboardType,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: kcVeryLightGrey.withOpacity(0.15),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.zero,
+              borderSide: BorderSide(color: hasError ? Colors.red : kcVeryLightGrey.withOpacity(0.5)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.zero,
+              borderSide: BorderSide(color: hasError ? Colors.red : kcTabIndicatorColor, width: 1.5),
             ),
           ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: controller,
-            onChanged: onChanged,
-            maxLength: maxLength,
-            maxLines: maxLines,
-            keyboardType: keyboardType,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: kcVeryLightGrey.withOpacity(0.15),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.zero,
-                borderSide: BorderSide(color: hasError ? Colors.red : kcVeryLightGrey.withOpacity(0.5)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.zero,
-                borderSide: BorderSide(color: hasError ? Colors.red : kcTabIndicatorColor, width: 1.5),
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -770,6 +768,7 @@ class VendreView extends StackedView<VendreViewModel> {
                                   borderRadius: BorderRadius.zero,
                                   borderSide: BorderSide(color: (viewModel.bulkPricesHasError && viewModel.bulkPrices[index]['price']!.isEmpty) ? Colors.red : Colors.transparent),
                                 ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                               ),
                             ),
                           ),
@@ -809,24 +808,48 @@ class VendreView extends StackedView<VendreViewModel> {
   }
 
   Widget _buildSubscriptionOptions(VendreViewModel viewModel) {
-    final subscriptions = ['Free', 'Top Promo', 'Premium Subscription'];
+    if (viewModel.subscriptionPlans.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: CircularProgressIndicator(color: kcPrimaryColor),
+        ),
+      );
+    }
+
     return Column(
-      children: subscriptions.map((sub) {
-        bool isSelected = viewModel.selectedSubscription == sub;
+      children: viewModel.subscriptionPlans.map((plan) {
+        bool isSelected = viewModel.selectedSubscription == plan.nom;
         return Container(
-          margin: const EdgeInsets.only(bottom: 8),
+          margin: const EdgeInsets.only(bottom: 4),
           decoration: BoxDecoration(
             border: Border.all(color: isSelected ? kcTabIndicatorColor : kcVeryLightGrey, width: isSelected ? 2 : 1),
           ),
-          child: RadioListTile<String>(
-            title: Text(sub, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? kcPrimaryColor : kcMediumGrey)),
-            value: sub,
-            groupValue: viewModel.selectedSubscription,
+          child: RadioListTile<SubscriptionPlan>(
+            visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(plan.nom, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? kcPrimaryColor : kcMediumGrey)),
+                Text(
+                  plan.prix > 0 ? '${plan.prix} ${plan.devise}' : 'FREE',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: plan.prix > 0 ? kcTabIndicatorColor : Colors.green,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            value: plan,
+            groupValue: viewModel.selectedPlan,
             onChanged: viewModel.setSubscription,
             activeColor: kcTabIndicatorColor,
             secondary: Icon(
-              sub == 'Free' ? Icons.fiber_new_outlined : sub == 'Top Promo' ? Icons.trending_up : Icons.star_outline,
+              plan.nom == 'BASIC' ? Icons.fiber_new_outlined : plan.nom == 'BOOST' ? Icons.trending_up : Icons.star_outline,
               color: isSelected ? kcTabIndicatorColor : kcMediumGrey,
+              size: 20,
             ),
           ),
         );
@@ -856,7 +879,7 @@ class VendreView extends StackedView<VendreViewModel> {
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         ),
         child: Text(
-          'post_ad.btn_submit'.tr(),
+          viewModel.submitButtonText.tr(),
           style: const TextStyle(
             fontWeight: FontWeight.w900,
             fontSize: 16,

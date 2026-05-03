@@ -25,12 +25,13 @@ class HomeView extends StackedView<HomeViewModel> {
       body: Stack(
         children: [
           _buildMainBody(viewModel),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _CustomBottomNavBar(viewModel: viewModel),
-          ),
+          if (viewModel.currentIndex == 0)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _CustomBottomNavBar(viewModel: viewModel),
+            ),
         ],
       ),
     );
@@ -40,43 +41,32 @@ class HomeView extends StackedView<HomeViewModel> {
     if (viewModel.currentIndex == 0 || viewModel.currentIndex == 3) return null;
 
     String title = '';
-    switch (viewModel.currentIndex) {
-      case 1:
-        title = 'home.nav_message'.tr();
-        break;
-      case 2:
-        title = 'home.nav_vendre'.tr();
-        break;
+    if (viewModel.currentIndex == 1) {
+      title = 'home.nav_message'.tr().toUpperCase();
+    } else if (viewModel.currentIndex == 2) {
+      title = 'post_ad.title'.tr().toUpperCase();
     }
 
-    bool isVendre = viewModel.currentIndex == 2;
-
     return AppBar(
-      backgroundColor: isVendre ? kcPrimaryColor : Colors.white,
+      backgroundColor: kcPrimaryColor,
       elevation: 0,
       centerTitle: true,
       leading: IconButton(
         onPressed: () => viewModel.setIndex(0),
-        icon: Icon(
+        icon: const Icon(
           Icons.arrow_back_ios_new_rounded,
           color: kcTabIndicatorColor,
           size: 20,
         ),
       ),
       title: Text(
-        isVendre ? 'post_ad.title'.tr() : title,
-        style: TextStyle(
-          color: isVendre ? kcTabIndicatorColor : kcPrimaryColor,
-          fontWeight: isVendre ? FontWeight.w900 : FontWeight.bold,
-          fontSize: isVendre ? 16 : 18,
-          letterSpacing: isVendre ? 2.0 : 0.0,
-        ),
-      ),
-      bottom: isVendre ? null : PreferredSize(
-        preferredSize: const Size.fromHeight(1),
-        child: Container(
-          color: kcLightGrey.withOpacity(0.2),
-          height: 1,
+        title,
+        style: const TextStyle(
+          color: kcTabIndicatorColor,
+          fontWeight: FontWeight.w900,
+          fontSize: 14,
+          letterSpacing: 2.0,
+          fontFamily: 'Outfit',
         ),
       ),
     );
@@ -144,7 +134,7 @@ class HomeView extends StackedView<HomeViewModel> {
       case 2:
         return VendreView();
       case 3:
-        return const MoiView();
+        return MoiView(onBack: () => viewModel.setIndex(0));
       default:
         return Center(
           child: Text(
@@ -284,32 +274,28 @@ class _DomePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final double barTop = size.height - (barHeight + bottomPadding); // 40.0
     final double cx = size.width / 2;
-
-    // RESTAURATION DE LA FORME ORIGINALE RÉUSSIE (140px)
-    // On restaure cette belle largeur élégante horizontale
-    final double startX = cx - 70;
-    final double endX = cx + 70;
+    // RESSERREMENT MILLIMÉTRÉ (Halo ultra-fin, Radius ~60.2)
+    final double startX = cx - 75; 
+    final double endX = cx + 75;
+    const double peakY = -18.2;
+    const double bottomY = 102.2;
 
     // ==========================================
     // LAYER 1 : LA BARRE BLANCHE MÈRE (Silhouette Solide Ultime)
     // ==========================================
-    // Fini le découpage de trou qui provoquait l'artefact (le "problème en bas").
-    // On dessine une barre SOLIDE qui inclut la bosse du haut. Le "creux" sera juste peint par-dessus !
     final Path socketPath = Path();
     socketPath.moveTo(0, barTop);
     socketPath.lineTo(startX, barTop);
 
-    // CHOC VERTICAL : On abaisse le sommet de -25 à -12 !
-    // Cela coupe instantanément toute la longueur "verticale" excessive de l'Oeil
-    // Pour l'aplatir en un Dôme très fin et élégant.
+    // Courbe "Soft Circle" ultra-ajustée
     socketPath.cubicTo(
-      cx - 55, barTop, 
-      cx - 40, -12, 
-      cx, -12,
+      cx - 60, barTop, 
+      cx - 33, peakY, 
+      cx, peakY,
     );
     socketPath.cubicTo(
-      cx + 40, -12, 
-      cx + 55, barTop, 
+      cx + 33, peakY, 
+      cx + 60, barTop, 
       endX, barTop,
     );
 
@@ -318,7 +304,7 @@ class _DomePainter extends CustomPainter {
     socketPath.lineTo(0, size.height);
     socketPath.close();
 
-    // Peinture de la silhouette Mère. Zéro trou physique = Zéro pixel de fond qui fuite !
+    // Peinture de la silhouette Mère
     final Paint barPaint = Paint()..color = Colors.white;
     canvas.drawShadow(socketPath, Colors.black.withOpacity(0.06), 10.0, true);
     canvas.drawPath(socketPath, barPaint);
@@ -329,9 +315,9 @@ class _DomePainter extends CustomPainter {
     final Path socketFillPath = Path();
     socketFillPath.moveTo(startX, barTop);
     
-    // Vasque resserrée avec l'oeil pour garder l'harmonie fine
-    socketFillPath.cubicTo(cx - 50, barTop, cx - 40, 97, cx, 97);
-    socketFillPath.cubicTo(cx + 40, 97, cx + 50, barTop, endX, barTop);
+    // Vasque circulaire millimétrée
+    socketFillPath.cubicTo(cx - 55, barTop, cx - 33, bottomY, cx, bottomY);
+    socketFillPath.cubicTo(cx + 33, bottomY, cx + 55, barTop, endX, barTop);
     socketFillPath.close();
 
     final Paint socketFillPaint = Paint()
@@ -339,65 +325,57 @@ class _DomePainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          Color(0xFFEBEBEB), // Gris très clair en haut du puits
-          Color(0xFFCDCDCD), // Ombre riche et arrondie au fond de la cuvette
+          Color(0xFFEBEBEB),
+          Color(0xFFCDCDCD),
         ],
-      ).createShader(Rect.fromLTRB(startX, barTop, endX, 97))
+      ).createShader(Rect.fromCircle(center: Offset(cx, 42), radius: 60.2))
       ..style = PaintingStyle.fill;
       
-    // Peinture du fond du trou
     canvas.drawPath(socketFillPath, socketFillPaint);
 
-
     // ==========================================
-    // LAYER 2 : L'OEIL 
+    // LAYER 2 : L'OEIL (Liseré ultra-fin)
     // ==========================================
     final Path eyePath = Path();
     eyePath.moveTo(startX, barTop);
 
-    // Quart Nord-Ouest (Sommet abaissé à -12 pour écraser la hauteur verticale !)
+    // Forme parfaitement collée au bouton
     eyePath.cubicTo(
-      cx - 55, barTop, 
-      cx - 40, -12, 
-      cx, -12,
+      cx - 60, barTop, 
+      cx - 33, peakY, 
+      cx, peakY,
     );
-    // Quart Nord-Est
     eyePath.cubicTo(
-      cx + 40, -12, 
-      cx + 55, barTop, 
+      cx + 33, peakY, 
+      cx + 60, barTop, 
       endX, barTop,
     );
-    // Quart Sud-Est (Suit l'icône)
     eyePath.cubicTo(
-      cx + 55, barTop, 
-      cx + 40, 95, 
-      cx, 95,
+      cx + 60, barTop, 
+      cx + 33, bottomY, 
+      cx, bottomY,
     );
-    // Quart Sud-Ouest
     eyePath.cubicTo(
-      cx - 40, 95, 
-      cx - 55, barTop, 
+      cx - 33, bottomY, 
+      cx - 60, barTop, 
       startX, barTop,
     );
     eyePath.close();
 
-    // L'Oeil aura un shader gris très clair pour qu'on puisse
-    // fortement le différencier du trou gris foncé en dessous !
-    final Rect eyeBounds = Rect.fromLTRB(startX, -25, endX, 95); 
+    final Rect eyeBounds = Rect.fromCircle(center: Offset(cx, 42), radius: 60.2); 
     final Paint eyePaint = Paint()
       ..shader = const LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          Colors.white,                     // Sommet blanc pur
-          Color(0xFFFAFAFA),                // Gris extrêmement faible
-          Color(0xFFE5E5E5),                // Ombrage net et doux pour la 3D
+          Colors.white,
+          Color(0xFFFAFAFA),
+          Color(0xFFE5E5E5),
         ],
         stops: [0.0, 0.4, 1.0],
       ).createShader(eyeBounds)
       ..style = PaintingStyle.fill;
 
-    // Peinture de l'Oeil. Il va projeter son ombre sur le fond du "trou" gris !
     canvas.drawShadow(eyePath, Colors.black.withOpacity(0.08), 8.0, true);
     canvas.drawPath(eyePath, eyePaint);
   }

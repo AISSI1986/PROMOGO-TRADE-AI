@@ -8,7 +8,7 @@ class ApiConstants {
   static String getAnalyseAudioWs(String langue) => '$wsBaseUrl/ws/analyser-audio/$langue';
 
   // --- Serveur Django (Backend Principal) ---
-  static const String djangoServerHost = '6dee-74-244-119-137.ngrok-free.app';
+  static const String djangoServerHost = '8c06-74-244-119-137.ngrok-free.app';
   static const String djangoBaseUrl = 'https://$djangoServerHost/api';
 
   // Routes Authentification
@@ -21,6 +21,8 @@ class ApiConstants {
   static const String categoriesEndpoint = '$djangoBaseUrl/categories/';
   static const String addAdEndpoint = '$djangoBaseUrl/ads/add/';
   static const String myAdsEndpoint = '$djangoBaseUrl/ads/me/';
+  static const String subscriptionPlansEndpoint = '$djangoBaseUrl/subscription-plans/';
+  static const String mySubscriptionsEndpoint = '$djangoBaseUrl/my-subscriptions/';
   static String getBulkPricesEndpoint(int adId) => '$djangoBaseUrl/ads/$adId/bulk-prices/';
 }
 

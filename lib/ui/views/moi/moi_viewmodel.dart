@@ -86,6 +86,10 @@ class MoiViewModel extends BaseViewModel {
     _navigationService.navigateToSavedView();
   }
 
+  void navigateToAbonnement() {
+    _navigationService.navigateToAbonnementView();
+  }
+
   void navigateToHome() {
     _navigationService.clearStackAndShow(Routes.startupView);
   }
