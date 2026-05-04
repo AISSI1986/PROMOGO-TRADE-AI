@@ -46,6 +46,18 @@ class SavedViewModel extends BaseViewModel {
         } else {
           _myAds = [];
         }
+      } else if (response.statusCode == 401) {
+        print("🔄 [SavedViewModel] Session expirée (401). Tentative de rafraîchissement...");
+        bool refreshed = await _authService.refreshAccessToken();
+        
+        if (refreshed) {
+          print("🔄 [SavedViewModel] Token rafraîchi, nouvelle tentative...");
+          return await fetchMyAds(); // Retentative
+        } else {
+          print("❌ [SavedViewModel] Échec du rafraîchissement. Déconnexion.");
+          await _authService.logout();
+          notifyListeners();
+        }
       } else {
         print("❌ [SavedViewModel] Erreur ${response.statusCode}");
       }

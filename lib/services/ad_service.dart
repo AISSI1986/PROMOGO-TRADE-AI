@@ -11,6 +11,9 @@ class AdService {
   List<Product> _ads = [];
   List<Product> get ads => _ads;
 
+  List<Product> _searchAds = [];
+  List<Product> get searchAds => _searchAds;
+
   bool _isLoaded = false;
   bool get isLoaded => _isLoaded;
 
@@ -61,19 +64,28 @@ class AdService {
 
   /// Recherche les annonces via un vecteur d'IA
   Future<void> searchAdsByVector(List<dynamic> vector) async {
+    final url = ApiConstants.searchAdsEndpoint;
     try {
-      _ads = []; // On vide la liste pour forcer l'affichage du loader dans l'UI
-      print("📡 [AdService] Recherche vectorielle en cours via Django...");
-      final response = await http.post(
-        Uri.parse('${ApiConstants.adsEndpoint}search/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({"vector": vector}),
-      );
+      _ads = []; // On vide pour le loader
+      print("🚀 [AdService] APPEL DJANGO IA -> $url");
+      print("📦 [AdService] Body: ${jsonEncode({"vector": "VECTEUR_CACHÉ_LONGUEUR_${vector.length}"})}");
 
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({"vector": vector}),
+      ).timeout(const Duration(seconds: 10));
+
+      print("📡 [AdService] REPONSE DJANGO -> Status: ${response.statusCode}");
+      
       if (response.statusCode == 200) {
         final dynamic jsonData = jsonDecode(utf8.decode(response.bodyBytes));
-        List<dynamic> results = [];
+        print("📥 [AdService] Données reçues: $jsonData");
 
+        List<dynamic> results = [];
         if (jsonData is List) {
           results = jsonData;
         } else if (jsonData is Map && jsonData.containsKey('results')) {
@@ -81,9 +93,10 @@ class AdService {
         }
 
         _ads = results.map((data) => Product.fromJson(data)).toList();
+        _searchAds = List.from(_ads); // On remplit aussi la section spéciale
         print("✅ [AdService] ${_ads.length} annonces trouvées via l'IA.");
       } else {
-        print("❌ [AdService] Erreur API Recherche Vectorielle : ${response.statusCode}");
+        print("❌ [AdService] Erreur API Recherche: ${response.statusCode} | Body: ${response.body}");
       }
     } catch (e) {
       print("❌ [AdService] Exception lors de la recherche vectorielle : $e");

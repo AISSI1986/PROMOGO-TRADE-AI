@@ -72,6 +72,14 @@ class AuthService {
         return true;
       } else {
         print("🔄 [AuthService] Échec du rafraîchissement (Status: ${response.statusCode})");
+        
+        try {
+          final data = jsonDecode(response.body);
+          if (response.body.contains('user_blocked')) {
+             print("🛡️ [AuthService] COMPTE BLOQUÉ détecté par le Backend.");
+          }
+        } catch (_) {}
+
         await logout();
         return false;
       }
@@ -121,6 +129,21 @@ class AuthService {
         await prefs.setString(_keyUserData, jsonEncode(_userData));
         print("👤 [AuthService] Profil récupéré: ${_userData?['first_name']} (${_userData?['username']})");
         return true;
+      } else if (response.statusCode == 401) {
+        print("👤 [AuthService] Session expirée (401). Tentative de rafraîchissement...");
+        
+        // Tentative de rafraîchissement automatique
+        bool refreshed = await refreshAccessToken();
+        
+        if (refreshed) {
+          print("🔄 [AuthService] Token rafraîchi, nouvelle tentative de récupération du profil...");
+          // On retente l'appel avec le nouveau token
+          return await fetchUserProfile(); 
+        } else {
+          print("❌ [AuthService] Impossible de rafraîchir la session. Déconnexion forcée.");
+          await logout();
+          return false;
+        }
       } else {
         print("👤 [AuthService] Erreur lors de la récupération du profil (Status: ${response.statusCode})");
         print("👤 [AuthService] Réponse: ${response.body}");

@@ -20,6 +20,7 @@ class ApiConstants {
   static const String refreshTokenEndpoint = '$djangoBaseUrl/auth/token/refresh/';
   static const String categoriesEndpoint = '$djangoBaseUrl/categories/';
   static const String adsEndpoint = '$djangoBaseUrl/ads/';
+  static const String searchAdsEndpoint = '${adsEndpoint}search/';
   static const String addAdEndpoint = '$djangoBaseUrl/ads/add/';
   static const String myAdsEndpoint = '$djangoBaseUrl/ads/me/';
   static const String subscriptionPlansEndpoint = '$djangoBaseUrl/subscription-plans/';

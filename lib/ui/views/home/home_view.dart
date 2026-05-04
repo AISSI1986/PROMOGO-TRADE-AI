@@ -11,6 +11,8 @@ import 'package:promogoai/ui/views/home/widgets/ia_button.dart';
 import 'package:promogoai/ui/views/moi/moi_view.dart';
 import 'package:promogoai/ui/views/vendre/vendre_view.dart';
 import 'widgets/produits_component.dart';
+import 'widgets/factories_component.dart';
+import 'widgets/ai_voice_bar.dart';
 import 'home_viewmodel.dart';
 
 class HomeView extends StackedView<HomeViewModel> {
@@ -18,6 +20,20 @@ class HomeView extends StackedView<HomeViewModel> {
 
   @override
   Widget builder(BuildContext context, HomeViewModel viewModel, Widget? child) {
+    // Initialisation ou re-traduction si la langue change
+    if (!viewModel.isBusy) {
+      final String currentLocale = context.locale.languageCode;
+      if (viewModel.allAds.isEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          viewModel.init(currentLocale);
+        });
+      } else if (viewModel.currentLanguageCode != currentLocale) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          viewModel.autoTranslateAll(currentLocale);
+        });
+      }
+    }
+
     return Scaffold(
       backgroundColor: kcBackgroundColor,
       resizeToAvoidBottomInset: false,
@@ -31,6 +47,18 @@ class HomeView extends StackedView<HomeViewModel> {
               right: 0,
               bottom: 0,
               child: _CustomBottomNavBar(viewModel: viewModel),
+            ),
+          
+          // Barre IA Persistante (non-modale)
+          if (viewModel.showAiVoiceBar)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: getBottomNavHeight(context) + 10,
+              child: AiVoiceBar(
+                onResult: (data) => viewModel.handleAiResult(data),
+                onCancel: () => viewModel.setShowAiVoiceBar(false),
+              ),
             ),
         ],
       ),
@@ -151,16 +179,12 @@ class HomeView extends StackedView<HomeViewModel> {
         return const ModeIaView();
       case 1:
         return const ProduitsComponent();
+      case 2:
+        return const FactoriesComponent();
       default:
         return Center(child: Text('global.in_development'.tr(), style: const TextStyle(color: kcMediumGrey)));
     }
   }
-  @override
-  void onViewModelReady(HomeViewModel viewModel) {
-    viewModel.init();
-    super.onViewModelReady(viewModel);
-  }
-
   @override
   HomeViewModel viewModelBuilder(BuildContext context) => HomeViewModel();
 }
@@ -387,7 +411,7 @@ class HomeHeader extends StatelessWidget {
               child: Row(
                 children: [
                   const Text(
-                    'April',
+                    'May',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,

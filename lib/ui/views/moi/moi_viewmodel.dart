@@ -39,15 +39,15 @@ class MoiViewModel extends BaseViewModel {
     print("👤 [MoiViewModel] État isLogged: $isLogged");
     
     if (isLogged) {
-      // Optimisation : On n'appelle l'API que si les données locales sont absentes
-      if (_authService.userData == null) {
-        setBusy(true);
-        print("👤 [MoiViewModel] Données locales absentes, appel API...");
-        await _authService.fetchUserProfile();
-        setBusy(false);
-      } else {
-        print("👤 [MoiViewModel] Utilisation des données déjà chargées.");
+      setBusy(true);
+      print("👤 [MoiViewModel] Vérification de la session via API...");
+      bool success = await _authService.fetchUserProfile();
+      
+      if (!success && !_authService.isLogged) {
+        print("👤 [MoiViewModel] Session expirée détectée.");
       }
+      
+      setBusy(false);
       notifyListeners();
     }
   }

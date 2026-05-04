@@ -169,7 +169,7 @@ class VendreView extends StackedView<VendreViewModel> {
                 if (!isKeyboardOpen) 
                   viewModel.isBusy 
                     ? const Center(child: CircularProgressIndicator(color: kcPrimaryColor))
-                    : _buildSubmitButton(viewModel),
+                    : _buildSubmitButton(context, viewModel),
                 
                 // ESPACE pour une finition propre en bas de scroll
                 const SizedBox(height: 40),
@@ -186,7 +186,7 @@ class VendreView extends StackedView<VendreViewModel> {
             bottom: bottomInset + 10,
             child: viewModel.isBusy 
               ? const Center(child: CircularProgressIndicator(color: kcPrimaryColor))
-              : _buildSubmitButton(viewModel),
+              : _buildSubmitButton(context, viewModel),
           ),
       ],
     );
@@ -979,7 +979,7 @@ class VendreView extends StackedView<VendreViewModel> {
     }
   }
 
-  Widget _buildSubmitButton(VendreViewModel viewModel) {
+  Widget _buildSubmitButton(BuildContext context, VendreViewModel viewModel) {
     final bool isPaid = viewModel.isPaidPlan;
     final String priceText = isPaid ? " (${viewModel.selectedPlan!.prix.toInt()} ${viewModel.selectedPlan!.devise})" : "";
     final String btnText = isPaid 
@@ -1002,7 +1002,7 @@ class VendreView extends StackedView<VendreViewModel> {
             ],
           ),
           child: ElevatedButton(
-            onPressed: viewModel.submitAd,
+            onPressed: () => viewModel.submitAd(context.locale.languageCode),
             style: ElevatedButton.styleFrom(
               backgroundColor: isPaid ? kcTabIndicatorColor : kcPrimaryColor,
               foregroundColor: Colors.white,

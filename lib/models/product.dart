@@ -1,15 +1,17 @@
 import 'package:promogoai/models/subscription_plan.dart';
+import 'package:promogoai/ui/common/api_constants.dart';
 
 class Product {
-  final String name;
+  String name;
   final String price;
   final String imageUrl;
   final List<String> gallery;
-  final String description;
+  String description;
   final String sellerName;
   final double rating;
   final int reviewsCount;
   final SubscriptionPlan? plan; // L'abonnement du vendeur
+  final String originalLanguage; 
 
   Product({
     required this.name,
@@ -21,6 +23,7 @@ class Product {
     this.rating = 4.8,
     this.reviewsCount = 124,
     this.plan,
+    this.originalLanguage = 'fr',
   }) : gallery = gallery ?? [imageUrl];
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -29,11 +32,19 @@ class Product {
     
     if (json['images'] != null && (json['images'] as List).isNotEmpty) {
       final imagesList = json['images'] as List;
-      // Django peut renvoyer une URL relative (ex: /media/ads_images/...) ou absolue.
-      // Il faut s'assurer que c'est une URL complète. Le host sera ajouté dans le service si besoin,
-      // mais en général, Django REST framework renvoie l'URL absolue si la requête a le bon host.
-      imgUrl = imagesList[0]['image'] as String;
-      gal = imagesList.map((img) => img['image'] as String).toList();
+      String rawUrl = imagesList[0]['image'] as String;
+      
+      // Si l'URL est relative (commence par /), on ajoute le host du serveur
+      if (rawUrl.startsWith('/')) {
+        imgUrl = 'https://${ApiConstants.djangoServerHost}$rawUrl';
+      } else {
+        imgUrl = rawUrl;
+      }
+      
+      gal = imagesList.map((img) {
+        String u = img['image'] as String;
+        return u.startsWith('/') ? 'https://${ApiConstants.djangoServerHost}$u' : u;
+      }).toList();
     }
 
     String priceStr = '';
@@ -48,6 +59,7 @@ class Product {
       gallery: gal.isEmpty ? [''] : gal,
       description: json['description'] ?? '',
       sellerName: 'Vendeur de la plateforme', 
+      originalLanguage: json['language'] ?? 'fr',
       // On pourra ajuster 'plan' plus tard en fonction de 'active_subscription'
     );
   }

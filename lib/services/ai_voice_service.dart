@@ -101,7 +101,7 @@ class AiVoiceService {
           if (data.containsKey('transcription')) {
             return {
               "transcription": data['transcription']?.toString() ?? "Analyse terminée.",
-              "vector": data['vector']
+              "vector": data['vector'] ?? data['vecteur']
             };
           } else if (data.containsKey('error')) {
             return {"error": "Erreur: ${data['error']}"};

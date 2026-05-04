@@ -68,6 +68,22 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildPromoCards(context, viewModel),
+          if (viewModel.searchAds.isNotEmpty)
+            _buildProductList(
+              context, 
+              viewModel,
+              title: "Produits recherchés",
+              subtitle: "${viewModel.searchAds.length} résultats trouvés",
+              backgroundGradient: const LinearGradient(
+                colors: [kcPrimaryColor, Color(0xFF1E293B)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              titleColor: Colors.white,
+              backgroundDecorationIcon: Icons.auto_awesome,
+              decorationColor: Colors.white,
+              products: viewModel.searchAds,
+            ),
           _buildInfoBanner(),
           _buildCategorySelector(context, viewModel),
           if (catAds.isNotEmpty)
@@ -157,6 +173,8 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
                 viewModel.navigateToMonAcademie();
               } else if (promo['trKey'] == 'home.promo_devis') {
                 viewModel.navigateToDemandeDevis();
+              } else if (promo['trKey'] == 'home.comparator_title') {
+                viewModel.navigateToPriceComparator();
               }
             },
             child: Container(

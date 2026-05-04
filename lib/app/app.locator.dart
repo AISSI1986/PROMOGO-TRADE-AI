@@ -20,6 +20,7 @@ import '../services/local_storage_service.dart';
 import '../services/settings_service.dart';
 import '../services/srs_streaming_service.dart';
 import '../services/subscription_service.dart';
+import '../services/translation_service.dart';
 
 final locator = StackedLocator.instance;
 
@@ -37,6 +38,7 @@ Future<void> setupLocator(
   locator.registerLazySingleton(() => SettingsService());
   locator.registerLazySingleton(() => SrsStreamingService());
   locator.registerLazySingleton(() => AiVoiceService());
+  locator.registerLazySingleton(() => TranslationService());
   final localStorageService = LocalStorageService();
   await localStorageService.init();
   locator.registerSingleton(localStorageService);

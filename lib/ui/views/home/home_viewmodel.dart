@@ -14,11 +14,23 @@ import 'package:promogoai/ui/views/demande_devis/demande_devis_view.dart';
 import 'package:promogoai/ui/views/price_comparator/price_comparator_view.dart';
 import 'package:promogoai/app/app.bottomsheets.dart';
 import 'package:promogoai/services/ad_service.dart';
+import 'package:promogoai/services/ai_voice_service.dart';
+import 'package:promogoai/services/translation_service.dart';
 
 class HomeViewModel extends BaseViewModel {
   final _adService = AdService();
   final _navigationService = locator<NavigationService>();
   final _bottomSheetService = locator<BottomSheetService>();
+  final _aiVoiceService = locator<AiVoiceService>();
+  final _translationService = locator<TranslationService>();
+  
+  bool _showAiVoiceBar = false;
+  bool get showAiVoiceBar => _showAiVoiceBar;
+
+  void setShowAiVoiceBar(bool value) {
+    _showAiVoiceBar = value;
+    notifyListeners();
+  }
 
   int _currentIndex = 0;
   int get currentIndex => _currentIndex;
@@ -56,11 +68,40 @@ class HomeViewModel extends BaseViewModel {
   }
 
   List<Product> get allAds => _adService.ads;
+  List<Product> get searchAds => _adService.searchAds;
 
-  Future<void> init() async {
+  String _currentLanguageCode = 'fr';
+  String get currentLanguageCode => _currentLanguageCode;
+
+  Future<void> init(String languageCode) async {
+    _currentLanguageCode = languageCode;
     setBusy(true);
     await _adService.loadAds();
+    await autoTranslateAll(languageCode);
     setBusy(false);
+  }
+
+  Future<void> autoTranslateAll(String languageCode) async {
+    _currentLanguageCode = languageCode;
+    
+    print("🌍 [HomeViewModel] Traduction automatique intelligente vers $languageCode...");
+    
+    // On traduit les titres des produits chargés UNIQUEMENT si la langue est différente
+    for (var product in allAds) {
+      if (product.originalLanguage != languageCode) {
+        product.name = await _translationService.translate(product.name, languageCode);
+        product.description = await _translationService.translate(product.description, languageCode);
+      }
+    }
+    
+    for (var product in searchAds) {
+      if (product.originalLanguage != languageCode) {
+        product.name = await _translationService.translate(product.name, languageCode);
+        product.description = await _translationService.translate(product.description, languageCode);
+      }
+    }
+    
+    notifyListeners();
   }
 
   @override
@@ -111,34 +152,41 @@ class HomeViewModel extends BaseViewModel {
   }
 
   /// Called when the IA button is tapped.
-  /// Requests microphone permission and shows the AI Voice sheet.
+  /// Requests microphone permission and shows the persistent AI Voice bar.
   Future<void> onVoiceIAClicked() async {
     final status = await Permission.microphone.request();
     if (status.isGranted) {
-      final response = await _bottomSheetService.showCustomSheet(
-        variant: BottomSheetType.aiVoice,
-        isScrollControlled: true,
-        barrierColor: const Color(0x00000000), // N'assombrit pas l'écran
-      );
-
-      // Si le bottom sheet nous renvoie un vecteur
-      if (response != null && response.confirmed && response.data != null) {
-        final vector = response.data['vector'];
-        final transcription = response.data['transcription'] ?? "";
-        
-        if (vector != null) {
-          setBusy(true);
-          // On bascule sur l'onglet produits pour voir les résultats de la recherche IA
-          _currentTopTab = 1; 
-          _selectedCategory = "Tous"; // On réinitialise la catégorie
-          
-          print("🔍 [HomeViewModel] Recherche IA pour: $transcription");
-          await _adService.searchAdsByVector(vector);
-          setBusy(false);
-        }
-      }
+      _showAiVoiceBar = !_showAiVoiceBar;
+      notifyListeners();
     } else {
       print('Microphone permission denied');
+    }
+  }
+
+  Future<void> handleAiResult(Map<String, dynamic> data) async {
+    print("🎯 [HomeViewModel] handleAiResult déclenché avec data: ${data.keys.toList()}");
+    final vector = data['vector'];
+    final transcription = data['transcription'] ?? "";
+    
+    if (vector != null) {
+      setBusy(true);
+      // On cache la barre après un court délai pour laisser lire la transcription
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        _showAiVoiceBar = false;
+        notifyListeners();
+      });
+
+      // On bascule sur l'onglet produits pour voir les résultats de la recherche IA
+      _currentTopTab = 1; 
+      _selectedCategory = "Tous"; // On réinitialise la catégorie
+      
+      print("🔍 [HomeViewModel] Recherche IA pour: $transcription");
+      await _adService.searchAdsByVector(vector);
+
+      // Traduction automatique des nouveaux résultats
+      await autoTranslateAll(_currentLanguageCode);
+
+      setBusy(false);
     }
   }
 

@@ -38,6 +38,7 @@ import 'package:promogoai/services/auth_service.dart';
 import 'package:promogoai/services/subscription_service.dart';
 import 'package:promogoai/ui/views/abonnement/abonnement_view.dart';
 import 'package:promogoai/ui/views/price_comparator/price_comparator_view.dart';
+import 'package:promogoai/services/translation_service.dart';
 // @stacked-import
 
 @StackedApp(
@@ -76,6 +77,7 @@ import 'package:promogoai/ui/views/price_comparator/price_comparator_view.dart';
     LazySingleton(classType: SettingsService),
     LazySingleton(classType: SrsStreamingService),
     LazySingleton(classType: AiVoiceService),
+    LazySingleton(classType: TranslationService),
     InitializableSingleton(classType: LocalStorageService),
     LazySingleton(classType: AuthService),
     LazySingleton(classType: CategoryService),

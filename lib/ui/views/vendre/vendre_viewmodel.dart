@@ -383,7 +383,7 @@ class VendreViewModel extends BaseViewModel {
   }
 
   // SUBMIT AD
-  Future<void> submitAd() async {
+  Future<void> submitAd(String languageCode) async {
     // 0. Vérification Authentification
     if (!_authService.isLogged) {
       _snackbarService.showCustomSnackBar(
@@ -458,6 +458,7 @@ class VendreViewModel extends BaseViewModel {
       request.fields['categorie'] = _selectedCategoryId.toString();
       request.fields['description'] = _description;
       request.fields['lien_video'] = _videoLink;
+      request.fields['language'] = languageCode; // <--- AJOUT DE LA LANGUE AUTOMATIQUE
 
       // Images (Multipart)
       for (var file in _images) {

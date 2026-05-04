@@ -63,7 +63,10 @@
     "support_menu": "Support & Customer Assistance",
     "become_seller": "Become a seller on PROMOGO AI",
     "welcome": "Welcome!",
-    "welcome_subtitle": "Log in to see your offers"
+    "welcome_subtitle": "Log in to see your offers",
+    "welcome_logged": "Welcome, {} !",
+    "welcome_subtitle_logged": "Nice to see you again on PROMOGO AI",
+    "logout": "Log out"
   },
   "support": {
     "title": "Help & Support",

@@ -84,9 +84,9 @@ class MoiView extends StackedView<MoiViewModel> {
                   child: TextButton.icon(
                     onPressed: viewModel.logout,
                     icon: const Icon(Icons.logout, color: Colors.red, size: 20),
-                    label: const Text(
-                      'Se déconnecter',
-                      style: TextStyle(
+                    label: Text(
+                      'moi.logout'.tr(),
+                      style: const TextStyle(
                         color: Colors.red,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -146,7 +146,7 @@ class MoiView extends StackedView<MoiViewModel> {
               children: [
                 Text(
                   viewModel.isLogged 
-                    ? 'Bienvenue, ${viewModel.userName} !' 
+                    ? 'moi.welcome_logged'.tr(args: [viewModel.userName]) 
                     : 'moi.welcome'.tr(),
                   style: TextStyle(
                     fontSize: getResponsiveFontSize(context, fontSize: 18, max: 20),
@@ -158,7 +158,7 @@ class MoiView extends StackedView<MoiViewModel> {
                 const SizedBox(height: 4),
                 Text(
                   viewModel.isLogged 
-                    ? 'Ravi de vous revoir sur PROMOGO AI'
+                    ? 'moi.welcome_subtitle_logged'.tr()
                     : 'moi.welcome_subtitle'.tr(),
                   style: TextStyle(
                     fontSize: getResponsiveFontSize(context, fontSize: 13, max: 14), 
