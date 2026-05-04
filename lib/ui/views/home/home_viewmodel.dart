@@ -11,6 +11,7 @@ import 'package:promogoai/ui/views/promogo_fair/promogo_fair_view.dart';
 import 'package:promogoai/ui/views/live_viewer/live_viewer_view.dart';
 import 'package:promogoai/ui/views/mon_academie/mon_academie_view.dart';
 import 'package:promogoai/ui/views/demande_devis/demande_devis_view.dart';
+import 'package:promogoai/ui/views/price_comparator/price_comparator_view.dart';
 import 'package:promogoai/app/app.bottomsheets.dart';
 import 'package:promogoai/services/ad_service.dart';
 
@@ -123,8 +124,15 @@ class HomeViewModel extends BaseViewModel {
       // Si le bottom sheet nous renvoie un vecteur
       if (response != null && response.confirmed && response.data != null) {
         final vector = response.data['vector'];
+        final transcription = response.data['transcription'] ?? "";
+        
         if (vector != null) {
           setBusy(true);
+          // On bascule sur l'onglet produits pour voir les résultats de la recherche IA
+          _currentTopTab = 1; 
+          _selectedCategory = "Tous"; // On réinitialise la catégorie
+          
+          print("🔍 [HomeViewModel] Recherche IA pour: $transcription");
           await _adService.searchAdsByVector(vector);
           setBusy(false);
         }
@@ -138,6 +146,13 @@ class HomeViewModel extends BaseViewModel {
     _navigationService.navigateWithTransition(
       ProductDetailView(product: product),
       transitionStyle: Transition.fade,
+    );
+  }
+
+  void navigateToPriceComparator() {
+    _navigationService.navigateWithTransition(
+      const PriceComparatorView(),
+      transitionStyle: Transition.rightToLeft,
     );
   }
 

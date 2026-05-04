@@ -37,6 +37,7 @@ import 'package:promogoai/services/ai_voice_service.dart';
 import 'package:promogoai/services/auth_service.dart';
 import 'package:promogoai/services/subscription_service.dart';
 import 'package:promogoai/ui/views/abonnement/abonnement_view.dart';
+import 'package:promogoai/ui/views/price_comparator/price_comparator_view.dart';
 // @stacked-import
 
 @StackedApp(
@@ -64,6 +65,7 @@ import 'package:promogoai/ui/views/abonnement/abonnement_view.dart';
     MaterialRoute(page: DemandeDevisView),
     MaterialRoute(page: FormDevisView),
     MaterialRoute(page: AbonnementView),
+    MaterialRoute(page: PriceComparatorView),
     // @stacked-route
   ],
   dependencies: [

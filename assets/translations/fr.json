@@ -261,5 +261,20 @@
     "form_share_card": "Je suis d'accord de partager ma carte de visite avec les fournisseurs desquels j'ai reçu des offres.",
     "form_accept_terms": "J'ai lu, compris et accepté de respecter les règles de publication des demandes d'achat",
     "form_post_btn": "Postez votre demande pour obtenir des devis précis"
+  },
+  "comparator": {
+    "title": "Comparateur & Marché",
+    "change": "Changer",
+    "search_hint": "Recherche sémantique (ex: Riz 50kg moins cher)...",
+    "analysis_for": "Analyse intelligente pour :",
+    "summary_title": "Résumé Intelligent",
+    "best_price": "Meilleur Prix",
+    "avg_price": "Prix Moyen",
+    "savings_est": "Économie estimée :",
+    "recommended": "Recommandé :",
+    "suppliers_title": "Fournisseurs (Pertinence > 70%)",
+    "contact": "Contacter",
+    "export_csv": "Exportations CSV anonymisées (B2B/B2G)",
+    "mock_product": "Riz (Sac 50kg)"
   }
 }

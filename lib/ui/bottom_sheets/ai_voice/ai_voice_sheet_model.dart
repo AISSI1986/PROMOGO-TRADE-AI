@@ -73,7 +73,13 @@ class AiVoiceSheetModel extends BaseViewModel {
           if (vector != null) {
             // Laisse le temps à l'utilisateur de lire la transcription avant de fermer
             Future.delayed(const Duration(milliseconds: 1500), () {
-              completer(SheetResponse(confirmed: true, data: {'vector': vector}));
+              completer(SheetResponse(
+                confirmed: true, 
+                data: {
+                  'vector': vector,
+                  'transcription': _agentResponse,
+                },
+              ));
             });
           }
         }

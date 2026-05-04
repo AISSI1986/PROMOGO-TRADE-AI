@@ -62,6 +62,7 @@ class AdService {
   /// Recherche les annonces via un vecteur d'IA
   Future<void> searchAdsByVector(List<dynamic> vector) async {
     try {
+      _ads = []; // On vide la liste pour forcer l'affichage du loader dans l'UI
       print("📡 [AdService] Recherche vectorielle en cours via Django...");
       final response = await http.post(
         Uri.parse('${ApiConstants.adsEndpoint}search/'),

@@ -260,5 +260,20 @@
     "form_share_card": "I agree to share my business card with the suppliers from whom I received offers.",
     "form_accept_terms": "I have read, understood and accepted to respect the purchase request publication rules",
     "form_post_btn": "Post your request to get precise quotes"
+  },
+  "comparator": {
+    "title": "Comparator & Market",
+    "change": "Change",
+    "search_hint": "Semantic search (eg: cheaper 50kg Rice)...",
+    "analysis_for": "Intelligent analysis for:",
+    "summary_title": "Intelligent Summary",
+    "best_price": "Best Price",
+    "avg_price": "Average Price",
+    "savings_est": "Estimated Savings:",
+    "recommended": "Recommended:",
+    "suppliers_title": "Suppliers (Relevance > 70%)",
+    "contact": "Contact",
+    "export_csv": "Anonymized CSV Exports (B2B/B2G)",
+    "mock_product": "Rice (50kg Bag)"
   }
 }

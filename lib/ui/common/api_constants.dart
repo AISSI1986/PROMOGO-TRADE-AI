@@ -8,7 +8,7 @@ class ApiConstants {
   static String getAnalyseAudioWs(String langue) => '$wsBaseUrl/ws/analyser-audio/$langue';
 
   // --- Serveur Django (Backend Principal) ---
-  static const String djangoServerHost = '8c06-74-244-119-137.ngrok-free.app';
+  static const String djangoServerHost = '20fb-74-244-119-98.ngrok-free.app';
   static const String djangoBaseUrl = 'https://$djangoServerHost/api';
 
   // Routes Authentification

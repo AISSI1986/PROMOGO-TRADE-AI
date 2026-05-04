@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:stacked/stacked.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -119,7 +121,7 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
               decorationRotation: -0.2,
               products: customAds,
             ),
-          _buildBottomPromoWidgets(),
+          _buildBottomPromoWidgets(viewModel),
           if (gridAds.isNotEmpty)
             _buildVerticalProductGrid(context, viewModel, gridAds),
           verticalSpaceLarge,
@@ -620,7 +622,7 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
     );
   }
 
-  Widget _buildBottomPromoWidgets() {
+  Widget _buildBottomPromoWidgets(HomeViewModel viewModel) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
       child: Row(
@@ -668,16 +670,6 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
                       child: CustomPaint(
                         painter: _GridPainter(),
                       ),
-                    ),
-                  ),
-                  // --- GRAPHIQUE EN FOND (Sparkline avec Glow) ---
-                  Positioned(
-                    bottom: 50,
-                    left: 0,
-                    right: 0,
-                    height: 90,
-                    child: CustomPaint(
-                      painter: _SparklinePainter(),
                     ),
                   ),
                   Padding(
@@ -728,16 +720,13 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
                           ),
                         ),
                         const SizedBox(height: 18),
-                        // --- MARCHÉ DATA ---
-                        _buildMarketRow("Riz (Sac 50kg)", "24 500", "+2.4%", true),
-                        _buildMarketRow("Huile (5L)", "6 200", "-0.8%", false),
-                        _buildMarketRow("Sucre (Kg)", "850", "+1.1%", true),
+                        // --- MARCHÉ DATA (Live Animation) ---
+                        const Expanded(child: _LiveMarketBoard()),
                         
-                        const Spacer(),
                         
                         // --- BOUTON TRADING ---
                         InkWell(
-                          onTap: () {},
+                          onTap: () => viewModel.navigateToPriceComparator(),
                           child: Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -776,7 +765,7 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
     );
   }
 
-  Widget _buildMarketRow(String label, String price, String change, bool isUp) {
+  Widget _buildMarketRow(String label, String price, String change, bool isUp, List<double> dataPoints) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Column(
@@ -784,24 +773,46 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
           Row(
             children: [
               Expanded(
+                flex: 3,
                 child: Text(
                   label,
                   style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 9, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Text(
-                isUp ? "▲" : "▼",
-                style: TextStyle(color: isUp ? Colors.greenAccent : Colors.redAccent, fontSize: 8),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                change,
-                style: TextStyle(
-                  color: isUp ? Colors.greenAccent : Colors.redAccent,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w900,
-                  fontFamily: 'monospace',
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: SizedBox(
+                    height: 12,
+                    child: CustomPaint(
+                      painter: _MiniSparklinePainter(
+                        data: dataPoints, 
+                        color: isUp ? Colors.greenAccent : Colors.redAccent,
+                      ),
+                    ),
+                  ),
                 ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    isUp ? "▲" : "▼",
+                    style: TextStyle(color: isUp ? Colors.greenAccent : Colors.redAccent, fontSize: 8),
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    change,
+                    style: TextStyle(
+                      color: isUp ? Colors.greenAccent : Colors.redAccent,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -867,51 +878,258 @@ class _GridPainter extends CustomPainter {
   bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
 
-class _SparklinePainter extends CustomPainter {
+class _MiniSparklinePainter extends CustomPainter {
+  final List<double> data;
+  final Color color;
+
+  _MiniSparklinePainter({required this.data, required this.color});
+
   @override
   void paint(Canvas canvas, Size size) {
+    if (data.isEmpty) return;
+
     final paint = Paint()
-      ..color = Colors.greenAccent
+      ..color = color
+      ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0
-      ..strokeCap = StrokeCap.round;
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
 
     final path = Path();
-    path.moveTo(0, size.height * 0.7);
-    path.cubicTo(
-      size.width * 0.2, size.height * 0.8,
-      size.width * 0.3, size.height * 0.2,
-      size.width * 0.5, size.height * 0.4,
-    );
-    path.cubicTo(
-      size.width * 0.7, size.height * 0.6,
-      size.width * 0.8, size.height * 0.1,
-      size.width, size.height * 0.3,
-    );
+    
+    double minVal = data.reduce((a, b) => a < b ? a : b);
+    double maxVal = data.reduce((a, b) => a > b ? a : b);
+    if (maxVal == minVal) {
+       maxVal += 1;
+       minVal -= 1;
+    }
+    final range = maxVal - minVal;
 
-    // Effet de Glow sous la courbe
-    final gradientPath = Path.from(path);
-    gradientPath.lineTo(size.width, size.height);
-    gradientPath.lineTo(0, size.height);
-    gradientPath.close();
+    final stepX = size.width / (data.length - 1);
 
-    final gradientPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Colors.greenAccent.withOpacity(0.2), Colors.transparent],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    for (int i = 0; i < data.length; i++) {
+      final normalizedY = 1 - ((data[i] - minVal) / range);
+      final x = i * stepX;
+      final y = normalizedY * size.height;
 
-    canvas.drawPath(gradientPath, gradientPaint);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        final prevNormalizedY = 1 - ((data[i - 1] - minVal) / range);
+        final prevX = (i - 1) * stepX;
+        final prevY = prevNormalizedY * size.height;
+        
+        final controlPointX = prevX + (stepX / 2);
+        
+        path.cubicTo(
+          controlPointX, prevY,
+          controlPointX, y,
+          x, y,
+        );
+      }
+    }
+
+    final glowPaint = Paint()
+      ..color = color.withOpacity(0.3)
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+      
+    canvas.drawPath(path, glowPaint);
     canvas.drawPath(path, paint);
 
-    // Point d'arrivée brillant
-    canvas.drawCircle(Offset(size.width, size.height * 0.3), 3, Paint()..color = Colors.white);
-    canvas.drawCircle(Offset(size.width, size.height * 0.3), 6, Paint()..color = Colors.greenAccent.withOpacity(0.3));
+    final lastNormalizedY = 1 - ((data.last - minVal) / range);
+    canvas.drawCircle(
+      Offset(size.width, lastNormalizedY * size.height), 
+      2.0, 
+      Paint()..color = Colors.white
+    );
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _MiniSparklinePainter oldDelegate) {
+    return oldDelegate.data != data || oldDelegate.color != color;
+  }
+}
+
+class _LiveMarketBoard extends StatefulWidget {
+  const _LiveMarketBoard({Key? key}) : super(key: key);
+
+  @override
+  State<_LiveMarketBoard> createState() => _LiveMarketBoardState();
+}
+
+class _LiveMarketBoardState extends State<_LiveMarketBoard> {
+  Timer? _timer;
+  final Random _random = Random();
+
+  List<Map<String, dynamic>> items = [
+    {
+      "label": "Riz (Sac 50kg)",
+      "price": 24500.0,
+      "change": 2.4,
+      "data": [0.3, 0.5, 0.4, 0.6, 0.8, 0.7, 1.0],
+    },
+    {
+      "label": "Huile (5L)",
+      "price": 6200.0,
+      "change": -0.8,
+      "data": [1.0, 0.8, 0.9, 0.6, 0.5, 0.4, 0.2],
+    },
+    {
+      "label": "Sucre (Kg)",
+      "price": 850.0,
+      "change": 1.1,
+      "data": [0.5, 0.6, 0.5, 0.7, 0.8, 0.9, 1.0],
+    },
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Met à jour les prix toutes les 2.5 secondes
+    _timer = Timer.periodic(const Duration(milliseconds: 2500), (timer) {
+      if (mounted) {
+        setState(() {
+          for (var item in items) {
+            // Fluctuation entre -0.5% et +0.5% du prix
+            double fluctuationPercent = (_random.nextDouble() - 0.5) * 0.01;
+            double currentPrice = item["price"];
+            double newPrice = currentPrice + (currentPrice * fluctuationPercent);
+            
+            // Mise à jour de la liste de données pour la courbe (Sparkline)
+            List<double> data = List<double>.from(item["data"]);
+            data.removeAt(0);
+            data.add(newPrice);
+
+            // Mise à jour du pourcentage de changement simulé
+            double currentChange = item["change"];
+            double newChange = currentChange + (fluctuationPercent * 10);
+
+            item["price"] = newPrice;
+            item["change"] = newChange;
+            item["data"] = data;
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  // Helper pour formater le prix avec espaces (ex: 24 500)
+  String _formatPrice(double price) {
+    int p = price.round();
+    String s = p.toString();
+    if (s.length > 3) {
+      return "${s.substring(0, s.length - 3)} ${s.substring(s.length - 3)}";
+    }
+    return s;
+  }
+
+  Widget _buildLiveMarketRow(Map<String, dynamic> item) {
+    double change = item["change"];
+    bool isUp = change >= 0;
+    String formattedChange = "${isUp ? '+' : ''}${change.toStringAsFixed(2)}%";
+    String formattedPrice = _formatPrice(item["price"]);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Text(
+                  item["label"],
+                  style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 9, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: SizedBox(
+                    height: 12,
+                    child: CustomPaint(
+                      painter: _MiniSparklinePainter(
+                        data: item["data"], 
+                        color: isUp ? Colors.greenAccent : Colors.redAccent,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    isUp ? "▲" : "▼",
+                    style: TextStyle(color: isUp ? Colors.greenAccent : Colors.redAccent, fontSize: 8),
+                  ),
+                  const SizedBox(width: 2),
+                  SizedBox(
+                    width: 38,
+                    child: Text(
+                      formattedChange,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        color: isUp ? Colors.greenAccent : Colors.redAccent,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0.0, -0.5),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+                child: Text(
+                  formattedPrice,
+                  key: ValueKey<String>(formattedPrice),
+                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, fontFamily: 'monospace'),
+                ),
+              ),
+              const SizedBox(width: 2),
+              Text("F", style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 8)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Divider(color: Colors.white.withOpacity(0.05), height: 1),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: items.map((item) => _buildLiveMarketRow(item)).toList(),
+    );
+  }
 }
 
 class _CategoryItem extends StatelessWidget {
