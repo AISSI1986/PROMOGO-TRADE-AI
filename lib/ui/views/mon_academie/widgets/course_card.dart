@@ -3,6 +3,9 @@ import 'package:promogoai/ui/common/app_colors.dart';
 import '../../../../models/course_model.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:promogoai/app/app.locator.dart';
+import 'package:promogoai/app/app.router.dart';
+import 'package:stacked_services/stacked_services.dart';
 
 class CourseCard extends StatelessWidget {
   final Course course;
@@ -122,7 +125,14 @@ class CourseCard extends StatelessWidget {
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: () {},
+                      onTap: () {
+                        print("CLIC DÉTECTÉ : Navigation vers le cours ID ${course.id}");
+                        final navigationService = locator<NavigationService>();
+                        navigationService.navigateTo(
+                          Routes.courseDetailView,
+                          arguments: CourseDetailViewArguments(courseId: course.id),
+                        );
+                      },
                       borderRadius: BorderRadius.circular(15),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,

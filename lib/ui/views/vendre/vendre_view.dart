@@ -894,14 +894,7 @@ class VendreView extends StackedView<VendreViewModel> {
                       children: [
                         const Divider(height: 1, color: Color(0xFFEEEEEE)),
                         const SizedBox(height: 12),
-                        Text(
-                          _getPlanDescription(planName),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                            height: 1.5,
-                          ),
-                        ),
+                        _buildPlanFeatures(planName),
                         const SizedBox(height: 16),
                         const Text(
                           "DURÉE DE L'ANNONCE",
@@ -964,19 +957,89 @@ class VendreView extends StackedView<VendreViewModel> {
     );
   }
 
-  String _getPlanDescription(String planName) {
+  Widget _buildPlanFeatures(String planName) {
+    List<Map<String, dynamic>> features = [];
     switch (planName.toUpperCase()) {
       case 'BASIC':
-        return "Annonce standard gratuite sans options de boost.";
+        features = [
+          {'text': "1 Annonce active", 'icon': Icons.ads_click},
+          {'text': "Priorité : Niveau 1.0", 'icon': Icons.check_circle_outline},
+          {'text': "Accès au chat client", 'icon': Icons.chat_outlined},
+        ];
+        break;
       case 'BOOST':
-        return "Visibilité accrue : votre annonce apparaîtra en haut des résultats de recherche.";
+        features = [
+          {'text': "Jusqu'à 5 Annonces", 'icon': Icons.ads_click},
+          {'text': "Priorité : Niveau 2.0", 'icon': Icons.check_circle},
+          {'text': "Remontée automatique toutes les 24h", 'icon': Icons.auto_mode},
+          {'text': "Apparaît dans : Section Promo Accueil", 'icon': Icons.visibility, 'isSpecial': true},
+          {'text': "Annonce épinglée (Top Ad)", 'icon': Icons.push_pin},
+        ];
+        break;
       case 'PREMIUM':
-        return "Meilleur choix pour une vente rapide. Jusqu'à 15x plus de trafic et options IA.";
+        features = [
+          {'text': "Jusqu'à 20 Annonces", 'icon': Icons.ads_click},
+          {'text': "Priorité : Niveau 3.0", 'icon': Icons.check_circle},
+          {'text': "Remontée automatique toutes les 12h", 'icon': Icons.auto_mode},
+          {'text': "Apparaît dans : Haut & Milieu de page", 'icon': Icons.visibility, 'isSpecial': true},
+          {'text': "Bouton WhatsApp & Appels", 'icon': Icons.chat},
+          {'text': "Accès aux Ventes Live", 'icon': Icons.live_tv},
+          {'text': "Publication vocale par IA", 'icon': Icons.mic},
+        ];
+        break;
+      case 'VIP':
+        features = [
+          {'text': "Jusqu'à 50 Annonces", 'icon': Icons.ads_click},
+          {'text': "Priorité : Niveau 4.0", 'icon': Icons.check_circle},
+          {'text': "Remontée automatique toutes les 6h", 'icon': Icons.auto_mode},
+          {'text': "Apparaît dans : Slider Accueil & Section VIP", 'icon': Icons.visibility, 'isSpecial': true},
+          {'text': "Badge Vendeur Vérifié", 'icon': Icons.verified},
+          {'text': "Stats & Priorité comparateur", 'icon': Icons.analytics},
+        ];
+        break;
       case 'DIAMOND':
-        return "Exposition maximale sur toute la plateforme et support VIP dédié.";
+        features = [
+          {'text': "Annonces Illimitées", 'icon': Icons.all_inclusive},
+          {'text': "Priorité : Niveau 5.0", 'icon': Icons.check_circle},
+          {'text': "Remontée automatique toutes les 3h", 'icon': Icons.auto_mode},
+          {'text': "Apparaît : Slider, Haut de Recherche & Catégorie", 'icon': Icons.visibility, 'isSpecial': true},
+          {'text': "Accès à PROMOGO FAIR", 'icon': Icons.stars, 'isSpecial': true},
+          {'text': "Demandes de Cotations", 'icon': Icons.request_quote, 'isSpecial': true},
+          {'text': "Domination totale du marché", 'icon': Icons.trending_up},
+        ];
+        break;
       default:
-        return "Profitez de plus de visibilité et vendez plus rapidement vos articles.";
+        features = [
+          {'text': "Plus de visibilité", 'icon': Icons.check_circle},
+        ];
     }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: features.map((f) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Row(
+          children: [
+            Icon(
+              f['icon'] as IconData, 
+              size: 14, 
+              color: f['isSpecial'] == true ? Colors.orange[800] : Colors.grey[600]
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                f['text'] as String,
+                style: TextStyle(
+                  fontSize: 11, 
+                  color: f['isSpecial'] == true ? Colors.orange[800] : Colors.black87, 
+                  fontWeight: f['isSpecial'] == true ? FontWeight.w900 : FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      )).toList(),
+    );
   }
 
   Widget _buildSubmitButton(BuildContext context, VendreViewModel viewModel) {

@@ -236,7 +236,22 @@
     "see_course": "Voir la formation",
     "modules": "{count} modules",
     "coming_soon": "En cours de développement...",
-    "coming_soon_desc": "Cette fonctionnalité sera bientôt disponible."
+    "coming_soon_desc": "Cette fonctionnalité sera bientôt disponible.",
+    "course_stock_title": "Gestion de Stock & Logistique",
+    "course_stock_subtitle": "Maîtrisez les flux et la chaîne d'approvisionnement physique.",
+    "course_paps_title": "PAPS : Système de Paiement",
+    "course_paps_subtitle": "Comprendre le Système Panafricain de Paiement et de Règlement.",
+    "course_zlecaf_title": "ZLECAF : Marché Unique Africain",
+    "course_zlecaf_subtitle": "Opportunités et stratégies pour le commerce intra-africain.",
+    "course_marketing_title": "Marketing Digital Avancé",
+    "course_marketing_subtitle": "Maîtrisez les stratégies SEO, SEA, Social Media et Content...",
+    "course_ecommerce_title": "E-commerce Essentials",
+    "course_ecommerce_subtitle": "Lancez et développez votre boutique en ligne avec succès.",
+    "course_ia_business_title": "IA pour le Business",
+    "course_ia_business_subtitle": "Optimisez vos processus avec l'Intelligence Artificielle.",
+    "course_marketing_desc": "Une formation complète sur les leviers du marketing digital moderne : acquisition, conversion, rétention et analyses de performance.",
+    "course_ecommerce_desc": "Apprenez les bases de la création d'une boutique en ligne, de la sélection des produits à la gestion des stocks.",
+    "course_ia_business_desc": "Découvrez comment utiliser ChatGPT et autres outils IA pour booster votre productivité quotidienne."
   },
   "rfq": {
     "title": "Demander un devis",

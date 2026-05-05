@@ -26,5 +26,9 @@ class ApiConstants {
   static const String subscriptionPlansEndpoint = '$djangoBaseUrl/subscription-plans/';
   static const String mySubscriptionsEndpoint = '$djangoBaseUrl/my-subscriptions/';
   static String getBulkPricesEndpoint(int adId) => '$djangoBaseUrl/ads/$adId/bulk-prices/';
+
+  // Academy
+  static const String academyCoursesEndpoint = '$djangoBaseUrl/academy/courses/';
+  static String getAcademyCourseDetailEndpoint(String id) => '$academyCoursesEndpoint$id/';
 }
 

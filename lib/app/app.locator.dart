@@ -13,6 +13,7 @@ import 'package:stacked_services/src/navigation/navigation_service.dart';
 import 'package:stacked_services/src/snackbar/snackbar_service.dart';
 import 'package:stacked_shared/stacked_shared.dart';
 
+import '../services/academy_service.dart';
 import '../services/ai_voice_service.dart';
 import '../services/auth_service.dart';
 import '../services/category_service.dart';
@@ -46,4 +47,5 @@ Future<void> setupLocator(
   locator.registerLazySingleton(() => AuthService());
   locator.registerLazySingleton(() => CategoryService());
   locator.registerLazySingleton(() => SubscriptionService());
+  locator.registerLazySingleton(() => AcademyService());
 }

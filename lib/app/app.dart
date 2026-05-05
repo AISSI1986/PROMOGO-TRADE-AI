@@ -39,6 +39,8 @@ import 'package:promogoai/services/subscription_service.dart';
 import 'package:promogoai/ui/views/abonnement/abonnement_view.dart';
 import 'package:promogoai/ui/views/price_comparator/price_comparator_view.dart';
 import 'package:promogoai/services/translation_service.dart';
+import 'package:promogoai/ui/views/course_detail/course_detail_view.dart';
+import 'package:promogoai/services/academy_service.dart';
 // @stacked-import
 
 @StackedApp(
@@ -67,6 +69,7 @@ import 'package:promogoai/services/translation_service.dart';
     MaterialRoute(page: FormDevisView),
     MaterialRoute(page: AbonnementView),
     MaterialRoute(page: PriceComparatorView),
+    MaterialRoute(page: CourseDetailView),
     // @stacked-route
   ],
   dependencies: [
@@ -82,6 +85,7 @@ import 'package:promogoai/services/translation_service.dart';
     LazySingleton(classType: AuthService),
     LazySingleton(classType: CategoryService),
     LazySingleton(classType: SubscriptionService),
+    LazySingleton(classType: AcademyService),
     // @stacked-service
   ],
   bottomsheets: [

@@ -33,7 +33,9 @@ class MonAcademieView extends StackedView<MonAcademieViewModel> {
                       ],
                     ),
                   )
-                : _buildComingSoon(context),
+                : viewModel.selectedTopTabIndex == 1
+                    ? _buildVideoSession(context, viewModel)
+                    : _buildComingSoon(context),
           ),
         ],
       ),
@@ -284,6 +286,10 @@ class MonAcademieView extends StackedView<MonAcademieViewModel> {
   }
 
   Widget _buildCourseGrid(BuildContext context, MonAcademieViewModel viewModel) {
+    if (viewModel.filteredCourses.isEmpty) {
+      return _buildEmptyState();
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         // Determine cross axis count based on width
@@ -320,6 +326,178 @@ class MonAcademieView extends StackedView<MonAcademieViewModel> {
           );
         }
       },
+    );
+  }
+
+  Widget _buildVideoSession(BuildContext context, MonAcademieViewModel viewModel) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(25),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: kcPrimaryColor,
+              borderRadius: BorderRadius.circular(20),
+              image: const DecorationImage(
+                image: NetworkImage('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'),
+                fit: BoxFit.cover,
+                opacity: 0.2,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'SURA LIVE MENTORING',
+                  style: GoogleFonts.outfit(
+                    color: kcSecondaryGold,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2,
+                  ),
+                ),
+                verticalSpaceSmall,
+                Text(
+                  'Validez vos acquis avec un expert',
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                verticalSpaceMedium,
+                Text(
+                  'Une fois vos modules terminés à 100%, réservez une session vidéo pour votre entretien de certification.',
+                  style: GoogleFonts.inter(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 14,
+                    height: 1.6,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          verticalSpaceLarge,
+          Text(
+            'Statut de certification',
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: kcPrimaryColor,
+            ),
+          ),
+          verticalSpaceSmall,
+          _buildStatusCard(
+            title: 'Marketing Digital Avancé',
+            progress: 100,
+            status: 'Prêt pour entretien',
+            buttonLabel: 'Réserver mon entretien',
+            onPressed: () {},
+          ),
+          verticalSpaceMedium,
+          _buildStatusCard(
+            title: 'ZLECAF : Marché Unique',
+            progress: 45,
+            status: 'En cours...',
+            buttonLabel: 'Continuer le cours',
+            onPressed: () => viewModel.setTopTab(0),
+            isLocked: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusCard({
+    required String title,
+    required double progress,
+    required String status,
+    required String buttonLabel,
+    required VoidCallback onPressed,
+    bool isLocked = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: kcLightGrey.withOpacity(0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+              if (progress == 100)
+                const Icon(Icons.check_circle, color: Colors.green, size: 24),
+            ],
+          ),
+          verticalSpaceSmall,
+          Row(
+            children: [
+              Expanded(
+                child: LinearProgressIndicator(
+                  value: progress / 100,
+                  backgroundColor: kcLightGrey.withOpacity(0.3),
+                  valueColor: AlwaysStoppedAnimation<Color>(progress == 100 ? Colors.green : kcSecondaryGold),
+                  minHeight: 8,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              horizontalSpaceSmall,
+              Text('${progress.toInt()}%', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 12)),
+            ],
+          ),
+          verticalSpaceMedium,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(status, style: TextStyle(color: kcMediumGrey, fontSize: 13, fontWeight: FontWeight.w500)),
+              ElevatedButton(
+                onPressed: isLocked && progress < 100 ? null : onPressed,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: progress == 100 ? kcPrimaryColor : kcLightGrey.withOpacity(0.2),
+                  foregroundColor: progress == 100 ? kcSecondaryGold : kcMediumGrey,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text(buttonLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(height: 50),
+          Icon(Icons.auto_stories_outlined, size: 80, color: kcLightGrey.withOpacity(0.5)),
+          const SizedBox(height: 20),
+          Text(
+            'Aucun cours disponible',
+            style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: kcMediumGrey),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Revenez plus tard pour découvrir nos formations.',
+            style: GoogleFonts.inter(color: kcMediumGrey.withOpacity(0.7)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -365,4 +543,9 @@ class MonAcademieView extends StackedView<MonAcademieViewModel> {
 
   @override
   MonAcademieViewModel viewModelBuilder(BuildContext context) => MonAcademieViewModel();
+
+  @override
+  void onViewModelReady(MonAcademieViewModel viewModel) {
+    viewModel.init();
+  }
 }
