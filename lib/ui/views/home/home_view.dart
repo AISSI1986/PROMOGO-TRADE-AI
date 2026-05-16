@@ -406,10 +406,10 @@ class HomeHeader extends StatelessWidget {
         children: [
           Stack(
             children: [
-              if (viewModel.showPromotion) const SizedBox(width: double.infinity, height: 215, child: BannerCarousel()),
+              if (viewModel.showPromotion) const SizedBox(width: double.infinity, height: 116, child: BannerCarousel()),
 
               Container(
-                margin: EdgeInsets.only(top: viewModel.showPromotion ? 185 : 0),
+                margin: EdgeInsets.only(top: viewModel.showPromotion ? 100 : 0),
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: kcBackgroundColor,
