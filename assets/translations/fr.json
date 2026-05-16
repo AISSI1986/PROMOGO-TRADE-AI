@@ -294,5 +294,11 @@
     "contact": "Contacter",
     "export_csv": "Exportations CSV anonymisées (B2B/B2G)",
     "mock_product": "Riz (Sac 50kg)"
+  },
+  "auth_modal": {
+    "title": "Connexion Requise",
+    "message": "Vous devez être connecté pour publier ou sauvegarder vos annonces sur PROMOGO AI.",
+    "btn_login": "SE CONNECTER",
+    "btn_cancel": "PLUS TARD"
   }
 }

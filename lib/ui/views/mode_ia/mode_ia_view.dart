@@ -79,6 +79,8 @@ class ModeIaView extends StackedView<ModeIaViewModel> {
                           const PopupMenuItem(value: 'fra', child: Text('🇫🇷 Français')),
                           const PopupMenuItem(value: 'eng', child: Text('🇺🇸 English')),
                           const PopupMenuItem(value: 'hau', child: Text('🇳🇬 Haoussa')),
+                          const PopupMenuItem(value: 'ewe', child: Text('🇹🇬 Ewe')),
+                          const PopupMenuItem(value: 'mina', child: Text('🇹🇬 Mina')),
                         ],
                       ),
                       const Spacer(),

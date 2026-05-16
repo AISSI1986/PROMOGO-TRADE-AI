@@ -1,0 +1,90 @@
+  @override
+  Widget builder(
+    BuildContext context,
+    LiveViewerViewModel viewModel,
+    Widget? child,
+  ) {
+    return Scaffold(
+      backgroundColor: kcBackgroundColor,
+      resizeToAvoidBottomInset: false, 
+      body: PageView.builder(
+        scrollDirection: Axis.vertical,
+        itemCount: viewModel.dummyVideoUrls.length,
+        onPageChanged: viewModel.onPageChanged,
+        itemBuilder: (context, index) {
+          final broadcasterName = viewModel.broadcasterNames[index % viewModel.broadcasterNames.length];
+          return GestureDetector(
+            onDoubleTap: viewModel.addLike,
+            onTap: () {
+              FocusScope.of(context).unfocus();
+            },
+            child: Stack(
+              children: [
+                // 1. VIDEO LAYER
+                Positioned.fill(
+                  child: viewModel.isControllerInitialized(index)
+                      ? FittedBox(
+                          fit: BoxFit.cover,
+                          child: SizedBox(
+                            width: viewModel.getController(index)!.value.size.width,
+                            height: viewModel.getController(index)!.value.size.height,
+                            child: VideoPlayer(viewModel.getController(index)!),
+                          ),
+                        )
+                      : Container(color: Colors.black, child: const Center(child: CircularProgressIndicator(color: kcSecondaryGold))),
+                ),
+
+                // 2. GRADIENT OVERLAY
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.3),
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.8),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // 3. UI OVERLAY
+                SafeArea(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: 16, 
+                      right: 16, 
+                      top: 16, 
+                      bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(broadcasterName),
+                        const Spacer(),
+                        _buildBottomSection(context, viewModel),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // 4. FLOATING HEARTS
+                ...viewModel.floatingHearts.map((id) => _buildHeartAnimation(id)),
+                
+                // 5. CLOSE BUTTON
+                Positioned(
+                  top: 50,
+                  right: 20,
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }

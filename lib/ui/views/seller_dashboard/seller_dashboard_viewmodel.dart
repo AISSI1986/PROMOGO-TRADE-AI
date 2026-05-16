@@ -21,4 +21,12 @@ class SellerDashboardViewModel extends BaseViewModel {
   void navigateToMyPublications() {
     _navigationService.navigateToMyPublicationsView();
   }
+
+  void navigateToLiveBroadcasterView() {
+    _navigationService.navigateToPreLiveSetupView();
+  }
+
+  void navigateToPreLiveSetupView() {
+    _navigationService.navigateToPreLiveSetupView();
+  }
 }

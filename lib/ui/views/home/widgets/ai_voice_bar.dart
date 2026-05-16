@@ -44,9 +44,11 @@ class AiVoiceBar extends StackedView<AiVoiceSheetModel> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Bouton + (Cancel)
+
+
+          // Bouton Fermer (anciennement +)
           IconButton(
-            icon: const Icon(Icons.add, color: Colors.white70, size: 28),
+            icon: const Icon(Icons.close_rounded, color: Colors.white70, size: 24),
             onPressed: onCancel,
           ),
           

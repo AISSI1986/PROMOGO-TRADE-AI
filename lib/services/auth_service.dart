@@ -1,12 +1,14 @@
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:promogoai/ui/common/api_constants.dart';
 
 class AuthService {
-  static const String _keyAccessToken = 'access_token';
-  static const String _keyRefreshToken = 'refresh_token';
-  static const String _keyUserData = 'user_data';
+  static const String _keyAccessToken = 'secure_access_token';
+  static const String _keyRefreshToken = 'secure_refresh_token';
+  static const String _keyUserData = 'secure_user_data';
+
+  final _secureStorage = const FlutterSecureStorage();
 
   String? _accessToken;
   String? _refreshToken;
@@ -15,37 +17,35 @@ class AuthService {
   String? get accessToken => _accessToken;
   Map<String, dynamic>? get userData => _userData;
 
-  /// Initialise le service en récupérant les tokens stockés
+  /// Initialise le service en récupérant les tokens stockés de manière sécurisée
   Future<void> init() async {
-    final prefs = await SharedPreferences.getInstance();
-    _accessToken = prefs.getString(_keyAccessToken);
-    _refreshToken = prefs.getString(_keyRefreshToken);
+    _accessToken = await _secureStorage.read(key: _keyAccessToken);
+    _refreshToken = await _secureStorage.read(key: _keyRefreshToken);
     
-    print("🔑 [AuthService] Initialisation...");
-    print("🔑 [AuthService] Access Token: ${_accessToken != null ? 'Présent' : 'ABSENT'}");
+    print("🛡️ [AuthService] Initialisation sécurisée...");
+    print("🛡️ [AuthService] Access Token: ${_accessToken != null ? 'Présent (Chiffré)' : 'ABSENT'}");
 
-    final userJson = prefs.getString(_keyUserData);
+    final userJson = await _secureStorage.read(key: _keyUserData);
     if (userJson != null) {
       _userData = jsonDecode(userJson);
-      print("👤 [AuthService] User Data chargé pour: ${_userData?['username']}");
+      print("👤 [AuthService] User Data sécurisé chargé pour: ${_userData?['username']}");
     }
   }
 
-  /// Sauvegarde les tokens et les infos utilisateur après login/register
+  /// Sauvegarde les tokens et les infos utilisateur dans le stockage sécurisé
   Future<void> saveAuthData({
     required String access,
     required String refresh,
     required Map<String, dynamic> user,
   }) async {
-    print("💾 [AuthService] Sauvegarde des jetons...");
+    print("💾 [AuthService] Sauvegarde sécurisée des jetons...");
     _accessToken = access;
     _refreshToken = refresh;
     _userData = user;
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyAccessToken, access);
-    await prefs.setString(_keyRefreshToken, refresh);
-    await prefs.setString(_keyUserData, jsonEncode(user));
+    await _secureStorage.write(key: _keyAccessToken, value: access);
+    await _secureStorage.write(key: _keyRefreshToken, value: refresh);
+    await _secureStorage.write(key: _keyUserData, value: jsonEncode(user));
   }
 
   /// Vérifie si l'utilisateur est actuellement connecté
@@ -66,9 +66,8 @@ class AuthService {
         final newAccess = data['access'];
         
         _accessToken = newAccess;
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_keyAccessToken, newAccess);
-        print("🔄 [AuthService] Token rafraîchi avec succès");
+        await _secureStorage.write(key: _keyAccessToken, value: newAccess);
+        print("🔄 [AuthService] Token rafraîchi avec succès (Stockage sécurisé mis à jour)");
         return true;
       } else {
         print("🔄 [AuthService] Échec du rafraîchissement (Status: ${response.statusCode})");
@@ -88,17 +87,16 @@ class AuthService {
     }
   }
 
-  /// Déconnexion
+  /// Déconnexion et nettoyage du stockage sécurisé
   Future<void> logout() async {
-    print("🚪 [AuthService] Déconnexion...");
+    print("🚪 [AuthService] Déconnexion et nettoyage sécurisé...");
     _accessToken = null;
     _refreshToken = null;
     _userData = null;
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_keyAccessToken);
-    await prefs.remove(_keyRefreshToken);
-    await prefs.remove(_keyUserData);
+    await _secureStorage.delete(key: _keyAccessToken);
+    await _secureStorage.delete(key: _keyRefreshToken);
+    await _secureStorage.delete(key: _keyUserData);
   }
 
   /// Récupère le profil complet de l'utilisateur depuis le Backend
@@ -125,9 +123,8 @@ class AuthService {
 
       if (response.statusCode == 200) {
         _userData = jsonDecode(utf8.decode(response.bodyBytes));
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_keyUserData, jsonEncode(_userData));
-        print("👤 [AuthService] Profil récupéré: ${_userData?['first_name']} (${_userData?['username']})");
+        await _secureStorage.write(key: _keyUserData, value: jsonEncode(_userData));
+        print("👤 [AuthService] Profil récupéré et sécurisé: ${_userData?['first_name']} (${_userData?['username']})");
         return true;
       } else if (response.statusCode == 401) {
         print("👤 [AuthService] Session expirée (401). Tentative de rafraîchissement...");

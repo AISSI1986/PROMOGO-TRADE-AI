@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 
 class LocalStorageService {
@@ -53,6 +54,27 @@ class LocalStorageService {
     return null;
   }
 
+  Future<void> saveJson(String key, dynamic json) async {
+    try {
+      final content = jsonEncode(json);
+      await saveData(key, content);
+    } catch (e) {
+      print("Error saving JSON: $e");
+    }
+  }
+
+  Future<dynamic> getJson(String key) async {
+    try {
+      final content = await getData(key);
+      if (content != null) {
+        return jsonDecode(content);
+      }
+    } catch (e) {
+      print("Error reading JSON: $e");
+    }
+    return null;
+  }
+
   Future<void> clearData(String fileName) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
@@ -62,6 +84,20 @@ class LocalStorageService {
       }
     } catch (e) {
       print("Error clearing data: $e");
+    }
+  }
+
+  Future<void> clearAll() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final entities = await directory.list().toList();
+      for (var entity in entities) {
+        if (entity is File) {
+          await entity.delete();
+        }
+      }
+    } catch (e) {
+      print("Error clearing all data: $e");
     }
   }
 }

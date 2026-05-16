@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:stacked/stacked.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:promogoai/ui/common/app_colors.dart';
@@ -49,21 +50,19 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
   @override
   Widget build(BuildContext context, HomeViewModel viewModel) {
     if (viewModel.isBusy && viewModel.allAds.isEmpty) {
-      return const SizedBox(
-        height: 300,
-        child: Center(
-          child: CircularProgressIndicator(color: kcPrimaryColor),
-        ),
-      );
+      return _buildShimmerLoading(context);
     }
 
     final allAds = viewModel.allAds;
+    final bool isEmpty = allAds.isEmpty;
+    
     final catAds = allAds.take(4).toList();
     final offerAds = allAds.skip(4).take(4).toList();
     final customAds = allAds.skip(8).take(4).toList();
     final gridAds = allAds.skip(12).toList();
 
     return SingleChildScrollView(
+      controller: viewModel.productsScrollController,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -86,6 +85,8 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
             ),
           _buildInfoBanner(),
           _buildCategorySelector(context, viewModel),
+          
+          // Section Catégories (Réelles ou Squelettes)
           if (catAds.isNotEmpty)
             _buildProductList(
               context, 
@@ -102,7 +103,11 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
               decorationColor: Colors.orange.shade800,
               decorationRotation: 0.5,
               products: catAds,
-            ),
+            )
+          else if (isEmpty)
+            _buildSkeletonSection(context, title: 'home.section_produits_cat'.tr()),
+
+          // Section Offres (Réelles ou Squelettes)
           if (offerAds.isNotEmpty)
             _buildProductList(
               context, 
@@ -119,7 +124,11 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
               decorationColor: Colors.blue.shade800,
               decorationRotation: 0.0,
               products: offerAds,
-            ),
+            )
+          else if (isEmpty)
+            _buildSkeletonSection(context, title: 'home.section_meilleures_offres'.tr()),
+
+          // Section Custom (Réelles ou Squelettes)
           if (customAds.isNotEmpty)
             _buildProductList(
               context, 
@@ -136,10 +145,17 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
               decorationColor: Colors.amber.shade800,
               decorationRotation: -0.2,
               products: customAds,
-            ),
+            )
+          else if (isEmpty)
+            _buildSkeletonSection(context, title: 'home.section_selection_sur_mesure'.tr()),
+
           _buildBottomPromoWidgets(viewModel),
+
           if (gridAds.isNotEmpty)
-            _buildVerticalProductGrid(context, viewModel, gridAds),
+            _buildVerticalProductGrid(context, viewModel, gridAds)
+          else if (isEmpty)
+            _buildVerticalSkeletonGrid(context),
+
           verticalSpaceLarge,
         ],
       ),
@@ -633,6 +649,278 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
                   ),
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonSection(BuildContext context, {required String title}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Text(
+            title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kcDarkGreyColor),
+          ),
+        ),
+        SizedBox(
+          height: 180,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            itemCount: 3,
+            itemBuilder: (context, index) => _buildSkeletonCard(),
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildVerticalSkeletonGrid(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            'Plus de produits',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kcDarkGreyColor),
+          ),
+        ),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.8,
+            crossAxisSpacing: 0,
+            mainAxisSpacing: 0,
+          ),
+          itemCount: 4,
+          itemBuilder: (context, index) => _buildSkeletonCard(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSkeletonCard() {
+    return Container(
+      width: 150,
+      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F2F5),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 3,
+            child: Container(
+              margin: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(5),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: Container(
+              height: 12, 
+              width: double.infinity, 
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context, HomeViewModel viewModel) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 60),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: kcTabIndicatorColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.cloud_off_rounded,
+              color: kcTabIndicatorColor,
+              size: 50,
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            "Oups ! Connexion impossible",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: kcDarkGreyColor,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            "Le serveur est actuellement indisponible ou vous êtes hors ligne. Vérifiez votre connexion et réessayez.",
+            style: TextStyle(
+              fontSize: 14,
+              color: kcMediumGrey,
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          ElevatedButton.icon(
+            onPressed: () => viewModel.retry(context.locale.languageCode),
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+            label: const Text(
+              "RÉESSAYER",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kcPrimaryColor,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShimmerLoading(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Shimmer pour les cartes promo en haut
+          SizedBox(
+            height: 70,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: 4,
+              itemBuilder: (context, index) => Shimmer.fromColors(
+                baseColor: Colors.grey[300]!,
+                highlightColor: Colors.grey[100]!,
+                child: Container(
+                  width: 150,
+                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4)),
+                ),
+              ),
+            ),
+          ),
+          
+          // Shimmer pour une liste horizontale
+          _buildShimmerProductSection(context),
+          
+          // Shimmer pour la grille verticale
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Shimmer.fromColors(
+              baseColor: Colors.grey[300]!,
+              highlightColor: Colors.grey[100]!,
+              child: Container(height: 20, width: 150, color: Colors.white),
+            ),
+          ),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.8,
+              crossAxisSpacing: 0,
+              mainAxisSpacing: 0,
+            ),
+            itemCount: 4,
+            itemBuilder: (context, index) => _buildShimmerCard(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShimmerProductSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Shimmer.fromColors(
+            baseColor: Colors.grey[300]!,
+            highlightColor: Colors.grey[100]!,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(height: 18, width: 180, color: Colors.white),
+                const SizedBox(height: 4),
+                Container(height: 10, width: 100, color: Colors.white),
+              ],
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 180,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            itemCount: 4,
+            itemBuilder: (context, index) => _buildShimmerCard(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildShimmerCard() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        width: 150,
+        margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: Container(
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(5)),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Container(height: 12, width: double.infinity, color: Colors.white),
             ),
           ],
         ),

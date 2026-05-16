@@ -76,7 +76,7 @@ class SavedViewModel extends BaseViewModel {
       imageUrl = ad['images'][0]['image'];
       // Si l'URL est relative, on ajoute le domaine
       if (!imageUrl.startsWith('http')) {
-        imageUrl = 'https://${ApiConstants.djangoServerHost}$imageUrl';
+        imageUrl = '${ApiConstants.djangoRootUrl}$imageUrl';
       }
     }
 

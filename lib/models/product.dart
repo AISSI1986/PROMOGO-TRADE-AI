@@ -36,14 +36,14 @@ class Product {
       
       // Si l'URL est relative (commence par /), on ajoute le host du serveur
       if (rawUrl.startsWith('/')) {
-        imgUrl = 'https://${ApiConstants.djangoServerHost}$rawUrl';
+        imgUrl = '${ApiConstants.djangoRootUrl}$rawUrl';
       } else {
         imgUrl = rawUrl;
       }
       
       gal = imagesList.map((img) {
         String u = img['image'] as String;
-        return u.startsWith('/') ? 'https://${ApiConstants.djangoServerHost}$u' : u;
+        return u.startsWith('/') ? '${ApiConstants.djangoRootUrl}$u' : u;
       }).toList();
     }
 

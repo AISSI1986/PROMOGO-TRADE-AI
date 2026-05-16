@@ -293,5 +293,11 @@
     "contact": "Contact",
     "export_csv": "Anonymized CSV Exports (B2B/B2G)",
     "mock_product": "Rice (50kg Bag)"
+  },
+  "auth_modal": {
+    "title": "Login Required",
+    "message": "You must be logged in to post or save your ads on PROMOGO AI.",
+    "btn_login": "LOGIN",
+    "btn_cancel": "LATER"
   }
 }

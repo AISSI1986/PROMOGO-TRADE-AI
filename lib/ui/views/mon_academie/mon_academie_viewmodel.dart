@@ -1,6 +1,5 @@
 import 'package:stacked/stacked.dart';
-import 'package:easy_localization/easy_localization.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../../../app/app.locator.dart';
 import '../../../models/course_model.dart';
 import '../../../services/academy_service.dart';
@@ -17,92 +16,68 @@ class MonAcademieViewModel extends BaseViewModel {
   String _selectedLevel = 'all';
   String get selectedLevel => _selectedLevel;
 
-  // VOICI VOS 6 COURS MAPPÉS SUR LES IDS 1 À 6
-  List<Course> _courses = [
-    Course(
-      id: '1',
-      title: 'Marketing Digital',
-      subtitle: 'Maîtrisez le SEO, SEA et les réseaux sociaux.',
-      shortDescription: 'Une formation complète pour devenir expert en marketing numérique.',
-      longDescription: '',
-      duration: '8h',
-      modulesCount: 6,
-      tags: ['SEO', 'Ads', 'Social'],
-      gradientColors: [const Color(0xFFFF8C42), const Color(0xFFFF3E4D)],
-      category: 'Marketing',
-      level: 'advanced',
-    ),
-    Course(
-      id: '2',
-      title: 'E-commerce Essentials',
-      subtitle: 'Lancez et développez votre boutique en ligne.',
-      shortDescription: 'Tout savoir sur Shopify, la logistique et les ventes digitales.',
-      longDescription: '',
-      duration: '12h',
-      modulesCount: 8,
-      tags: ['Shopify', 'Sales'],
-      gradientColors: [const Color(0xFF4facfe), const Color(0xFF00f2fe)],
-      category: 'E-commerce',
-      level: 'beginner',
-    ),
-    Course(
-      id: '3',
-      title: 'Business Intelligence',
-      subtitle: 'Prenez des décisions basées sur les données.',
-      shortDescription: 'Apprenez à analyser vos performances et à utiliser les outils IA.',
-      longDescription: '',
-      duration: '10h',
-      modulesCount: 5,
-      tags: ['Data', 'IA', 'Analytics'],
-      gradientColors: [const Color(0xFFa18cd1), const Color(0xFFfbc2eb)],
-      category: 'IA',
-      level: 'intermediate',
-    ),
-    Course(
-      id: '4',
-      title: 'PAPS & Paiements',
-      subtitle: 'Maîtrisez les systèmes de paiements en Afrique.',
-      shortDescription: 'Comprendre le système PAPSS et la gestion des flux financiers.',
-      longDescription: '',
-      duration: '6h',
-      modulesCount: 4,
-      tags: ['Fintech', 'Paiement'],
-      gradientColors: [const Color(0xFFf093fb), const Color(0xFFf5576c)],
-      category: 'IA',
-      level: 'advanced',
-    ),
-    Course(
-      id: '5',
-      title: 'ZLECAF : Formation',
-      subtitle: 'Vendre et acheter dans la zone de libre-échange.',
-      shortDescription: 'Guide complet sur la Zone de Libre-Échange Continentale Africaine.',
-      longDescription: '',
-      duration: '15h',
-      modulesCount: 10,
-      tags: ['Commerce', 'Afrique'],
-      gradientColors: [const Color(0xFFf6d365), const Color(0xFFfda085)],
-      category: 'Marketing',
-      level: 'advanced',
-    ),
-    Course(
-      id: '6',
-      title: 'Stock & Logistique',
-      subtitle: 'Optimisez votre chaîne d’approvisionnement.',
-      shortDescription: 'Maîtrisez la gestion de stock et les flux logistiques modernes.',
-      longDescription: '',
-      duration: '7h',
-      modulesCount: 5,
-      tags: ['Logistique', 'Stock'],
-      gradientColors: [const Color(0xFF84fab0), const Color(0xFF8fd3f4)],
-      category: 'E-commerce',
-      level: 'intermediate',
-    ),
-  ];
-  
+  List<Course> _courses = [];
   List<Course> get courses => _courses;
 
+  List<Tag> _tags = [];
+  List<Tag> get tags => _tags;
+
+  Map<String, double> _courseProgress = {};
+  Map<String, double> get courseProgress => _courseProgress;
+
+  /// Initialisation : On charge les cours et les tags depuis l'API
   Future<void> init() async {
+    await Future.wait([
+      loadCourses(),
+      loadTags(),
+    ]);
+    await loadAllProgress();
+  }
+
+  Future<void> loadCourses() async {
+    setBusy(true);
+    try {
+      _courses = await _academyService.getCourses();
+      
+      // Pré-chargement des images en arrière-plan via le CacheManager
+      for (var course in _courses) {
+        if (course.imageCouverture != null) {
+          DefaultCacheManager().downloadFile(course.imageCouverture!)
+              .catchError((e) => print("Erreur pré-chargement image: $e"));
+        }
+      }
+    } catch (e) {
+      print("Erreur chargement cours ViewModel: $e");
+    } finally {
+      setBusy(false);
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadTags() async {
+    try {
+      _tags = await _academyService.getTags();
+      notifyListeners();
+    } catch (e) {
+      print("Erreur chargement tags ViewModel: $e");
+    }
+  }
+
+  Future<void> loadAllProgress() async {
+    for (var course in _courses) {
+      final progress = await _academyService.getProgression(course.id);
+      if (progress != null) {
+        // Le backend renvoie un double ou int dans 'pourcentage'
+        final double perc = (progress['pourcentage'] ?? 0).toDouble();
+        _courseProgress[course.id] = perc;
+        print("📊 [MonAcademieViewModel] Progression cours ${course.id} (${course.title}): $perc%");
+      }
+    }
     notifyListeners();
+  }
+
+  double getProgressForCourse(String courseId) {
+    return _courseProgress[courseId] ?? 0.0;
   }
 
   void setTopTab(int index) {
@@ -120,10 +95,19 @@ class MonAcademieViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  /// Filtre les cours en fonction de la catégorie et du niveau
   List<Course> get filteredCourses {
+    if (_courses.isEmpty) return [];
+    
     return _courses.where((course) {
-      final categoryMatch = _selectedCategory == 'all' || course.category == _selectedCategory;
-      final levelMatch = _selectedLevel == 'all' || course.level == _selectedLevel;
+      // Pour les catégories, on compare avec les tags pour le moment ou le champ category du backend
+      // Si ton backend n'a pas encore de champ "category", on peut filtrer par Tags
+      final categoryMatch = _selectedCategory == 'all' || 
+                           course.tags.any((t) => t.title == _selectedCategory);
+      
+      final levelMatch = _selectedLevel == 'all' || 
+                         course.level.toLowerCase() == _selectedLevel.toLowerCase();
+      
       return categoryMatch && levelMatch;
     }).toList();
   }

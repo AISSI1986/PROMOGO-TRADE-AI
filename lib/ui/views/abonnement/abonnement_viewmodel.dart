@@ -12,14 +12,23 @@ class AbonnementViewModel extends BaseViewModel {
   bool get isFetching => _isFetching;
 
   Future<void> init() async {
-    if (plans.isEmpty) {
-      await fetchPlans();
+    // 1. Charger d'abord le cache persistant
+    await _subscriptionService.loadCachedPlans();
+    if (plans.isNotEmpty) {
+      notifyListeners();
     }
+    
+    // 2. Tenter de rafraîchir les plans depuis le réseau
+    await fetchPlans();
   }
 
   Future<void> fetchPlans() async {
-    _isFetching = true;
-    notifyListeners();
+    // On n'affiche le loader central que si on n'a rien à montrer
+    if (plans.isEmpty) {
+      _isFetching = true;
+      notifyListeners();
+    }
+    
     try {
       await _subscriptionService.fetchPlans();
     } catch (e) {

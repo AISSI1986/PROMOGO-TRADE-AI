@@ -9,6 +9,7 @@ import 'dart:ui';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:promogoai/ui/views/promogo_fair/promogo_fair_view.dart';
 import 'package:promogoai/ui/views/live_viewer/live_viewer_view.dart';
+import 'package:promogoai/ui/views/live_viewer/live_hub_view.dart';
 import 'package:promogoai/ui/views/mon_academie/mon_academie_view.dart';
 import 'package:promogoai/ui/views/demande_devis/demande_devis_view.dart';
 import 'package:promogoai/ui/views/price_comparator/price_comparator_view.dart';
@@ -16,6 +17,11 @@ import 'package:promogoai/app/app.bottomsheets.dart';
 import 'package:promogoai/services/ad_service.dart';
 import 'package:promogoai/services/ai_voice_service.dart';
 import 'package:promogoai/services/translation_service.dart';
+import 'package:promogoai/services/auth_service.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:promogoai/app/app.router.dart';
+import 'package:promogoai/ui/common/app_colors.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class HomeViewModel extends BaseViewModel {
   final _adService = AdService();
@@ -23,7 +29,14 @@ class HomeViewModel extends BaseViewModel {
   final _bottomSheetService = locator<BottomSheetService>();
   final _aiVoiceService = locator<AiVoiceService>();
   final _translationService = locator<TranslationService>();
+  final _authService = locator<AuthService>();
   
+  bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
+
+  bool _hasError = false;
+  bool get hasError => _hasError;
+
   bool _showAiVoiceBar = false;
   bool get showAiVoiceBar => _showAiVoiceBar;
 
@@ -60,6 +73,7 @@ class HomeViewModel extends BaseViewModel {
   }
 
   final PageController promoPageController = PageController(initialPage: 0);
+  final ScrollController productsScrollController = ScrollController();
   Timer? _promoTimer;
   final int _promoCount = 4;
 
@@ -74,11 +88,49 @@ class HomeViewModel extends BaseViewModel {
   String get currentLanguageCode => _currentLanguageCode;
 
   Future<void> init(String languageCode) async {
+    if (_isInitialized && !_hasError) return;
+    
+    _isInitialized = true;
+    _hasError = false;
     _currentLanguageCode = languageCode;
-    setBusy(true);
-    await _adService.loadAds();
-    await autoTranslateAll(languageCode);
-    setBusy(false);
+    
+    // 1. Charger d'abord le cache pour un affichage immédiat
+    await _adService.loadCachedAds();
+    if (allAds.isNotEmpty) {
+      notifyListeners();
+    }
+
+    // 2. Ne mettre l'état "busy" (shimmer) que si on n'a absolument rien à afficher
+    if (allAds.isEmpty) {
+      setBusy(true);
+    }
+
+    try {
+      // 3. Charger les données fraîches depuis le réseau
+      await _adService.loadAds();
+      
+      // Si après chargement c'est toujours vide et qu'on n'est pas en cache
+      if (allAds.isEmpty) {
+        _hasError = true;
+      }
+    } catch (e) {
+      _hasError = true;
+      print("❌ [HomeViewModel] Error during init: $e");
+    } finally {
+      setBusy(false);
+      notifyListeners();
+    }
+    
+    // 4. Traduire si nécessaire (en arrière-plan par rapport à l'affichage)
+    if (allAds.isNotEmpty) {
+      await autoTranslateAll(languageCode);
+    }
+  }
+
+  Future<void> retry(String languageCode) async {
+    _hasError = false;
+    _isInitialized = false;
+    await init(languageCode);
   }
 
   Future<void> autoTranslateAll(String languageCode) async {
@@ -108,6 +160,7 @@ class HomeViewModel extends BaseViewModel {
   void dispose() {
     _promoTimer?.cancel();
     promoPageController.dispose();
+    productsScrollController.dispose();
     super.dispose();
   }
 
@@ -143,12 +196,35 @@ class HomeViewModel extends BaseViewModel {
   }
 
   void setIndex(int index) {
+    // Si l'utilisateur clique sur "Vendre" (index 2)
+    if (index == 2) {
+      if (!_authService.isLogged) {
+        _showAuthRequiredModal();
+        return; // On ne change pas d'index
+      }
+    }
+
     // Dès qu'on clique sur 'Home' (index 0), on réinitialise sur 'Produits' (index 1)
     if (index == 0) {
       _currentTopTab = 1;
     }
     _currentIndex = index;
     notifyListeners();
+  }
+
+  void _showAuthRequiredModal() {
+    _bottomSheetService.showCustomSheet(
+      variant: BottomSheetType.authRequired,
+      title: 'auth_modal.title'.tr(),
+      description: 'auth_modal.message'.tr(),
+      mainButtonTitle: 'auth_modal.btn_login'.tr(),
+      secondaryButtonTitle: 'auth_modal.btn_cancel'.tr(),
+    ).then((sheetResponse) {
+      if (sheetResponse != null && sheetResponse.confirmed) {
+        // Navigation directe vers la page de Login
+        _navigationService.navigateToLoginView();
+      }
+    });
   }
 
   /// Called when the IA button is tapped.
@@ -166,8 +242,26 @@ class HomeViewModel extends BaseViewModel {
   Future<void> handleAiResult(Map<String, dynamic> data) async {
     print("🎯 [HomeViewModel] handleAiResult déclenché avec data: ${data.keys.toList()}");
     final vector = data['vector'];
-    final transcription = data['transcription'] ?? "";
+    final transcription = (data['transcription'] ?? "").toString().toLowerCase();
     
+    // --- NOUVEAU : Détection d'intention de navigation par la voix ---
+    final sellKeywords = [
+      'vendre', 'vente', 'vends', 'sell', 'sale', 'selling', 
+      'sayar', 'sayarwa', 'sayda', // Haoussa
+      'dzra', 'dzradzra', 'djra', 'dra', 'zra', 'dza',  // Ewe (avec variantes phonétiques de l'IA)
+      'sanou', 'ndja sanou', 'pley nou', 'ple nou', 'dzanou', 'asanou' // Mina / Parlé local
+    ];
+    bool intentToSell = sellKeywords.any((kw) => transcription.contains(kw));
+
+    if (intentToSell) {
+      print("🚀 [HomeViewModel] Intention de vente détectée ! Navigation vers l'onglet Vendre.");
+      _showAiVoiceBar = false;
+      setIndex(2); // Index 2 est la page "Vendre"
+      notifyListeners();
+      return;
+    }
+
+    // --- Suite de la logique existante pour la recherche de produits ---
     if (vector != null) {
       setBusy(true);
       // On cache la barre après un court délai pour laisser lire la transcription
@@ -179,9 +273,19 @@ class HomeViewModel extends BaseViewModel {
       // On bascule sur l'onglet produits pour voir les résultats de la recherche IA
       _currentTopTab = 1; 
       _selectedCategory = "Tous"; // On réinitialise la catégorie
+      _currentIndex = 0; // On s'assure d'être sur la home
       
       print("🔍 [HomeViewModel] Recherche IA pour: $transcription");
       await _adService.searchAdsByVector(vector);
+
+      // Remontée automatique et élégante vers le haut de la page pour voir les résultats
+      if (productsScrollController.hasClients) {
+        productsScrollController.animateTo(
+          0.0,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOut,
+        );
+      }
 
       // Traduction automatique des nouveaux résultats
       await autoTranslateAll(_currentLanguageCode);
@@ -213,7 +317,7 @@ class HomeViewModel extends BaseViewModel {
 
   void navigateToLiveViewer() {
     _navigationService.navigateWithTransition(
-      const LiveViewerView(),
+      const LiveHubView(),
       transitionStyle: Transition.fade,
     );
   }

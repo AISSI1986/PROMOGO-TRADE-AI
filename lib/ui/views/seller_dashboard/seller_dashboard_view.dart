@@ -70,6 +70,12 @@ class SellerDashboardView extends StackedView<SellerDashboardViewModel> {
         'badge': viewModel.pendingNotifications > 0 ? viewModel.pendingNotifications.toString() : null,
         'onTap': () {},
       },
+      {
+        'icon': Icons.live_tv_rounded,
+        'title': 'Lancer un Live',
+        'subtitle': 'Vente en direct',
+        'onTap': viewModel.navigateToPreLiveSetupView,
+      },
     ];
 
     return GridView.builder(

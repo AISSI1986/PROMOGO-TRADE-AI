@@ -17,6 +17,7 @@ import '../services/academy_service.dart';
 import '../services/ai_voice_service.dart';
 import '../services/auth_service.dart';
 import '../services/category_service.dart';
+import '../services/live_socket_service.dart';
 import '../services/local_storage_service.dart';
 import '../services/settings_service.dart';
 import '../services/srs_streaming_service.dart';
@@ -48,4 +49,5 @@ Future<void> setupLocator(
   locator.registerLazySingleton(() => CategoryService());
   locator.registerLazySingleton(() => SubscriptionService());
   locator.registerLazySingleton(() => AcademyService());
+  locator.registerLazySingleton(() => LiveSocketService());
 }

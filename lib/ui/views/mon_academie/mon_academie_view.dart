@@ -165,12 +165,10 @@ class MonAcademieView extends StackedView<MonAcademieViewModel> {
   }
 
   Widget _buildFilters(BuildContext context, MonAcademieViewModel viewModel) {
+    // Le filtre "Toutes" est toujours présent, puis on ajoute les tags du backend
     final categories = [
       {'id': 'all', 'label': 'academy.filter_all'.tr()},
-      {'id': 'E-commerce', 'label': 'E-commerce'},
-      {'id': 'Marketing', 'label': 'Marketing'},
-      {'id': 'IA', 'label': 'IA'},
-      {'id': 'Analytics', 'label': 'Analytics'},
+      ...viewModel.tags.map((t) => {'id': t.title, 'label': t.title}).toList(),
     ];
     final levels = [
       {'id': 'all', 'label': 'academy.level_all'.tr()},
@@ -286,6 +284,15 @@ class MonAcademieView extends StackedView<MonAcademieViewModel> {
   }
 
   Widget _buildCourseGrid(BuildContext context, MonAcademieViewModel viewModel) {
+    if (viewModel.isBusy && viewModel.courses.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.only(top: 50),
+          child: CircularProgressIndicator(color: kcPrimaryColor),
+        ),
+      );
+    }
+
     if (viewModel.filteredCourses.isEmpty) {
       return _buildEmptyState();
     }
@@ -389,22 +396,28 @@ class MonAcademieView extends StackedView<MonAcademieViewModel> {
             ),
           ),
           verticalSpaceSmall,
-          _buildStatusCard(
-            title: 'Marketing Digital Avancé',
-            progress: 100,
-            status: 'Prêt pour entretien',
-            buttonLabel: 'Réserver mon entretien',
-            onPressed: () {},
-          ),
-          verticalSpaceMedium,
-          _buildStatusCard(
-            title: 'ZLECAF : Marché Unique',
-            progress: 45,
-            status: 'En cours...',
-            buttonLabel: 'Continuer le cours',
-            onPressed: () => viewModel.setTopTab(0),
-            isLocked: true,
-          ),
+          if (viewModel.courses.isEmpty)
+             const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("Aucun cours trouvé"))),
+          ...viewModel.courses.map((course) {
+            final progress = viewModel.getProgressForCourse(course.id);
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 15),
+              child: _buildStatusCard(
+                title: course.title,
+                progress: progress,
+                status: progress >= 100 ? 'Prêt pour entretien' : 'En cours...',
+                buttonLabel: progress >= 100 ? 'Réserver mon entretien' : 'Continuer le cours',
+                onPressed: () {
+                  if (progress < 100) {
+                    viewModel.setTopTab(0);
+                  } else {
+                    // Logique de réservation à implémenter
+                  }
+                },
+                isLocked: progress < 100,
+              ),
+            );
+          }).toList(),
         ],
       ),
     );
@@ -448,29 +461,56 @@ class MonAcademieView extends StackedView<MonAcademieViewModel> {
                 child: LinearProgressIndicator(
                   value: progress / 100,
                   backgroundColor: kcLightGrey.withOpacity(0.3),
-                  valueColor: AlwaysStoppedAnimation<Color>(progress == 100 ? Colors.green : kcSecondaryGold),
+                  valueColor: AlwaysStoppedAnimation<Color>(progress >= 100 ? kcSuccessColor : kcSecondaryGold),
                   minHeight: 8,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
               horizontalSpaceSmall,
-              Text('${progress.toInt()}%', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 12)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: progress >= 100 ? kcSuccessColor.withOpacity(0.1) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  progress >= 100 ? 'READY' : '${progress.toInt()}%', 
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w800, 
+                    fontSize: 12,
+                    color: progress >= 100 ? kcSuccessColor : kcPrimaryColor,
+                  ),
+                ),
+              ),
             ],
           ),
           verticalSpaceMedium,
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(status, style: TextStyle(color: kcMediumGrey, fontSize: 13, fontWeight: FontWeight.w500)),
+              Expanded(
+                child: Text(
+                  status,
+                  style: TextStyle(
+                    color: progress >= 100 ? kcSuccessColor : kcMediumGrey,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               ElevatedButton(
-                onPressed: isLocked && progress < 100 ? null : onPressed,
+                onPressed: onPressed,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: progress == 100 ? kcPrimaryColor : kcLightGrey.withOpacity(0.2),
-                  foregroundColor: progress == 100 ? kcSecondaryGold : kcMediumGrey,
+                  backgroundColor: progress >= 100 ? kcPrimaryColor : kcSecondaryGold.withOpacity(0.1),
+                  foregroundColor: progress >= 100 ? Colors.white : kcPrimaryColor,
                   elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                child: Text(buttonLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                child: Text(
+                  buttonLabel,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),

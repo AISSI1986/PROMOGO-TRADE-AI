@@ -47,8 +47,42 @@ class AiVoiceSheet extends StackedView<AiVoiceSheetModel> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Bouton +
+              // Sélecteur de Langue
+              PopupMenuButton<String>(
+                icon: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    viewModel.supportedLanguages.firstWhere((l) => l['code'] == viewModel.selectedLangue)['flag']!,
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                ),
+                onSelected: viewModel.setLangue,
+                itemBuilder: (context) => viewModel.supportedLanguages.map((lang) {
+                  return PopupMenuItem<String>(
+                    value: lang['code'],
+                    child: Row(
+                      children: [
+                        Text(lang['flag']!, style: const TextStyle(fontSize: 18)),
+                        const SizedBox(width: 10),
+                        Text(lang['label']!, style: const TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                offset: const Offset(0, -200),
+                color: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              
+              const SizedBox(width: 4),
+
+              // Bouton Fermer
               IconButton(
-                icon: const Icon(Icons.add, color: Colors.white70, size: 28),
+                icon: const Icon(Icons.close_rounded, color: Colors.white70, size: 24),
                 onPressed: () {
                   viewModel.cancelRecording(completer);
                 },

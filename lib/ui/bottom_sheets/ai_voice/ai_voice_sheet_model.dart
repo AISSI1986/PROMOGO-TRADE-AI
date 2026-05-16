@@ -20,6 +20,20 @@ class AiVoiceSheetModel extends BaseViewModel {
   double _currentAmplitude = -160.0; // En dB, -160 est le silence absolu
   double get currentAmplitude => _currentAmplitude;
 
+  String get selectedLangue => _aiVoiceService.selectedLangue;
+
+  final List<Map<String, String>> supportedLanguages = [
+    {'code': 'fra', 'label': 'FR', 'flag': '🇫🇷'},
+    {'code': 'eng', 'label': 'EN', 'flag': '🇺🇸'},
+    {'code': 'hau', 'label': 'HA', 'flag': '🇳🇬'},
+    {'code': 'ewe', 'label': 'EW', 'flag': '🇹🇬'},
+  ];
+
+  void setLangue(String langue) {
+    _aiVoiceService.setLangue(langue);
+    notifyListeners();
+  }
+
   void startListening() async {
     _isRecording = true;
     _agentResponse = null;

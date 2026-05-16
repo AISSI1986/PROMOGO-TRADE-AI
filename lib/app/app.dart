@@ -5,6 +5,7 @@ import 'package:promogoai/ui/views/otp/otp_view.dart';
 import 'package:promogoai/ui/bottom_sheets/otp/otp_sheet.dart';
 import 'package:promogoai/ui/bottom_sheets/settings/settings_sheet.dart';
 import 'package:promogoai/ui/bottom_sheets/ai_voice/ai_voice_sheet.dart';
+import 'package:promogoai/ui/bottom_sheets/auth_required/auth_required_sheet.dart';
 import 'package:promogoai/ui/dialogs/info_alert/info_alert_dialog.dart';
 import 'package:promogoai/ui/views/home/home_view.dart';
 import 'package:promogoai/ui/views/startup/startup_view.dart';
@@ -40,7 +41,10 @@ import 'package:promogoai/ui/views/abonnement/abonnement_view.dart';
 import 'package:promogoai/ui/views/price_comparator/price_comparator_view.dart';
 import 'package:promogoai/services/translation_service.dart';
 import 'package:promogoai/ui/views/course_detail/course_detail_view.dart';
+import 'package:promogoai/ui/views/lesson/lesson_view.dart';
 import 'package:promogoai/services/academy_service.dart';
+import 'package:promogoai/ui/views/pre_live_setup/pre_live_setup_view.dart';
+import 'package:promogoai/services/live_socket_service.dart';
 // @stacked-import
 
 @StackedApp(
@@ -70,6 +74,10 @@ import 'package:promogoai/services/academy_service.dart';
     MaterialRoute(page: AbonnementView),
     MaterialRoute(page: PriceComparatorView),
     MaterialRoute(page: CourseDetailView),
+    MaterialRoute(page: LessonView),
+    MaterialRoute(page: LiveViewerView),
+    MaterialRoute(page: LiveBroadcasterView),
+    MaterialRoute(page: PreLiveSetupView),
     // @stacked-route
   ],
   dependencies: [
@@ -86,6 +94,7 @@ import 'package:promogoai/services/academy_service.dart';
     LazySingleton(classType: CategoryService),
     LazySingleton(classType: SubscriptionService),
     LazySingleton(classType: AcademyService),
+    LazySingleton(classType: LiveSocketService),
     // @stacked-service
   ],
   bottomsheets: [
@@ -93,6 +102,7 @@ import 'package:promogoai/services/academy_service.dart';
     StackedBottomsheet(classType: SettingsSheet),
     StackedBottomsheet(classType: OtpSheet),
     StackedBottomsheet(classType: AiVoiceSheet),
+    StackedBottomsheet(classType: AuthRequiredSheet),
     // @stacked-bottom-sheet
   ],
   dialogs: [

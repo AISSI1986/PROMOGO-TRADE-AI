@@ -8,8 +8,9 @@ class ApiConstants {
   static String getAnalyseAudioWs(String langue) => '$wsBaseUrl/ws/analyser-audio/$langue';
 
   // --- Serveur Django (Backend Principal) ---
-  static const String djangoServerHost = '20fb-74-244-119-98.ngrok-free.app';
-  static const String djangoBaseUrl = 'https://$djangoServerHost/api';
+  static const String djangoServerHost = '31.97.116.73';
+  static const String djangoRootUrl = 'http://$djangoServerHost';
+  static const String djangoBaseUrl = '$djangoRootUrl/api';
 
   // Routes Authentification
   static const String sendOtpEndpoint = '$djangoBaseUrl/auth/otp/send/';
@@ -29,6 +30,23 @@ class ApiConstants {
 
   // Academy
   static const String academyCoursesEndpoint = '$djangoBaseUrl/academy/courses/';
+  static const String academyTagsEndpoint = '$djangoBaseUrl/academy/tags/';
   static String getAcademyCourseDetailEndpoint(String id) => '$academyCoursesEndpoint$id/';
-}
 
+  // --- Serveur SRS (Streaming Vidéo) ---
+  static const String srsHost = djangoServerHost;
+  static String getRtmpPushUrl(String streamKey) => 'rtmp://$srsHost:1935/live/$streamKey';
+  static String getHttpFlvPlayUrl(String streamKey) => 'http://$srsHost:8080/live/$streamKey.flv';
+  static String getHlsPlayUrl(String streamKey) => 'http://$srsHost:8080/live/$streamKey.m3u8';
+
+  // --- Endpoints Live Commerce ---
+  static const String liveBaseEndpoint = '$djangoBaseUrl/live/';
+  static const String createLiveEndpoint = '${liveBaseEndpoint}create/';
+  static const String activeLivesEndpoint = '${liveBaseEndpoint}active/';
+  static const String liveProductsEndpoint = '${liveBaseEndpoint}products';
+  static String getAddProductsToLiveEndpoint(String liveId) => '$liveBaseEndpoint$liveId/add-products/';
+  static String getUpdateLiveStatusEndpoint(String liveId) => '$liveBaseEndpoint$liveId/update-status/';
+  static String getUpdateLiveProductEndpoint(String productId) => '${liveBaseEndpoint}product/$productId/update/';
+  static String getLiveOrdersEndpoint(String liveId) => '$liveBaseEndpoint$liveId/orders/';
+  static String getLiveChatHistoryEndpoint(String liveId) => '$liveBaseEndpoint$liveId/chat/';
+}

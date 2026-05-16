@@ -24,7 +24,7 @@ class LoginView extends StackedView<LoginViewModel> {
                 verticalSpaceSmall,
                 Center(
                   child: Image.asset(
-                    'assets/images/logo.jpeg',
+                    'assets/images/logo_app.png',
                     height: 70, // Taille optimisée pour libérer de l'espace
                     errorBuilder: (context, error, stackTrace) => const Icon(
                       Icons.shopping_bag_outlined,
@@ -36,6 +36,7 @@ class LoginView extends StackedView<LoginViewModel> {
                 verticalSpaceMedium, // Espacement réduit
                 const Text(
                   'Connexion',
+                  textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: kcPrimaryColor),
                 ),
                 verticalSpaceSmall,

@@ -1,7 +1,9 @@
 import 'dart:math' as math;
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:stacked/stacked.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:promogoai/ui/common/app_colors.dart';
 import 'package:promogoai/ui/views/mode_ia/mode_ia_view.dart';
 import 'package:promogoai/ui/common/ui_helpers.dart';
@@ -23,7 +25,7 @@ class HomeView extends StackedView<HomeViewModel> {
     // Initialisation ou re-traduction si la langue change
     if (!viewModel.isBusy) {
       final String currentLocale = context.locale.languageCode;
-      if (viewModel.allAds.isEmpty) {
+      if (!viewModel.isInitialized) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           viewModel.init(currentLocale);
         });
@@ -402,44 +404,12 @@ class HomeHeader extends StatelessWidget {
       color: kcBackgroundColor,
       child: Column(
         children: [
-          if (viewModel.showPromotion)
-            Container(
-              width: double.infinity,
-              height: 100, // Augmenté de 60 à 100 pour donner plus d'espace
-              color: kcPrimaryColor,
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                children: [
-                  const Text(
-                    'May',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 28, // Légèrement augmenté aussi pour l'équilibre
-                      letterSpacing: -1,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Bénéficiez jusqu\'à 20 % de réduction',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14, // Légèrement augmenté
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right, color: Colors.white, size: 24),
-                ],
-              ),
-            ),
           Stack(
             children: [
-              if (viewModel.showPromotion) Container(height: 40, color: kcPrimaryColor),
-
+              if (viewModel.showPromotion) const SizedBox(width: double.infinity, height: 215, child: BannerCarousel()),
 
               Container(
+                margin: EdgeInsets.only(top: viewModel.showPromotion ? 185 : 0),
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: kcBackgroundColor,
@@ -561,8 +531,7 @@ class HomeHeader extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFFFF2D55),
-                  letterSpacing: 0.8,
+                              letterSpacing: 0.8,
                 ),
               ),
             ],
@@ -664,25 +633,20 @@ class SmoothHillNotch extends NotchedShape {
   Path getOuterPath(Rect host, Rect? guest) {
     if (guest == null) return Path()..addRect(host);
 
-    // Paramètres de la colline pour épouser le bouton de 90px
-    // Paramètres de la colline ajustés pour épouser l'icône de près
     final double radius = guest.width / 2.0;
     final double centerX = guest.center.dx;
     
-    // On réduit la hauteur et la largeur pour supprimer le "grand espace"
-    final double hillHeight = radius * 0.75; // Hauteur réduite (suivre l'icône)
-    final double hillWidth = radius * 1.25; // Largeur resserrée
+    final double hillHeight = radius * 0.75;
+    final double hillWidth = radius * 1.25;
 
     return Path()
       ..moveTo(host.left, host.top)
       ..lineTo(centerX - hillWidth, host.top)
-      // Courbe montante fluide (plus serrée)
       ..cubicTo(
         centerX - hillWidth * 0.6, host.top, 
         centerX - radius * 1.0, host.top - hillHeight,
         centerX, host.top - hillHeight,
       )
-      // Courbe descendante fluide (plus serrée)
       ..cubicTo(
         centerX + radius * 1.0, host.top - hillHeight,
         centerX + hillWidth * 0.6, host.top,
@@ -695,3 +659,98 @@ class SmoothHillNotch extends NotchedShape {
   }
 }
 
+class BannerCarousel extends StatefulWidget {
+  const BannerCarousel({Key? key}) : super(key: key);
+
+  @override
+  _BannerCarouselState createState() => _BannerCarouselState();
+}
+
+class _BannerCarouselState extends State<BannerCarousel> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+  Timer? _timer;
+  
+  // Liste des images de bannière (ban1.jpg, ban2.jpg)
+  final List<String> _images = [
+    'assets/images/ban1.jpg',
+    'assets/images/ban2.jpg',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Défilement automatique toutes les 4 secondes
+    _timer = Timer.periodic(const Duration(seconds: 4), (Timer timer) {
+      if (_currentPage < _images.length - 1) {
+        _currentPage++;
+      } else {
+        _currentPage = 0;
+      }
+      if (_pageController.hasClients) {
+        _pageController.animateToPage(
+          _currentPage,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Préchargement immédiat des images en mémoire GPU dès le démarrage
+    for (var img in _images) {
+      precacheImage(AssetImage(img), context);
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PageView.builder(
+      controller: _pageController,
+      itemCount: _images.length,
+      itemBuilder: (context, index) {
+        return Image.asset(
+          _images[index],
+          fit: BoxFit.fill, // Force l'étirement maximum
+          width: double.infinity,
+          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+            if (wasSynchronouslyLoaded || frame != null) {
+              return child;
+            }
+            // Shimmer ultra premium en attendant le décodage de l'image
+            return Shimmer.fromColors(
+              baseColor: const Color(0xFF1E293B),
+              highlightColor: const Color(0xFF334155),
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                color: Colors.white,
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              color: kcPrimaryColor,
+              child: const Center(
+                child: Text(
+                  'Bannière introuvable',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}

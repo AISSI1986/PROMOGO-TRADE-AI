@@ -1,15 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:stacked/stacked.dart';
-import 'package:video_player/video_player.dart';
-import 'dart:ui';
-import 'package:stacked_services/stacked_services.dart';
-import '../../../../app/app.locator.dart';
-import 'dart:math';
 import 'package:promogoai/ui/common/app_colors.dart';
+import 'package:promogoai/app/app.locator.dart';
+import 'package:stacked_services/stacked_services.dart';
+import 'package:video_player/video_player.dart';
 import 'live_viewer_viewmodel.dart';
 
 class LiveViewerView extends StackedView<LiveViewerViewModel> {
-  const LiveViewerView({Key? key}) : super(key: key);
+  final LiveViewerViewModel? preloadedViewModel;
+
+  const LiveViewerView({Key? key, this.preloadedViewModel}) : super(key: key);
+
+  @override
+  LiveViewerViewModel viewModelBuilder(BuildContext context) => preloadedViewModel ?? LiveViewerViewModel();
+
+  @override
+  bool get disposeViewModel => preloadedViewModel == null;
+
+  @override
+  void onViewModelReady(LiveViewerViewModel viewModel) {
+    if (preloadedViewModel == null) {
+      viewModel.initViewer();
+    } else {
+      // Si c'est pré-chargé, on se contente de lancer la lecture !
+      viewModel.getController(viewModel.currentVideoIndex)?.play();
+    }
+  }
+
+  @override
+  void onDispose(LiveViewerViewModel viewModel) {
+    // ON MET EN PAUSE LA VIDÉO QUAND ON FERME LA PAGE !
+    viewModel.getController(viewModel.currentVideoIndex)?.pause();
+    super.onDispose(viewModel);
+  }
 
   @override
   Widget builder(
@@ -17,391 +40,632 @@ class LiveViewerView extends StackedView<LiveViewerViewModel> {
     LiveViewerViewModel viewModel,
     Widget? child,
   ) {
-    final bool isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
-
     return Scaffold(
       backgroundColor: Colors.black,
-      body: viewModel.isBusy
-          ? const Center(child: CircularProgressIndicator(color: Colors.white))
-          : PageView.builder(
-              scrollDirection: Axis.vertical,
-              itemCount: viewModel.dummyVideoUrls.length,
-              onPageChanged: viewModel.onPageChanged,
-              itemBuilder: (context, index) {
-                return _buildSingleLivePage(context, viewModel, index, isKeyboardOpen);
-              },
-            ),
-    );
-  }
-
-  Widget _buildSingleLivePage(BuildContext context, LiveViewerViewModel viewModel, int index, bool isKeyboardOpen) {
-    final controller = viewModel.controllers[index];
-    final isInitialized = controller != null && controller.value.isInitialized;
-
-    return Stack(
-              fit: StackFit.expand,
+      resizeToAvoidBottomInset: false, 
+      body: PageView.builder(
+        scrollDirection: Axis.vertical,
+        itemCount: viewModel.videoUrls.length,
+        onPageChanged: viewModel.onPageChanged,
+        itemBuilder: (context, index) {
+          final broadcasterName = viewModel.getBroadcasterName(index);
+          return GestureDetector(
+            onDoubleTap: viewModel.addLike,
+            onTap: () {
+              FocusScope.of(context).unfocus();
+            },
+            child: Stack(
               children: [
-                // 1. Couche Vidéo - Plein écran 9:16
-                if (isInitialized)
-                  FittedBox(
-                    fit: BoxFit.cover,
-                    child: SizedBox(
-                      width: controller!.value.size.width,
-                      height: controller.value.size.height,
-                      child: VideoPlayer(controller),
-                    ),
-                  )
-                else
-                  Container(
-                    color: Colors.black,
-                    child: const Center(
-                      child: CircularProgressIndicator(color: kcSecondaryGold),
-                    ),
-                  ),
+                // 1. VIDEO LAYER
+                Positioned.fill(
+                  child: viewModel.isControllerInitialized(index)
+                      ? FittedBox(
+                          fit: BoxFit.cover,
+                          child: SizedBox(
+                            width: viewModel.getController(index)!.value.size.width,
+                            height: viewModel.getController(index)!.value.size.height,
+                            child: VideoPlayer(viewModel.getController(index)!),
+                          ),
+                        )
+                      : Container(color: Colors.black, child: const Center(child: CircularProgressIndicator(color: kcSecondaryGold))),
+                ),
 
-                // 2. Overlay Noir Transparent pour lisibilité (ET Zone de TAP)
-                GestureDetector(
-                  onTap: viewModel.addLike, // Tapoter n'importe où sur l'écran pour liker
-                  behavior: HitTestBehavior.opaque, // Capte les événements tactiles sur tout l'overlay
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withOpacity(0.4),
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.6),
-                        ],
-                      ),
+                // 2. GRADIENT OVERLAY
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.3),
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.8),
+                      ],
                     ),
                   ),
                 ),
 
-                // 3. Couche UI Interactive
+                // 3. UI OVERLAY
                 SafeArea(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    padding: const EdgeInsets.only(
+                      left: 16, 
+                      right: 16, 
+                      top: 16, 
+                      bottom: 16,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Header: Profil et Compteur de spectateurs
-                        if (!isKeyboardOpen)
-                          _buildHeader(viewModel, context, index),
-                        
+                        _buildHeader(context, viewModel, broadcasterName),
                         const Spacer(),
-
-                        // Bottom Section: Chat et Actions
-                        Flexible(
-                          child: Container(
-                            constraints: const BoxConstraints(maxHeight: 260),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                // Partie Gauche : Chat
-                                Expanded(
-                                  child: _buildChat(viewModel),
-                                ),
-                                
-                                const SizedBox(width: 16),
-                                
-                                // Partie Droite : Actions Verticales
-                                if (!isKeyboardOpen)
-                                  _buildSideActionBar(viewModel),
-                              ],
-                            ),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 12),
-                        
-                        // Input pour envoyer un message + Contact Seller
-                        _buildBottomSection(context, isKeyboardOpen),
+                        _buildBottomSection(context, viewModel),
                       ],
                     ),
                   ),
                 ),
 
-                // 4. Couche Animation des Coeurs
-                ...viewModel.floatingHearts.map((id) => _FloatingHeart(key: ValueKey(id))),
+                // 4. FLOATING HEARTS
+                ...viewModel.floatingHearts.map((id) => _buildHeartAnimation(id)),
+                
+                // 5. CLOSE BUTTON
+                Positioned(
+                  top: 50,
+                  right: 20,
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
               ],
-    );
-  }
-
-  Widget _buildHeader(LiveViewerViewModel viewModel, BuildContext context, int index) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Seller Info (Top Left)
-        Container(
-          padding: const EdgeInsets.all(4).copyWith(right: 16),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.4),
-            borderRadius: BorderRadius.circular(30),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircleAvatar(
-                radius: 18,
-                backgroundColor: kcSecondaryGold, // Gold border
-                child: CircleAvatar(
-                  radius: 16,
-                  backgroundImage: AssetImage('assets/images/logo_app.png'), 
-                ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.pinkAccent, // Live badge color from mockup
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    viewModel.broadcasterNames[index], // Affiche le nom spécifique à cet index
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        
-        // Viewer Count & Close
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.4),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.remove_red_eye, color: Colors.white, size: 14),
-                  const SizedBox(width: 4),
-                  Text('${viewModel.viewerCount}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                ],
-              ),
             ),
-            const SizedBox(width: 12),
-            InkWell(
-              onTap: () {
-                final navService = locator<NavigationService>();
-                navService.back();
-              },
-              child: const Icon(Icons.close, color: Colors.white, size: 28),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSideActionBar(LiveViewerViewModel viewModel) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Like Button & Counter
-        Column(
-          children: [
-            const Icon(Icons.favorite, color: kcSecondaryGold, size: 36), // Gold Heart
-            const SizedBox(height: 4),
-            Text('${viewModel.heartCounter}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        const SizedBox(height: 24),
-        // Share Button
-        const Icon(Icons.reply_rounded, color: Colors.white, size: 36), // Share
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-
-  Widget _buildChat(LiveViewerViewModel viewModel) {
-    return ShaderMask(
-      shaderCallback: (Rect bounds) {
-        return const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.transparent, Colors.black, Colors.black],
-            stops: [0.0, 0.15, 1.0],
-          ).createShader(bounds);
+          );
         },
-        blendMode: BlendMode.dstIn,
-        child: ListView.builder(
-          reverse: true, // Auto-scroll vers le bas
-          padding: const EdgeInsets.only(bottom: 8),
-          itemCount: viewModel.chatMessages.length,
-          itemBuilder: (context, index) {
-            // Reverse list to show newest at bottom
-            final msg = viewModel.chatMessages[viewModel.chatMessages.length - 1 - index];
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4.0),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: RichText(
-                    text: TextSpan(
-                      style: const TextStyle(fontSize: 13),
-                      children: [
-                        TextSpan(
-                          text: '${msg['user']}: ',
-                          style: const TextStyle(color: kcSecondaryGold, fontWeight: FontWeight.w800), // Gold
-                        ),
-                        TextSpan(
-                          text: msg['message']!,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w400),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
+      ),
     );
   }
 
-  Widget _buildBottomSection(BuildContext context, bool isKeyboardOpen) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+  Widget _buildHeader(BuildContext context, LiveViewerViewModel viewModel, String username) {
+    return Row(
       children: [
-        // Chat Input Row
+        const CircleAvatar(
+          radius: 20,
+          backgroundColor: Colors.white10,
+          child: Icon(Icons.person, color: Colors.white),
+        ),
+        const SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(username, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: kcSecondaryGold,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: const Text("SUIVRE", style: TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.bold, fontSize: 8)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            GestureDetector(
+              onTap: () => _showShoppingBag(context, viewModel),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: kcSecondaryGold,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.shopping_bag_rounded, color: kcPrimaryColor, size: 12),
+                    SizedBox(width: 4),
+                    Text(
+                      "VOIR LES PRODUITS",
+                      style: TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 0.5),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBottomSection(BuildContext context, LiveViewerViewModel viewModel) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomInset > 0 ? bottomInset - 16 : 0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+        // 1. CHAT MESSAGES (Scrollable)
+        SizedBox(
+          height: bottomInset > 0 ? 120 : 180,
+          child: ShaderMask(
+            shaderCallback: (Rect rect) {
+              return const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.transparent, Colors.black, Colors.black, Colors.transparent],
+                stops: [0.0, 0.1, 0.9, 1.0],
+              ).createShader(rect);
+            },
+            blendMode: BlendMode.dstIn,
+            child: ListView.builder(
+              reverse: true,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              itemCount: viewModel.chatMessages.length,
+              itemBuilder: (context, index) {
+                final chat = viewModel.chatMessages[viewModel.chatMessages.length - 1 - index];
+                return _buildChatItem(chat);
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        // 3. INPUT AREA (RE-DESIGNED)
         Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Expanded(
               child: Container(
-                height: 44,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.4),
-                  borderRadius: BorderRadius.circular(25),
-                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: Colors.white10),
                 ),
-                child: const TextField(
-                  style: TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: 'I will comment...',
-                    hintStyle: TextStyle(color: Colors.white54, fontSize: 13),
-                    border: InputBorder.none,
-                  ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.emoji_emotions_outlined, 
+                        color: viewModel.showEmojiPicker ? kcSecondaryGold : Colors.white70, size: 22),
+                      onPressed: viewModel.toggleEmojiPicker,
+                    ),
+                    Expanded(
+                      child: TextField(
+                        controller: viewModel.chatController,
+                        focusNode: viewModel.chatFocusNode,
+                        maxLines: 4,
+                        minLines: 1,
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        onTap: () {
+                          if (viewModel.showEmojiPicker || viewModel.showStickerPicker) {
+                            viewModel.toggleEmojiPicker(); 
+                          }
+                        },
+                        decoration: const InputDecoration(
+                          hintText: "Envoyer un message...",
+                          hintStyle: TextStyle(color: Colors.white38, fontSize: 14),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.sticky_note_2_outlined, 
+                        color: viewModel.showStickerPicker ? kcSecondaryGold : Colors.white70, size: 20),
+                      onPressed: viewModel.toggleStickerPicker,
+                    ),
+                    if (viewModel.chatController.text.trim().isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6, bottom: 6),
+                        child: GestureDetector(
+                          onTap: viewModel.sendMessage,
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: const BoxDecoration(color: kcSecondaryGold, shape: BoxShape.circle),
+                            child: const Icon(Icons.send_rounded, color: kcPrimaryColor, size: 18),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(width: 12),
-            const Icon(Icons.send_rounded, color: kcSecondaryGold, size: 28), // Gold Send Icon
+            if (bottomInset == 0) ...[
+              const SizedBox(width: 12),
+              _buildActionIcon(Icons.favorite_rounded, Colors.red, onTap: viewModel.addLike),
+              const SizedBox(width: 8),
+              _buildActionIcon(Icons.share_rounded, Colors.white),
+            ],
           ],
         ),
-        if (!isKeyboardOpen) ...[
-          const SizedBox(height: 16),
-          // Seller Action Row
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: kcPrimaryColorDark, // The darkest Navy Blue explicitly
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: kcSecondaryGold, width: 1.5), // Gold Border
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.person_outline, color: kcSecondaryGold, size: 22),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'CONTACT THE SELLER',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1.5),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+
+        // 4. PICKERS (Emoji / Sticker)
+        if (viewModel.showEmojiPicker) ...[
+          const SizedBox(height: 10),
+          _buildInlineEmojiPicker(viewModel),
         ],
-        const SizedBox(height: 4),
+        if (viewModel.showStickerPicker) ...[
+          const SizedBox(height: 10),
+          _buildInlineStickerPicker(viewModel),
+        ],
+        
+        const SizedBox(height: 15),
+        
+        // 5. CONTACT BUTTON
+        if (bottomInset == 0) _buildContactButton(),
       ],
+    ),
+  );
+}
+
+  Widget _buildHeartAnimation(int id) {
+    return Positioned(
+      bottom: 100,
+      right: 20,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: const Duration(seconds: 2),
+        builder: (context, value, child) {
+          return Opacity(
+            opacity: 1.0 - value,
+            child: Padding(
+              padding: EdgeInsets.only(bottom: value * 300),
+              child: const Icon(Icons.favorite, color: Colors.red, size: 30),
+            ),
+          );
+        },
+      ),
     );
   }
 
-  @override
-  LiveViewerViewModel viewModelBuilder(
-    BuildContext context,
-  ) =>
-      LiveViewerViewModel();
-
-  @override
-  void onViewModelReady(LiveViewerViewModel viewModel) {
-    viewModel.initViewer();
-  }
-}
-
-// Widget pour animer les coeurs flottants
-class _FloatingHeart extends StatefulWidget {
-  const _FloatingHeart({Key? key}) : super(key: key);
-
-  @override
-  _FloatingHeartState createState() => _FloatingHeartState();
-}
-
-class _FloatingHeartState extends State<_FloatingHeart> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _positionAnimation;
-  late Animation<double> _opacityAnimation;
-  late double _randomXOffset;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2));
-    
-    // Position aléatoire sur l'axe X pour que chaque coeur flotte différemment
-    _randomXOffset = (Random().nextDouble() - 0.5) * 50;
-
-    _positionAnimation = Tween<double>(begin: 0, end: -300).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-    _opacityAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInQuint));
-
-    _controller.forward();
+  Widget _buildCurrentProductMini(BuildContext context, Map<String, dynamic> product, LiveViewerViewModel viewModel) {
+    return GestureDetector(
+      onTap: () => _showQuickBuyForm(context, product, viewModel),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.7),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: kcSecondaryGold.withOpacity(0.8), width: 1.5),
+          boxShadow: [BoxShadow(color: kcSecondaryGold.withOpacity(0.2), blurRadius: 10)],
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.asset(product['image'], width: 28, height: 28, fit: BoxFit.cover),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(product['name'], style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                Text(product['price'], style: const TextStyle(color: kcSecondaryGold, fontSize: 10, fontWeight: FontWeight.w900)),
+              ],
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.arrow_forward_ios_rounded, color: kcSecondaryGold, size: 10),
+          ],
+        ),
+      ),
+    );
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+
+  Widget _buildChatItem(Map<String, String> chat) {
+    final isMe = chat['user'] == "Moi";
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("${chat['user']}: ", 
+            style: TextStyle(
+              color: isMe ? Colors.white : kcSecondaryGold, 
+              fontWeight: FontWeight.bold, 
+              fontSize: 13
+            )
+          ),
+          Expanded(
+            child: Text(
+              chat['message'] ?? "", 
+              style: const TextStyle(color: Colors.white, fontSize: 13)
+            )
+          ),
+        ],
+      ),
+    );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Positioned(
-          bottom: 100 - _positionAnimation.value,
-          right: 30 + _randomXOffset + (_positionAnimation.value * 0.1), // Oscillation
-          child: Opacity(
-            opacity: _opacityAnimation.value,
-            child: const Icon(Icons.favorite, color: Colors.redAccent, size: 35),
+  Widget _buildActionIcon(IconData icon, Color color, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.5),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: color, size: 22),
+      ),
+    );
+  }
+
+  Widget _buildContactButton() {
+    return Container(
+      width: double.infinity,
+      height: 45,
+      decoration: BoxDecoration(
+        color: const Color(0xFF03112E),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: kcSecondaryGold, width: 1),
+      ),
+      child: const Center(
+        child: Text(
+          "CONTACTER LE VENDEUR",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1),
+        ),
+      ),
+    );
+  }
+
+  void _showShoppingBag(BuildContext context, LiveViewerViewModel viewModel) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.6,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text("Boutique du Live", style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.w900, fontFamily: 'Outfit')),
+                    IconButton(icon: const Icon(Icons.close, color: Colors.black), onPressed: () => Navigator.pop(context)),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: viewModel.currentLiveProducts.length,
+                  itemBuilder: (context, index) {
+                    final product = viewModel.currentLiveProducts[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: Row(
+                        children: [
+                          ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.asset(product['image'], width: 60, height: 60, fit: BoxFit.cover)),
+                          const SizedBox(width: 15),
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(product['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            Text(product['price'], style: const TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.w900, fontSize: 16)),
+                          ])),
+                          ElevatedButton(
+                            onPressed: () => _showQuickBuyForm(context, product, viewModel),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: kcPrimaryColor,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            ),
+                            child: const Text("ACHETER", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         );
       },
     );
   }
+
+  void _showQuickBuyForm(BuildContext context, Map<String, dynamic> product, LiveViewerViewModel viewModel) {
+    final nameController = TextEditingController(text: "Utilisateur PromoGo"); 
+    final phoneController = TextEditingController();
+    final locationController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        String? errorMessage;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom + 20,
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)))),
+                  const SizedBox(height: 20),
+                  const Text("CONFIRMATION DE LA COMMANDE", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1, color: kcPrimaryColor)),
+                  const SizedBox(height: 25),
+                  
+                  // Recap produit
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey[200]!)),
+                    child: Row(
+                      children: [
+                        ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.asset(product['image'], width: 50, height: 50, fit: BoxFit.cover)),
+                        const SizedBox(width: 15),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(product['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text(product['price'], style: const TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.w900)),
+                        ])),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 25),
+
+                  _buildFieldLabel("VOTRE NOM SUR L'APP"),
+                  _buildSimpleTextField(nameController, "Nom complet"),
+                  const SizedBox(height: 15),
+                  _buildFieldLabel("NUMÉRO DE TÉLÉPHONE (Pour le livreur)"),
+                  _buildSimpleTextField(phoneController, "Ex: +225 ...", isPhone: true),
+                  const SizedBox(height: 15),
+                  _buildFieldLabel("LIEU DE LIVRAISON / POINT DE REPÈRE"),
+                  _buildSimpleTextField(locationController, "Ex: À côté de la mosquée, Quartier X"),
+                  
+                  if (errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 20),
+                      child: Text(errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+
+                  const SizedBox(height: 35),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (phoneController.text.isEmpty || locationController.text.isEmpty) {
+                          setState(() {
+                            errorMessage = "Veuillez remplir le numéro et le lieu de livraison.";
+                          });
+                          return;
+                        }
+
+                        viewModel.confirmOrder(
+                          product: product,
+                          buyerName: nameController.text,
+                          phone: phoneController.text,
+                          location: locationController.text,
+                        );
+
+                        Navigator.of(context).pop(); 
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            backgroundColor: Colors.green, 
+                            duration: Duration(seconds: 4),
+                            content: Text("COMMANDE ENVOYEE. Le vendeur va confirmer votre achat en direct."),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(backgroundColor: kcPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                      child: const Text("ENVOYER VOTRE COMMANDE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFieldLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
+    );
+  }
+
+  Widget _buildSimpleTextField(TextEditingController controller, String hint, {bool isPhone = false}) {
+    return TextField(
+      controller: controller,
+      keyboardType: isPhone ? TextInputType.phone : TextInputType.text,
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+        filled: true,
+        fillColor: Colors.grey[100],
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+    );
+  }
+
+  Widget _buildInlineEmojiPicker(LiveViewerViewModel viewModel) {
+    final emojis = ["😀", "😂", "😍", "🙌", "🔥", "💯", "👏", "❤️", "🌹", "🎁", "✨", "🚀", "💎", "👑", "👗", "👠"];
+    return Container(
+      height: 150,
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: GridView.builder(
+        padding: const EdgeInsets.all(10),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 6, mainAxisSpacing: 10, crossAxisSpacing: 10),
+        itemCount: emojis.length,
+        itemBuilder: (context, index) => GestureDetector(
+          onTap: () => viewModel.addSpecificEmoji(emojis[index]),
+          child: Center(child: Text(emojis[index], style: const TextStyle(fontSize: 22))),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInlineStickerPicker(LiveViewerViewModel viewModel) {
+    final stickers = [
+      {"icon": "🎁", "label": "Cadeau"},
+      {"icon": "💎", "label": "Diamant"},
+      {"icon": "👑", "label": "Couronne"},
+      {"icon": "🌹", "label": "Rose"},
+      {"icon": "🔥", "label": "Feu"},
+      {"icon": "👗", "label": "Robe"},
+    ];
+    return Container(
+      height: 150,
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: GridView.builder(
+        padding: const EdgeInsets.all(10),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.5),
+        itemCount: stickers.length,
+        itemBuilder: (context, index) => GestureDetector(
+          onTap: () => viewModel.sendSpecificSticker(stickers[index]['icon']!, stickers[index]['label']!),
+          child: Container(
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(10)),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(stickers[index]['icon']!, style: const TextStyle(fontSize: 22)),
+                Text(stickers[index]['label']!, style: const TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
 }

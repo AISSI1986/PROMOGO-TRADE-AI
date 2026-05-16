@@ -1,24 +1,80 @@
 import 'package:flutter/material.dart';
+import '../ui/common/api_constants.dart';
 
-class CourseModule {
+class Tag {
   final int id;
-  final int order;
-  final String title_fr;
-  final String? content_fr;
+  final String title;
 
-  CourseModule({
+  Tag({required this.id, required this.title});
+
+  factory Tag.fromJson(Map<String, dynamic> json) {
+    return Tag(
+      id: json['id'] ?? 0,
+      title: json['title'] ?? '',
+    );
+  }
+}
+
+class Lesson {
+  final int id;
+  final String title;
+  final String? description;
+  final String? contenuUrl;
+  final String duree;
+  final String type;
+  final int ordreAffichage;
+
+  Lesson({
     required this.id,
-    required this.order,
-    required this.title_fr,
-    this.content_fr,
+    required this.title,
+    this.description,
+    this.contenuUrl,
+    required this.duree,
+    required this.type,
+    required this.ordreAffichage,
   });
 
-  factory CourseModule.fromJson(Map<String, dynamic> json) {
-    return CourseModule(
-      id: int.tryParse(json['id'].toString()) ?? 0,
-      order: int.tryParse(json['order']?.toString() ?? '1') ?? 1,
-      title_fr: json['title_fr'] ?? '',
-      content_fr: json['content_fr'],
+  factory Lesson.fromJson(Map<String, dynamic> json) {
+    return Lesson(
+      id: json['id'] ?? 0,
+      title: json['title'] ?? '',
+      description: json['description'],
+      contenuUrl: json['contenu_url'],
+      duree: json['duree'] ?? '00:00',
+      type: json['type'] ?? 'TEXT',
+      ordreAffichage: json['ordre_affichage'] ?? 1,
+    );
+  }
+}
+
+class AcademyModule {
+  final int id;
+  final String title;
+  final String description;
+  final int ordreAffichage;
+  final List<Lesson> lecons;
+  final dynamic quiz; // À typer plus tard si besoin
+
+  AcademyModule({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.ordreAffichage,
+    this.lecons = const [],
+    this.quiz,
+  });
+
+  factory AcademyModule.fromJson(Map<String, dynamic> json) {
+    return AcademyModule(
+      id: json['id'] ?? 0,
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      ordreAffichage: json['ordre_affichage'] ?? 1,
+      lecons: (json['lecons'] as List?)
+              ?.map((l) => Lesson.fromJson(l))
+              .toList() ??
+          [],
+      quiz: json['quiz'],
     );
   }
 }
@@ -27,53 +83,78 @@ class Course {
   final String id;
   final String title;
   final String subtitle;
-  final String shortDescription;
-  final String longDescription;
-  final String duration;
-  final int modulesCount;
-  final List<String> tags;
-  final List<Color> gradientColors;
-  final String category;
+  final String description;
+  final String? imageCouverture;
   final String level;
+  final String language;
+  final DateTime? datePublication;
+  final List<Tag> tags;
+  final int modulesCount;
+  final String duration;
+  final List<AcademyModule> modules;
   
-  // Backend specific fields
-  final String title_fr;
-  final List<CourseModule> modules;
+  // Couleurs de secours si pas d'image
+  final List<Color>? gradientColors;
 
   Course({
     required this.id,
     required this.title,
     required this.subtitle,
-    required this.shortDescription,
-    required this.longDescription,
-    required this.duration,
-    required this.modulesCount,
-    required this.tags,
-    required this.gradientColors,
-    required this.category,
+    required this.description,
+    this.imageCouverture,
     required this.level,
-    this.title_fr = '',
+    required this.language,
+    this.datePublication,
+    this.tags = const [],
+    required this.modulesCount,
+    required this.duration,
     this.modules = const [],
+    this.gradientColors,
   });
 
   factory Course.fromJson(Map<String, dynamic> json) {
+    final imageRaw = json['image_couverture'];
+    String? imageFullUrl;
+    
+    if (imageRaw != null && imageRaw.toString().isNotEmpty) {
+      if (imageRaw.toString().startsWith('http')) {
+        imageFullUrl = imageRaw.toString();
+      } else {
+        imageFullUrl = '${ApiConstants.djangoRootUrl}$imageRaw';
+      }
+    }
+
     return Course(
       id: json['id'].toString(),
-      title: json['title_fr'] ?? '',
-      subtitle: json['subtitle_fr'] ?? '',
-      shortDescription: json['short_description_fr'] ?? '',
-      longDescription: '',
-      duration: json['duration'] ?? '',
-      modulesCount: (json['modules'] as List?)?.length ?? 0,
-      tags: [],
-      gradientColors: [const Color(0xFF2af598), const Color(0xFF009efd)], // Default
-      category: json['category'] ?? '',
-      level: json['level'] ?? '',
-      title_fr: json['title_fr'] ?? '',
+      title: json['titre'] ?? '',
+      subtitle: json['subtitle'] ?? '',
+      description: json['description'] ?? '',
+      imageCouverture: imageFullUrl,
+      level: json['level'] ?? 'BEGINNER',
+      language: json['language'] ?? 'fr',
+      datePublication: json['date_publication'] != null 
+          ? DateTime.tryParse(json['date_publication']) 
+          : null,
+      tags: (json['tags'] as List?)
+              ?.map((t) => Tag.fromJson(t))
+              .toList() ??
+          [],
+      modulesCount: json['nombre_modules'] ?? 0,
+      duration: json['total_heures'] ?? '',
       modules: (json['modules'] as List?)
-              ?.map((m) => CourseModule.fromJson(m))
+              ?.map((m) => AcademyModule.fromJson(m))
               .toList() ??
           [],
     );
+  }
+
+  // Helper pour obtenir les labels lisibles
+  String get levelLabel {
+    switch (level) {
+      case 'BEGINNER': return 'Débutant';
+      case 'INTERMEDIATE': return 'Intermédiaire';
+      case 'ADVANCED': return 'Avancé';
+      default: return level;
+    }
   }
 }

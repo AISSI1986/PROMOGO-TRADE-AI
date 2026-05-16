@@ -165,11 +165,10 @@ class VendreView extends StackedView<VendreViewModel> {
                 
                 const SizedBox(height: 32),
 
-                // BOUTON NORMAL (Visible seulement si le clavier est FERMÉ)
-                if (!isKeyboardOpen) 
-                  viewModel.isBusy 
-                    ? const Center(child: CircularProgressIndicator(color: kcPrimaryColor))
-                    : _buildSubmitButton(context, viewModel),
+                // BOUTON NORMAL (Toujours à la fin du formulaire)
+                viewModel.isBusy 
+                  ? const Center(child: CircularProgressIndicator(color: kcPrimaryColor))
+                  : _buildSubmitButton(context, viewModel),
                 
                 // ESPACE pour une finition propre en bas de scroll
                 const SizedBox(height: 40),
@@ -177,17 +176,6 @@ class VendreView extends StackedView<VendreViewModel> {
             ),
           ),
         ),
-
-        // 2. BOUTON FLOTTANT (Visible seulement si le clavier est OUVERT)
-        if (isKeyboardOpen)
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: bottomInset + 10,
-            child: viewModel.isBusy 
-              ? const Center(child: CircularProgressIndicator(color: kcPrimaryColor))
-              : _buildSubmitButton(context, viewModel),
-          ),
       ],
     );
   }
