@@ -8,14 +8,14 @@ import 'package:promogoai/ui/common/app_colors.dart';
 import 'package:promogoai/ui/views/mode_ia/mode_ia_view.dart';
 import 'package:promogoai/ui/common/ui_helpers.dart';
 import 'package:promogoai/ui/views/home/widgets/ia_button.dart';
-
-
 import 'package:promogoai/ui/views/moi/moi_view.dart';
 import 'package:promogoai/ui/views/vendre/vendre_view.dart';
 import 'widgets/produits_component.dart';
 import 'widgets/factories_component.dart';
 import 'widgets/ai_voice_bar.dart';
 import 'home_viewmodel.dart';
+import 'package:promogoai/models/chat_room.dart';
+import 'package:intl/intl.dart';
 
 class HomeView extends StackedView<HomeViewModel> {
   const HomeView({Key? key}) : super(key: key);
@@ -42,7 +42,7 @@ class HomeView extends StackedView<HomeViewModel> {
       appBar: _buildAppBar(viewModel),
       body: Stack(
         children: [
-          _buildMainBody(viewModel),
+          _buildMainBody(context, viewModel),
           if (viewModel.currentIndex == 0)
             Positioned(
               left: 0,
@@ -51,8 +51,14 @@ class HomeView extends StackedView<HomeViewModel> {
               child: _CustomBottomNavBar(viewModel: viewModel),
             ),
           
-          // Barre IA Persistante (non-modale)
-          if (viewModel.showAiVoiceBar)
+          // Barre IA Persistante (non-modale) avec détection de clic en dehors
+          if (viewModel.showAiVoiceBar) ...[
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => viewModel.setShowAiVoiceBar(false),
+                child: Container(color: Colors.transparent),
+              ),
+            ),
             Positioned(
               left: 0,
               right: 0,
@@ -62,6 +68,7 @@ class HomeView extends StackedView<HomeViewModel> {
                 onCancel: () => viewModel.setShowAiVoiceBar(false),
               ),
             ),
+          ],
         ],
       ),
     );
@@ -102,7 +109,7 @@ class HomeView extends StackedView<HomeViewModel> {
     );
   }
 
-  Widget _buildMainBody(HomeViewModel viewModel) {
+  Widget _buildMainBody(BuildContext context, HomeViewModel viewModel) {
     switch (viewModel.currentIndex) {
       case 0:
         return SafeArea(
@@ -116,51 +123,7 @@ class HomeView extends StackedView<HomeViewModel> {
           ),
         );
       case 1:
-        return Container(
-          width: double.infinity,
-          height: double.infinity,
-          color: kcBackgroundColor,
-          padding: const EdgeInsets.symmetric(horizontal: 40.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.help_outline_rounded,
-                color: kcTabIndicatorColor,
-                size: 80,
-              ),
-              const SizedBox(height: 48),
-              Text(
-                'message.empty_title'.tr().toUpperCase(),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: kcPrimaryColor,
-                  letterSpacing: 3.0,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                width: 40,
-                height: 2,
-                color: kcTabIndicatorColor,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'message.empty_subtitle'.tr(),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF7F8C8D),
-                  height: 1.8,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              const SizedBox(height: 80), // Visual balancing
-            ],
-          ),
-        );
+        return _buildMessagesTab(context, viewModel);
       case 2:
         return VendreView();
       case 3:
@@ -187,6 +150,238 @@ class HomeView extends StackedView<HomeViewModel> {
         return Center(child: Text('global.in_development'.tr(), style: const TextStyle(color: kcMediumGrey)));
     }
   }
+
+  Widget _buildMessagesTab(BuildContext context, HomeViewModel viewModel) {
+    if (!viewModel.isLogged) {
+      return Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: kcBackgroundColor,
+        padding: const EdgeInsets.symmetric(horizontal: 40.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.lock_outline_rounded,
+              color: kcTabIndicatorColor,
+              size: 80,
+            ),
+            const SizedBox(height: 40),
+            Text(
+              'message.empty_title'.tr().toUpperCase(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: kcPrimaryColor,
+                letterSpacing: 3.0,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'message.login_required'.tr(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                color: kcMediumGrey,
+                height: 1.6,
+              ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              onPressed: () => viewModel.setIndex(3), // Va sur l'onglet "Moi" pour se connecter
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kcPrimaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text(
+                'moi.connect'.tr().toUpperCase(),
+                style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.0),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (viewModel.loadingChats) {
+      return const Center(
+        child: CircularProgressIndicator(color: kcPrimaryColor),
+      );
+    }
+
+    if (viewModel.chatRooms.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: () => viewModel.loadChatRooms(),
+        color: kcPrimaryColor,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(height: MediaQuery.of(context).size.height * 0.2),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.chat_bubble_outline_rounded,
+                      color: kcTabIndicatorColor,
+                      size: 80,
+                    ),
+                    const SizedBox(height: 40),
+                    Text(
+                      'message.empty_title'.tr().toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: kcPrimaryColor,
+                        letterSpacing: 2.0,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'message.empty_subtitle'.tr(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: kcMediumGrey,
+                        height: 1.6,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => viewModel.loadChatRooms(),
+      color: kcPrimaryColor,
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        itemCount: viewModel.chatRooms.length,
+        separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey[200]),
+        itemBuilder: (context, index) {
+          final room = viewModel.chatRooms[index];
+          final otherUserName = viewModel.currentUserId == room.buyerId
+              ? room.sellerFullName
+              : room.buyerFullName;
+          
+          final hasUnread = room.unreadCount > 0;
+          final timeStr = room.lastMessageTime != null 
+              ? DateFormat('HH:mm').format(room.lastMessageTime!.toLocal())
+              : '';
+
+          return InkWell(
+            onTap: () => viewModel.navigateToChat(room),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 26,
+                    backgroundColor: kcPrimaryColor.withOpacity(0.08),
+                    child: Text(
+                      otherUserName.isNotEmpty ? otherUserName[0].toUpperCase() : '?',
+                      style: const TextStyle(
+                        color: kcPrimaryColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
+                  horizontalSpaceMedium,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                otherUserName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: kcPrimaryColor,
+                                  fontSize: 15,
+                                  fontWeight: hasUnread ? FontWeight.bold : FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              timeStr,
+                              style: TextStyle(
+                                color: hasUnread ? kcSecondaryGold : Colors.grey,
+                                fontSize: 11,
+                                fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                room.lastMessageContent ?? 'chat.no_messages'.tr(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: hasUnread ? kcPrimaryColorDark : kcMediumGrey,
+                                  fontSize: 13,
+                                  fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
+                                ),
+                              ),
+                            ),
+                            if (hasUnread) ...[
+                              horizontalSpaceSmall,
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: const BoxDecoration(
+                                  color: kcSecondaryGold,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  '${room.unreadCount}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ] else if (room.adTitle != null) ...[
+                              horizontalSpaceSmall,
+                              const Icon(
+                                Icons.shopping_bag_outlined,
+                                size: 14,
+                                color: kcTabIndicatorColor,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   HomeViewModel viewModelBuilder(BuildContext context) => HomeViewModel();
 }
@@ -258,11 +453,6 @@ class _CustomBottomNavBar extends StatelessWidget {
               ],
             ),
           ),
-
-          // L'Oeil et le Creux sont maintenant dessinés chimériquement via le _DomePainter
-          // Garantissant un empilement physique réel (trou plus large que la lentille).
-
-
           Positioned(
             // Centrage parfait ! Le milieu de l'Oeil est à Y=41.5. 
             // En descendant l'icône de 4 pixels (top: -18 au lieu de -22), 
@@ -392,7 +582,6 @@ class _DomePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
-
 class HomeHeader extends StatelessWidget {
   final HomeViewModel viewModel;
 
@@ -406,7 +595,7 @@ class HomeHeader extends StatelessWidget {
         children: [
           Stack(
             children: [
-              if (viewModel.showPromotion) const SizedBox(width: double.infinity, height: 116, child: BannerCarousel()),
+              if (viewModel.showPromotion) const SizedBox(width: double.infinity, height: 130, child: BannerCarousel()),
 
               Container(
                 margin: EdgeInsets.only(top: viewModel.showPromotion ? 100 : 0),
@@ -474,13 +663,27 @@ class HomeHeader extends StatelessWidget {
               child: Icon(Icons.camera_alt_outlined, color: kcMediumGrey, size: 20),
             ),
             Expanded(
-              child: Text(
-                'home.search_hint'.tr(),
-                style: const TextStyle(color: kcMediumGrey, fontSize: 14),
+              child: TextField(
+                onChanged: (value) => viewModel.performTextSearch(value),
+                style: const TextStyle(color: kcDarkGreyColor, fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'home.search_hint'.tr(),
+                  hintStyle: const TextStyle(color: kcMediumGrey, fontSize: 14),
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                ),
               ),
             ),
-            const Icon(Icons.mic_none, color: kcMediumGrey, size: 20),
-            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => viewModel.onVoiceIAClicked(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                color: Colors.transparent, // Permet d'étendre la zone de clic propre
+                child: const Icon(Icons.mic_none, color: kcMediumGrey, size: 20),
+              ),
+            ),
+            const SizedBox(width: 4),
             Container(
               margin: const EdgeInsets.all(2),
               width: 50,
@@ -509,14 +712,14 @@ class HomeHeader extends StatelessWidget {
         onTap: () => viewModel.navigateToLiveViewer(),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFFFF2D55).withOpacity(0.08) : Colors.transparent,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: const Color(0xFFFF2D55).withOpacity(isSelected ? 0.3 : 0.15),
-                width: 1.0,
-              ),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFFFF2D55).withOpacity(0.08) : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: const Color(0xFFFF2D55).withOpacity(isSelected ? 0.3 : 0.15),
+              width: 1.0,
             ),
+          ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -531,7 +734,8 @@ class HomeHeader extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
-                              letterSpacing: 0.8,
+                  letterSpacing: 0.8,
+                  color: isSelected ? Colors.black : const Color(0xFFFF2D55),
                 ),
               ),
             ],

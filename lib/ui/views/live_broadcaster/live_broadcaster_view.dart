@@ -29,7 +29,7 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
       body: Stack(
         children: [
           // 1. APERÇU CAMÉRA RÉEL
-          if (viewModel.controller != null)
+          if (viewModel.isStreamingInitialized && viewModel.controller != null)
             Positioned.fill(
               child: SizedBox.expand(
                 child: ApiVideoCameraPreview(controller: viewModel.controller!),
@@ -167,7 +167,12 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
             top: 50,
             right: 20,
             child: GestureDetector(
-              onTap: () => Navigator.pop(context),
+              onTap: () async {
+                await viewModel.endLiveSession();
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+              },
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
@@ -395,8 +400,15 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
                         borderRadius: BorderRadius.circular(8),
                         child: _buildProductImage(product),
                       ),
-                      title: Text(product['name'] ?? 'Produit sans nom', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                      subtitle: Text(product['price'] ?? 'Prix non défini', style: const TextStyle(color: kcSecondaryGold, fontSize: 12)),
+                      title: Text((product['name'] as String?) ?? 'Produit sans nom', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                      subtitle: Text(
+                         product['price'] != null 
+                             ? (product['price'].toString().contains('GHS') 
+                                 ? product['price'].toString() 
+                                 : '${product['price']} GHS') 
+                             : 'Prix non défini', 
+                         style: const TextStyle(color: kcSecondaryGold, fontSize: 12),
+                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -468,7 +480,7 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(order['buyer'], style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: kcPrimaryColor)),
+                                Text((order['buyer'] as String?) ?? '', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: kcPrimaryColor)),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(5)),
@@ -635,13 +647,17 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    product['name'] ?? "",
+                    (product['name'] as String?) ?? 'Produit sans nom',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    "${product['price']}",
+                    product['price'] != null 
+                        ? (product['price'].toString().contains('GHS') 
+                            ? product['price'].toString() 
+                            : '${product['price']} GHS') 
+                        : '0 GHS',
                     style: const TextStyle(color: kcSecondaryGold, fontSize: 8, fontWeight: FontWeight.w900),
                   ),
                 ],
@@ -704,7 +720,7 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
                           ),
                         ),
                         TextSpan(
-                          text: chat['message'],
+                          text: chat['message'] as String?,
                           style: const TextStyle(color: Colors.white, fontSize: 12),
                         ),
                       ],
@@ -808,8 +824,15 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(product['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                              Text(product['price'], style: const TextStyle(color: kcSecondaryGold, fontWeight: FontWeight.w900)),
+                              Text((product['name'] as String?) ?? 'Produit sans nom', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                              Text(
+                                product['price'] != null 
+                                    ? (product['price'].toString().contains('GHS') 
+                                        ? product['price'].toString() 
+                                        : '${product['price']} GHS') 
+                                    : '0 GHS', 
+                                style: const TextStyle(color: kcSecondaryGold, fontWeight: FontWeight.w900),
+                              ),
                             ],
                           ),
                         ),
@@ -868,7 +891,7 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
                       final order = viewModel.incomingOrders[index];
                       return ListTile(
                         leading: const CircleAvatar(backgroundColor: kcSecondaryGold, child: Icon(Icons.shopping_bag, color: Colors.black)),
-                        title: Text(order['buyer'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        title: Text((order['buyer'] as String?) ?? '', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                         subtitle: Text("${order['product']} - ${order['location']}", style: const TextStyle(color: Colors.white70)),
                         trailing: const Icon(Icons.check_circle, color: Colors.green),
                       );
@@ -883,7 +906,7 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
 
   void _showEditProductSheet(BuildContext context, LiveBroadcasterViewModel viewModel, int index) {
     final product = viewModel.sellerProducts[index];
-    final nameController = TextEditingController(text: product['name']);
+    final nameController = TextEditingController(text: product['name'] as String?);
     final priceController = TextEditingController(text: product['price'].toString().replaceAll(" GHS", ""));
 
     showModalBottomSheet(
@@ -955,7 +978,7 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
     // 1. CAS PRODUIT FLASH (PHOTO LOCALE)
     if (product['isFlash'] == true && product['imagePath'] != null) {
       return Image.file(
-        File(product['imagePath']),
+        File(product['imagePath'] as String),
         width: size,
         height: size,
         fit: BoxFit.cover,
@@ -964,7 +987,7 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
     }
 
     // 2. CAS PRODUIT CATALOGUE (ASSET OU RÉSEAU)
-    final String? image = product['image'];
+    final String? image = product['image'] as String?;
     if (image == null) return _buildPlaceholder(size);
 
     if (image.startsWith('http')) {

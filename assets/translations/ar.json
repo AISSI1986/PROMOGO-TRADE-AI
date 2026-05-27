@@ -1,8 +1,9 @@
 {
   "home": {
-    "tab_mode_ia": "وضع الذكاء الاصطناعي",
+    "see_all": "عرض الكل",
+    "tab_mode_ia": "سورة",
     "tab_produits": "المنتجات",
-    "tab_usine": "المصانع",
+    "tab_usine": "i-Hub",
     "tab_inter": "البيع المباشر",
     "search_hint": "ابحث عن منتج...",
     "promo_top": "أفضل العروض",
@@ -72,7 +73,7 @@
   },
   "reglages": {
     "title": "الإعدادات",
-    "delivery": "التوصيل",
+    "delivery": "الدولة",
     "currency": "العملة",
     "language": "اللغة",
     "notifications": "الإشعارات",
@@ -184,10 +185,24 @@
   },
   "message": {
     "empty_title": "محادثاتك",
-    "empty_subtitle": "تجد هنا جميع محادثاتك مع البائعين والمشترين."
+    "empty_subtitle": "تجد هنا جميع محادثاتك مع البائعين والمشترين.",
+    "login_required": "تسجيل الدخول مطلوب لعرض رسائلك."
+  },
+  "chat": {
+    "title": "دردشة",
+    "input_hint": "اكتب رسالة...",
+    "online": "متصل",
+    "offline": "غير متصل",
+    "no_messages": "لا توجد رسائل بعد. أرسل الرسالة الأولى!",
+    "typing": "يكتب الآن...",
+    "last_seen": "نشط منذ {}",
+    "just_now": "للتو",
+    "connecting": "جاري الاتصال...",
+    "offline_status": "غير متصل",
+    "offline_error": "أنت غير متصل بالإنترنت. يرجى التحقق من اتصالك بالإنترنت للدردشة مع البائع."
   },
   "post_ad": {
-    "title": "POST NEW AD",
+    "title": "نشر إعلان جديد",
     "section_details": "تفاصيل الإعلان",
     "input_title": "اكتب عنوانًا واضحًا لسلعتك",
     "error_title": "يجب أن يكون الطول أكثر من 10",
@@ -217,8 +232,10 @@
     "negotiate": "هل أنت منفتح على التفاوض؟",
     "section_promo": "ترقية الإعلان",
     "btn_submit": "نشر إعلاني",
+    "btn_pay_submit": "الدفع والنشر",
     "gallery": "معرض الصور",
-    "camera": "الكاميرا"
+    "camera": "الكاميرا",
+    "terms_disclaimer": "بالنقر على نشر الإعلان، فإنك توافق على شروط الاستخدام، وتؤكد التزامك بنصائح الأمان، وتصرح بأن هذا الإعلان لا يتضمن أي عناصر محظورة."
   },
   "academy": {
     "title": "أكاديمية سورا",
@@ -284,5 +301,49 @@
     "message": "يجب عليك تسجيل الدخول لنشر أو حفظ إعلاناتك على PROMOGO AI.",
     "btn_login": "تسجيل الدخول",
     "btn_cancel": "لاحقاً"
+  },
+  "top_ranking": {
+    "select_category": "اختر الفئة...",
+    "filter_all": "الكل",
+    "filter_featured": "مبيعات مميزة",
+    "filter_popular": "الأكثر شهرة",
+    "filter_top_rated": "الأعلى تقييماً",
+    "empty_title": "لم يتم العثور على منتجات",
+    "empty_subtitle": "حاول تغيير الفئة أو عامل التصفية"
+  },
+  "login": {
+    "title": "تسجيل الدخول",
+    "subtitle": "مرحباً بك في Promogo. سجل الدخول للمتابعة.",
+    "phone": "الهاتف",
+    "password": "كلمة المرور",
+    "forgot_password": "هل نسيت كلمة المرور؟",
+    "login_button": "تسجيل الدخول",
+    "no_account": "ليس لديك حساب؟ ",
+    "register_link": "إنشاء حساب",
+    "phone_required": "رقم الهاتف مطلوب",
+    "password_required": "كلمة المرور مطلوبة",
+    "invalid_credentials": "بيانات الاعتماد غير صالحة. يرجى المحاولة مرة أخرى.",
+    "network_error": "خطأ في الشبكة. تحقق من اتصالك."
+  },
+  "product_detail": {
+    "request_callback": "طلب معاودة الاتصال",
+    "call": "اتصال",
+    "make_offer": "تقديم عرض",
+    "store_address": "عنوان المتجر",
+    "show": "عرض",
+    "hide": "إخفاء",
+    "feedback_title": "ملاحظات حول البائع",
+    "view_all_reviews": "عرض الكل ({count}) >",
+    "view_ads": "عرض الإعلانات ({count}) >",
+    "typically_replies": "عادة ما يرد في غضون دقائق",
+    "discuter": "دردشة",
+    "interest_message": "مرحباً، أنا مهتم بإعلانك: {}",
+    "same_seller": "من نفس البائع",
+    "similar_items": "منتجات مماثلة"
+  },
+  "payment_modal": {
+    "unavailable_title": "الخدمة غير متوفرة",
+    "unavailable_message": "خدمة الدفع غير متوفرة مؤقتاً. يرجى المحاولة مرة أخرى لاحقاً أو الاتصال بالدعم.",
+    "btn_close": "إغلاق"
   }
 }

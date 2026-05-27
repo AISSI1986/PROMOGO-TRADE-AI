@@ -1,0 +1,4 @@
+# Global Rules for AI Coding Assistant (Antigravity)
+
+- **NO GIT PUSH**: Never execute the `git push` command, and never ask/suggest to the user to perform a push. Let the user manage all git pushes manually.
+- **NO SIMULATION FALLBACKS FOR PAYMENTS**: Do not implement sandbox/mock simulation modes for payment services if keys are missing. If payment credentials (e.g., `PAYSTACK_SECRET_KEY`) are missing, return a service unavailable error and show a modal in the UI informing the user.

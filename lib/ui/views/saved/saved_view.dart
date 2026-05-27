@@ -5,6 +5,7 @@ import 'package:promogoai/ui/common/app_colors.dart';
 import 'package:promogoai/ui/common/ui_helpers.dart';
 import 'package:stacked_services/stacked_services.dart';
 import 'package:promogoai/app/app.locator.dart';
+import 'package:promogoai/app/app.router.dart';
 import 'saved_viewmodel.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -32,7 +33,13 @@ class SavedView extends StackedView<SavedViewModel> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: kcTabIndicatorColor, size: 20),
-          onPressed: () => locator<NavigationService>().back(),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              locator<NavigationService>().clearStackAndShow(Routes.homeView);
+            }
+          },
         ),
         title: Text(
           'saved.title'.tr(),

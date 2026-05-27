@@ -36,10 +36,11 @@ class ReglagesView extends StackedView<ReglagesViewModel> {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('XOF', style: TextStyle(color: Colors.black54)),
+                Text(viewModel.getSelectedCurrency(context), style: const TextStyle(color: Colors.black54)),
                 const Icon(Icons.chevron_right, color: Colors.black26),
               ],
             ),
+            onTap: () => _showCurrencyDialog(context, viewModel),
           ),
           _buildSettingItem(
             label: 'reglages.language'.tr(),
@@ -98,6 +99,41 @@ class ReglagesView extends StackedView<ReglagesViewModel> {
         title: Text(label, style: const TextStyle(fontSize: 15, color: Colors.black87)),
         trailing: trailing ?? const Icon(Icons.chevron_right, color: Colors.black26),
         onTap: onTap ?? () {},
+      ),
+    );
+  }
+
+  void _showCurrencyDialog(BuildContext context, ReglagesViewModel viewModel) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('reglages.currency'.tr()),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: viewModel.availableCurrencies.length,
+            itemBuilder: (context, index) {
+              final currency = viewModel.availableCurrencies[index];
+              final isSelected = viewModel.getSelectedCurrency(context) == currency['code'];
+              return ListTile(
+                title: Text(
+                  currency['name']!,
+                  style: TextStyle(
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isSelected ? const Color(0xFF2563EB) : Colors.black87,
+                  ),
+                ),
+                trailing: isSelected ? const Icon(Icons.check_circle, color: Color(0xFF2563EB)) : null,
+                onTap: () {
+                  viewModel.changeCurrency(currency['code']!);
+                  Navigator.pop(context);
+                },
+              );
+            },
+          ),
+        ),
       ),
     );
   }

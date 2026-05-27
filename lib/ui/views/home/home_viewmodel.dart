@@ -13,6 +13,7 @@ import 'package:promogoai/ui/views/live_viewer/live_hub_view.dart';
 import 'package:promogoai/ui/views/mon_academie/mon_academie_view.dart';
 import 'package:promogoai/ui/views/demande_devis/demande_devis_view.dart';
 import 'package:promogoai/ui/views/price_comparator/price_comparator_view.dart';
+import 'package:promogoai/ui/views/top_ranking/top_ranking_view.dart';
 import 'package:promogoai/app/app.bottomsheets.dart';
 import 'package:promogoai/services/ad_service.dart';
 import 'package:promogoai/services/ai_voice_service.dart';
@@ -22,14 +23,28 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:promogoai/app/app.router.dart';
 import 'package:promogoai/ui/common/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:promogoai/models/chat_room.dart';
+import 'package:promogoai/services/chat_service.dart';
 
 class HomeViewModel extends BaseViewModel {
+  static HomeViewModel? instance;
+
   final _adService = AdService();
   final _navigationService = locator<NavigationService>();
   final _bottomSheetService = locator<BottomSheetService>();
   final _aiVoiceService = locator<AiVoiceService>();
   final _translationService = locator<TranslationService>();
   final _authService = locator<AuthService>();
+  final _chatService = locator<ChatService>();
+
+  List<ChatRoomModel> _chatRooms = [];
+  List<ChatRoomModel> get chatRooms => _chatRooms;
+
+  bool _loadingChats = false;
+  bool get loadingChats => _loadingChats;
+
+  bool get isLogged => _authService.isLogged;
+  int? get currentUserId => _authService.userData?['id'] as int?;
   
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
@@ -78,11 +93,36 @@ class HomeViewModel extends BaseViewModel {
   final int _promoCount = 4;
 
   HomeViewModel() {
+    instance = this;
     _startPromoTimer();
+    _preloadChatRoomsCache();
+  }
+
+  void _preloadChatRoomsCache() {
+    if (isLogged) {
+      _chatService.loadCachedRooms().then((cached) {
+        if (cached.isNotEmpty && _chatRooms.isEmpty) {
+          _chatRooms = cached;
+          notifyListeners();
+        }
+      });
+    }
+  }
+
+  Future<void> refineWithRealAiResult(List<dynamic> realVector) async {
+    print("🔄 [HomeViewModel] Affinage magique en arrière-plan avec le VRAI vecteur IA !");
+    await _adService.searchAdsByVector(realVector);
+    await autoTranslateAll(_currentLanguageCode);
+    notifyListeners();
   }
 
   List<Product> get allAds => _adService.ads;
   List<Product> get searchAds => _adService.searchAds;
+  
+  List<Product> get promoAds => _adService.promoAds;
+  List<Product> get offerAds => _adService.offerAds;
+  List<Product> get customAds => _adService.customAds;
+  List<Product> get gridAds => _adService.gridAds;
 
   String _currentLanguageCode = 'fr';
   String get currentLanguageCode => _currentLanguageCode;
@@ -209,7 +249,42 @@ class HomeViewModel extends BaseViewModel {
       _currentTopTab = 1;
     }
     _currentIndex = index;
+    
+    if (_currentIndex == 1) {
+      loadChatRooms();
+    }
+    
     notifyListeners();
+  }
+
+  Future<void> loadChatRooms() async {
+    if (!isLogged) return;
+    
+    // 1. Charger d'abord les salons depuis le cache pour un affichage immédiat
+    final cached = await _chatService.loadCachedRooms();
+    if (cached.isNotEmpty) {
+      _chatRooms = cached;
+      notifyListeners();
+    }
+    
+    // 2. N'afficher le spinner que si on n'a aucun salon en cache
+    if (_chatRooms.isEmpty) {
+      _loadingChats = true;
+      notifyListeners();
+    }
+    
+    try {
+      _chatRooms = await _chatService.fetchRooms();
+    } catch (e) {
+      print("❌ [HomeViewModel] Erreur chargement salons: $e");
+    } finally {
+      _loadingChats = false;
+      notifyListeners();
+    }
+  }
+
+  void navigateToChat(ChatRoomModel room) {
+    _navigationService.navigateToChatView(chatRoom: room);
   }
 
   void _showAuthRequiredModal() {
@@ -225,6 +300,11 @@ class HomeViewModel extends BaseViewModel {
         _navigationService.navigateToLoginView();
       }
     });
+  }
+
+  void performTextSearch(String query) {
+    _adService.searchAdsByText(query);
+    notifyListeners();
   }
 
   /// Called when the IA button is tapped.
@@ -264,11 +344,9 @@ class HomeViewModel extends BaseViewModel {
     // --- Suite de la logique existante pour la recherche de produits ---
     if (vector != null) {
       setBusy(true);
-      // On cache la barre après un court délai pour laisser lire la transcription
-      Future.delayed(const Duration(milliseconds: 1000), () {
-        _showAiVoiceBar = false;
-        notifyListeners();
-      });
+      // NOUVEAU : À la demande expresse de l'utilisateur, ON NE CACHE PLUS LA BARRE !
+      // Ainsi, l'utilisateur garde la zone d'enregistrement ouverte sous les yeux 
+      // et peut immédiatement faire un deuxième essai simultanément s'il le souhaite !
 
       // On bascule sur l'onglet produits pour voir les résultats de la recherche IA
       _currentTopTab = 1; 
@@ -332,6 +410,13 @@ class HomeViewModel extends BaseViewModel {
   void navigateToDemandeDevis() {
     _navigationService.navigateWithTransition(
       const DemandeDevisView(),
+      transitionStyle: Transition.rightToLeft,
+    );
+  }
+
+  void navigateToTopRanking() {
+    _navigationService.navigateWithTransition(
+      const TopRankingView(),
       transitionStyle: Transition.rightToLeft,
     );
   }

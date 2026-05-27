@@ -9,10 +9,10 @@ import 'package:stacked_services/stacked_services.dart';
 
 import 'app.locator.dart';
 import '../ui/bottom_sheets/ai_voice/ai_voice_sheet.dart';
+import '../ui/bottom_sheets/auth_required/auth_required_sheet.dart';
 import '../ui/bottom_sheets/notice/notice_sheet.dart';
 import '../ui/bottom_sheets/otp/otp_sheet.dart';
 import '../ui/bottom_sheets/settings/settings_sheet.dart';
-import '../ui/bottom_sheets/auth_required/auth_required_sheet.dart';
 
 enum BottomSheetType {
   notice,

@@ -1,5 +1,6 @@
 import 'package:stacked/stacked.dart';
 import 'package:stacked_services/stacked_services.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:promogoai/app/app.locator.dart';
 import 'package:promogoai/app/app.router.dart';
 
@@ -38,6 +39,14 @@ class LoginViewModel extends BaseViewModel {
   String? _passwordError;
   String? get passwordError => _passwordError;
 
+  bool _obscurePassword = true;
+  bool get obscurePassword => _obscurePassword;
+
+  void toggleObscurePassword() {
+    _obscurePassword = !_obscurePassword;
+    notifyListeners();
+  }
+
   bool get canLogin => phoneNumber.isNotEmpty && password.isNotEmpty;
 
   Future<void> login() async {
@@ -45,13 +54,13 @@ class LoginViewModel extends BaseViewModel {
     _passwordError = null;
 
     if (phoneNumber.isEmpty) {
-      _phoneError = "Le numéro de téléphone est requis";
+      _phoneError = "login.phone_required".tr();
       notifyListeners();
       return;
     }
 
     if (password.isEmpty) {
-      _passwordError = "Le mot de passe est requis";
+      _passwordError = "login.password_required".tr();
       notifyListeners();
       return;
     }
@@ -85,7 +94,7 @@ class LoginViewModel extends BaseViewModel {
 
         _navigationService.clearStackAndShow(Routes.homeView);
       } else {
-        String errorMsg = "Identifiants incorrects. Veuillez réessayer.";
+        String errorMsg = "login.invalid_credentials".tr();
         try {
           final errorData = jsonDecode(response.body);
           if (errorData is Map) {
@@ -100,7 +109,7 @@ class LoginViewModel extends BaseViewModel {
       }
     } catch (e) {
       _snackbarService.showSnackbar(
-        message: "Erreur réseau. Vérifiez votre connexion.",
+        message: "login.network_error".tr(),
         duration: const Duration(seconds: 6),
       );
     } finally {

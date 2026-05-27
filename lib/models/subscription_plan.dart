@@ -22,6 +22,7 @@ class SubscriptionPlan {
   final bool prioriteComparateur;
   final bool accesPromogoFair;
   final bool accesDemandeCotation;
+  final int maxAds;
 
   SubscriptionPlan({
     required this.id,
@@ -45,6 +46,7 @@ class SubscriptionPlan {
     required this.prioriteComparateur,
     required this.accesPromogoFair,
     required this.accesDemandeCotation,
+    required this.maxAds,
   });
 
   factory SubscriptionPlan.fromJson(Map<String, dynamic> json) {
@@ -70,6 +72,7 @@ class SubscriptionPlan {
       prioriteComparateur: json['prioriteComparateur'] ?? false,
       accesPromogoFair: json['accesPromogoFair'] ?? false,
       accesDemandeCotation: json['accesDemandeCotation'] ?? false,
+      maxAds: json['max_ads'] ?? 1,
     );
   }
 }

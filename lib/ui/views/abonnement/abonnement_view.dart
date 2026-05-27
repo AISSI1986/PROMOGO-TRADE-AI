@@ -36,7 +36,7 @@ class AbonnementView extends StackedView<AbonnementViewModel> {
                     separatorBuilder: (context, index) => const SizedBox(height: 16),
                     itemBuilder: (context, index) {
                       final plan = viewModel.plans[index];
-                      return _SubscriptionCard(plan: plan);
+                      return _SubscriptionCard(plan: plan, viewModel: viewModel);
                     },
                   ),
                   const SizedBox(height: 40),
@@ -55,8 +55,9 @@ class AbonnementView extends StackedView<AbonnementViewModel> {
 
 class _SubscriptionCard extends StatelessWidget {
   final SubscriptionPlan plan;
+  final AbonnementViewModel viewModel;
 
-  const _SubscriptionCard({required this.plan});
+  const _SubscriptionCard({required this.plan, required this.viewModel});
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +101,7 @@ class _SubscriptionCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    "${plan.prix.toInt()} ${plan.devise}",
+                    viewModel.formatPrice(plan.prix, context),
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white),
                   ),
                 ],

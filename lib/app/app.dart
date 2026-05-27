@@ -45,6 +45,11 @@ import 'package:promogoai/ui/views/lesson/lesson_view.dart';
 import 'package:promogoai/services/academy_service.dart';
 import 'package:promogoai/ui/views/pre_live_setup/pre_live_setup_view.dart';
 import 'package:promogoai/services/live_socket_service.dart';
+import 'package:promogoai/services/currency_service.dart';
+import 'package:promogoai/services/ad_service.dart';
+import 'package:promogoai/ui/views/chat/chat_view.dart';
+import 'package:promogoai/services/chat_service.dart';
+import 'package:promogoai/services/notification_service.dart';
 // @stacked-import
 
 @StackedApp(
@@ -78,6 +83,7 @@ import 'package:promogoai/services/live_socket_service.dart';
     MaterialRoute(page: LiveViewerView),
     MaterialRoute(page: LiveBroadcasterView),
     MaterialRoute(page: PreLiveSetupView),
+    MaterialRoute(page: ChatView),
     // @stacked-route
   ],
   dependencies: [
@@ -95,6 +101,10 @@ import 'package:promogoai/services/live_socket_service.dart';
     LazySingleton(classType: SubscriptionService),
     LazySingleton(classType: AcademyService),
     LazySingleton(classType: LiveSocketService),
+    InitializableSingleton(classType: CurrencyService),
+    LazySingleton(classType: AdService),
+    LazySingleton(classType: ChatService),
+    LazySingleton(classType: NotificationService),
     // @stacked-service
   ],
   bottomsheets: [

@@ -1,8 +1,9 @@
 {
   "home": {
-    "tab_mode_ia": "AI Mode",
+    "see_all": "See all",
+    "tab_mode_ia": "SURA AI",
     "tab_produits": "Products",
-    "tab_usine": "Factories",
+    "tab_usine": "i-Hub",
     "tab_inter": "Live sale",
     "search_hint": "Search for a product...",
     "promo_top": "Top Promo",
@@ -29,7 +30,7 @@
     "section_selection_sur_mesure_sub": "Exclusivity tailored to your needs",
     "pub": "AD",
     "see_more": "See more",
-    "comparator_title": "Price comparator",
+    "comparator_title": "ANALYZIA",
     "comparator_action": "Choose region",
     "nav_home": "Home",
     "nav_message": "Message",
@@ -88,7 +89,7 @@
   },
   "reglages": {
     "title": "Settings",
-    "delivery": "Delivery",
+    "delivery": "Country",
     "currency": "Currency",
     "language": "Language",
     "notifications": "Notifications",
@@ -182,7 +183,21 @@
   },
   "message": {
     "empty_title": "Your Discussions",
-    "empty_subtitle": "Find all your conversations with sellers and buyers here."
+    "empty_subtitle": "Find all your conversations with sellers and buyers here.",
+    "login_required": "Login required to view your messages."
+  },
+  "chat": {
+    "title": "Discussion",
+    "input_hint": "Type a message...",
+    "online": "Online",
+    "offline": "Offline",
+    "no_messages": "No messages yet. Send the first message!",
+    "typing": "Typing...",
+    "last_seen": "Last seen {} ago",
+    "just_now": "just now",
+    "connecting": "Connecting...",
+    "offline_status": "Offline",
+    "offline_error": "You are offline. Please check your internet connection to chat with the seller."
   },
   "post_ad": {
     "title": "POST NEW AD",
@@ -218,7 +233,8 @@
     "btn_submit": "POST MY AD",
     "btn_pay_submit": "PAY AND POST",
     "gallery": "Gallery",
-    "camera": "Camera"
+    "camera": "Camera",
+    "terms_disclaimer": "By clicking on Post ad, you accept the Terms of Use, confirm that you will abide by the Safety Tips, and declare that this posting does not include any Prohibited Items."
   },
   "academy": {
     "title": "SURA AI Academy",
@@ -299,5 +315,49 @@
     "message": "You must be logged in to post or save your ads on PROMOGO AI.",
     "btn_login": "LOGIN",
     "btn_cancel": "LATER"
+  },
+  "top_ranking": {
+    "select_category": "Select category...",
+    "filter_all": "All",
+    "filter_featured": "Featured Sales",
+    "filter_popular": "Most Popular",
+    "filter_top_rated": "Top Rated",
+    "empty_title": "No products found",
+    "empty_subtitle": "Try changing category or filter"
+  },
+  "login": {
+    "title": "Login",
+    "subtitle": "Welcome to Promogo. Log in to continue.",
+    "phone": "Phone",
+    "password": "Password",
+    "forgot_password": "Forgot password?",
+    "login_button": "Log In",
+    "no_account": "Don't have an account? ",
+    "register_link": "Sign Up",
+    "phone_required": "Phone number is required",
+    "password_required": "Password is required",
+    "invalid_credentials": "Invalid credentials. Please try again.",
+    "network_error": "Network error. Check your connection."
+  },
+  "product_detail": {
+    "request_callback": "Request call back",
+    "call": "Call",
+    "make_offer": "Make an offer",
+    "store_address": "Store Address",
+    "show": "Show",
+    "hide": "Hide",
+    "feedback_title": "Feedback about seller",
+    "view_all_reviews": "View all ({count}) >",
+    "view_ads": "View ads ({count}) >",
+    "typically_replies": "Typically replies within minutes",
+    "discuter": "Chat",
+    "interest_message": "Hello, I am interested in your listing: {}",
+    "same_seller": "From the same seller",
+    "similar_items": "Similar items"
+  },
+  "payment_modal": {
+    "unavailable_title": "Service Unavailable",
+    "unavailable_message": "The payment service is temporarily unavailable. Please try again later or contact support.",
+    "btn_close": "CLOSE"
   }
 }

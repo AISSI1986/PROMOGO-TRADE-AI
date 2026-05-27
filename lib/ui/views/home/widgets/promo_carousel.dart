@@ -16,46 +16,22 @@ class _PromoCarouselState extends State<PromoCarousel> {
   int _currentPage = 0;
   Timer? _timer;
 
-  final List<Widget> _promoItems = [
-    _buildPromoItem(
-      title: 'Vente Flash',
+  late final List<Widget> _promoItems = [
+    _buildImagePromoItem(
+      imagePath: 'assets/images/pub1.jpg',
       subtitle: 'home.see_more'.tr(),
-      icon: Icons.flash_on,
-      gradient: const LinearGradient(
-        colors: [Color(0xFF0A1F44), Color(0xFF1E3A8A)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
     ),
-    _buildPromoItem(
-      title: 'Nouveautés',
+    _buildImagePromoItem(
+      imagePath: 'assets/images/pub2.jpg',
       subtitle: 'home.see_more'.tr(),
-      icon: Icons.new_releases,
-      gradient: const LinearGradient(
-        colors: [Color(0xFFC6A75E), Color(0xFF8B733B)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
     ),
-    _buildPromoItem(
-      title: 'Livraison Gratuite',
+     _buildImagePromoItem(
+      imagePath: 'assets/images/pub4.jpg',
       subtitle: 'home.see_more'.tr(),
-      icon: Icons.local_shipping,
-      gradient: const LinearGradient(
-        colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
     ),
-    _buildPromoItem(
-      title: 'IA Sourcing',
+     _buildImagePromoItem(
+      imagePath: 'assets/images/pub3.jpg',
       subtitle: 'home.see_more'.tr(),
-      icon: Icons.psychology,
-      gradient: const LinearGradient(
-        colors: [Color(0xFF6A1B9A), Color(0xFF4A148C)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
     ),
   ];
 
@@ -124,6 +100,68 @@ class _PromoCarouselState extends State<PromoCarousel> {
         ),
         const SizedBox(height: 8),
       ],
+    );
+  }
+
+  static Widget _buildImagePromoItem({
+    required String imagePath,
+    required String subtitle,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(5),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              imagePath,
+              fit: BoxFit.cover,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Spacer(),
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          subtitle,
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: Colors.black87),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

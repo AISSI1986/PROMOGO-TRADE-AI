@@ -14,11 +14,15 @@ import 'package:stacked_services/src/snackbar/snackbar_service.dart';
 import 'package:stacked_shared/stacked_shared.dart';
 
 import '../services/academy_service.dart';
+import '../services/ad_service.dart';
 import '../services/ai_voice_service.dart';
 import '../services/auth_service.dart';
 import '../services/category_service.dart';
+import '../services/chat_service.dart';
+import '../services/currency_service.dart';
 import '../services/live_socket_service.dart';
 import '../services/local_storage_service.dart';
+import '../services/notification_service.dart';
 import '../services/settings_service.dart';
 import '../services/srs_streaming_service.dart';
 import '../services/subscription_service.dart';
@@ -50,4 +54,11 @@ Future<void> setupLocator(
   locator.registerLazySingleton(() => SubscriptionService());
   locator.registerLazySingleton(() => AcademyService());
   locator.registerLazySingleton(() => LiveSocketService());
+  final currencyService = CurrencyService();
+  await currencyService.init();
+  locator.registerSingleton(currencyService);
+
+  locator.registerLazySingleton(() => AdService());
+  locator.registerLazySingleton(() => ChatService());
+  locator.registerLazySingleton(() => NotificationService());
 }

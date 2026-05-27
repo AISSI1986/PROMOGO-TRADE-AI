@@ -3,7 +3,7 @@ import 'package:stacked/stacked.dart';
 import 'package:promogoai/ui/common/app_colors.dart';
 import 'package:promogoai/app/app.locator.dart';
 import 'package:stacked_services/stacked_services.dart';
-import 'package:video_player/video_player.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 import 'live_viewer_viewmodel.dart';
 
 class LiveViewerView extends StackedView<LiveViewerViewModel> {
@@ -23,14 +23,14 @@ class LiveViewerView extends StackedView<LiveViewerViewModel> {
       viewModel.initViewer();
     } else {
       // Si c'est pré-chargé, on se contente de lancer la lecture !
-      viewModel.getController(viewModel.currentVideoIndex)?.play();
+      viewModel.getPlayer(viewModel.currentVideoIndex)?.play();
     }
   }
 
   @override
   void onDispose(LiveViewerViewModel viewModel) {
     // ON MET EN PAUSE LA VIDÉO QUAND ON FERME LA PAGE !
-    viewModel.getController(viewModel.currentVideoIndex)?.pause();
+    viewModel.getPlayer(viewModel.currentVideoIndex)?.pause();
     super.onDispose(viewModel);
   }
 
@@ -59,13 +59,10 @@ class LiveViewerView extends StackedView<LiveViewerViewModel> {
                 // 1. VIDEO LAYER
                 Positioned.fill(
                   child: viewModel.isControllerInitialized(index)
-                      ? FittedBox(
+                      ? Video(
+                          controller: viewModel.getVideoController(index)!,
                           fit: BoxFit.cover,
-                          child: SizedBox(
-                            width: viewModel.getController(index)!.value.size.width,
-                            height: viewModel.getController(index)!.value.size.height,
-                            child: VideoPlayer(viewModel.getController(index)!),
-                          ),
+                          controls: NoVideoControls, // Masque les contrôles par défaut
                         )
                       : Container(color: Colors.black, child: const Center(child: CircularProgressIndicator(color: kcSecondaryGold))),
                 ),

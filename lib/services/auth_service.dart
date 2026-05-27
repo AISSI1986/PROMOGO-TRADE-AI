@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:promogoai/ui/common/api_constants.dart';
+import 'package:promogoai/app/app.locator.dart';
+import 'package:promogoai/services/notification_service.dart';
 
 class AuthService {
   static const String _keyAccessToken = 'secure_access_token';
@@ -46,6 +48,13 @@ class AuthService {
     await _secureStorage.write(key: _keyAccessToken, value: access);
     await _secureStorage.write(key: _keyRefreshToken, value: refresh);
     await _secureStorage.write(key: _keyUserData, value: jsonEncode(user));
+
+    try {
+      final notificationService = locator<NotificationService>();
+      notificationService.init();
+    } catch (e) {
+      print("⚠️ [AuthService] Erreur lancement NotificationService: $e");
+    }
   }
 
   /// Vérifie si l'utilisateur est actuellement connecté
@@ -53,12 +62,19 @@ class AuthService {
 
   /// Rafraîchit le token d'accès en utilisant le refresh token
   Future<bool> refreshAccessToken() async {
-    if (_refreshToken == null) return false;
+    if (_refreshToken == null) {
+      print("🔄 [AuthService] Impossible de rafraîchir le token: Refresh Token absent");
+      return false;
+    }
 
     try {
+      print("🔄 [AuthService] Tentative de rafraîchissement du token...");
       final response = await http.post(
         Uri.parse(ApiConstants.refreshTokenEndpoint),
-        body: {'refresh': _refreshToken},
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'refresh': _refreshToken}),
       );
 
       if (response.statusCode == 200) {
@@ -71,6 +87,7 @@ class AuthService {
         return true;
       } else {
         print("🔄 [AuthService] Échec du rafraîchissement (Status: ${response.statusCode})");
+        print("🔄 [AuthService] Corps de la réponse: ${response.body}");
         
         try {
           final data = jsonDecode(response.body);
@@ -83,6 +100,7 @@ class AuthService {
         return false;
       }
     } catch (e) {
+      print("🔄 [AuthService] Erreur lors du rafraîchissement du token: $e");
       return false;
     }
   }

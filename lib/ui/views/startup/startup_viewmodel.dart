@@ -7,6 +7,7 @@ import 'package:promogoai/services/local_storage_service.dart';
 import 'package:promogoai/services/auth_service.dart';
 import 'package:promogoai/services/category_service.dart';
 import 'package:promogoai/services/subscription_service.dart';
+import 'package:promogoai/services/notification_service.dart';
 
 class StartupViewModel extends BaseViewModel {
   final _navigationService = locator<NavigationService>();
@@ -32,6 +33,12 @@ class StartupViewModel extends BaseViewModel {
         print("⚠️ [Startup] Session expirée ou invalide. Nettoyage effectué.");
       } else {
         print("✅ [Startup] Session valide pour: ${_authService.userData?['username']}");
+        try {
+          final notificationService = locator<NotificationService>();
+          await notificationService.init();
+        } catch (e) {
+          print("⚠️ [Startup] Erreur initialisation FCM: $e");
+        }
       }
     } else {
       print("👤 [Startup] Aucune session active (Mode invité).");

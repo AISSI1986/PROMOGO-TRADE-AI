@@ -1,8 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
-import 'package:promogoai/app/app.bottomsheets.dart';
 import 'package:promogoai/app/app.locator.dart';
-import 'package:promogoai/ui/common/app_strings.dart';
 import 'package:promogoai/ui/views/home/home_viewmodel.dart';
 
 import '../helpers/test_helpers.dart';
@@ -10,35 +7,33 @@ import '../helpers/test_helpers.dart';
 void main() {
   HomeViewModel getModel() => HomeViewModel();
 
-  group('HomeViewmodelTest -', () {
+  group('HomeViewModelTest -', () {
     setUp(() => registerServices());
     tearDown(() => locator.reset());
 
-    group('incrementCounter -', () {
-      test('When called once should return  Counter is: 1', () {
+    group('initialization -', () {
+      test('When constructed should have default values', () {
         final model = getModel();
-        model.incrementCounter();
-        expect(model.counterLabel, 'Counter is: 1');
+        expect(model.currentIndex, 0);
+        expect(model.currentTopTab, 1);
+        expect(model.showAiVoiceBar, false);
       });
     });
 
-    group('showBottomSheet -', () {
-      test(
-        'When called, should show custom bottom sheet using notice variant',
-        () {
-          final bottomSheetService = getAndRegisterBottomSheetService();
+    group('setIndex -', () {
+      test('When called should update currentIndex', () {
+        final model = getModel();
+        model.setIndex(1);
+        expect(model.currentIndex, 1);
+      });
+    });
 
-          final model = getModel();
-          model.showBottomSheet();
-          verify(
-            bottomSheetService.showCustomSheet(
-              variant: BottomSheetType.notice,
-              title: ksHomeBottomSheetTitle,
-              description: ksHomeBottomSheetDescription,
-            ),
-          );
-        },
-      );
+    group('setTopTab -', () {
+      test('When called should update currentTopTab', () {
+        final model = getModel();
+        model.setTopTab(2);
+        expect(model.currentTopTab, 2);
+      });
     });
   });
 }

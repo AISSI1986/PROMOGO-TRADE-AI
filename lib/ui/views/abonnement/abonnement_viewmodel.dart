@@ -1,12 +1,17 @@
 import 'package:stacked/stacked.dart';
 import 'package:promogoai/app/app.locator.dart';
 import 'package:promogoai/models/subscription_plan.dart';
+import 'package:flutter/widgets.dart';
 import 'package:promogoai/services/subscription_service.dart';
+import 'package:promogoai/services/currency_service.dart';
 
 class AbonnementViewModel extends BaseViewModel {
   final _subscriptionService = locator<SubscriptionService>();
+  final _currencyService = locator<CurrencyService>();
 
   List<SubscriptionPlan> get plans => _subscriptionService.cachedPlans ?? [];
+
+  String formatPrice(double price, BuildContext context) => _currencyService.formatPrice(price, context);
 
   bool _isFetching = false;
   bool get isFetching => _isFetching;

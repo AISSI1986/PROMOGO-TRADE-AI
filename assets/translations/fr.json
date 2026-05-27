@@ -1,8 +1,9 @@
 {
   "home": {
-    "tab_mode_ia": "Mode IA",
+    "see_all": "Voir tout",
+    "tab_mode_ia": "SURA IA",
     "tab_produits": "Produits",
-    "tab_usine": "Usines",
+    "tab_usine": "i-Hub",
     "tab_inter": "Vente live",
     "search_hint": "Rechercher un produit...",
     "promo_top": "Top Promo",
@@ -30,7 +31,7 @@
     "section_selection_sur_mesure_sub": "L'exclusivité adaptée à vos besoins",
     "pub": "PUB",
     "see_more": "Voir plus",
-    "comparator_title": "Comparateur de prix",
+    "comparator_title": "ANALYZIA",
     "comparator_action": "Choisir sa Région",
     "nav_home": "Home",
     "nav_message": "Message",
@@ -89,7 +90,7 @@
   },
   "reglages": {
     "title": "Réglages",
-    "delivery": "Livraison",
+    "delivery": "Pays",
     "currency": "Devise",
     "language": "Langue",
     "notifications": "Notifications",
@@ -183,10 +184,24 @@
   },
   "message": {
     "empty_title": "Vos discussions",
-    "empty_subtitle": "Retrouvez ici toutes vos conversations avec les vendeurs et acheteurs."
+    "empty_subtitle": "Retrouvez ici toutes vos conversations avec les vendeurs et acheteurs.",
+    "login_required": "Connexion requise pour voir vos messages."
+  },
+  "chat": {
+    "title": "Discussion",
+    "input_hint": "Écrire un message...",
+    "online": "En ligne",
+    "offline": "Hors-ligne",
+    "no_messages": "Aucun message. Envoyez le premier message !",
+    "typing": "En train d'écrire...",
+    "last_seen": "Vu il y a {}",
+    "just_now": "à l'instant",
+    "connecting": "Connexion en cours...",
+    "offline_status": "Hors ligne",
+    "offline_error": "Vous êtes hors ligne. Veuillez vérifier votre connexion internet pour discuter avec le vendeur."
   },
   "post_ad": {
-    "title": "POST NEW AD",
+    "title": "PUBLIER UNE NOUVELLE ANNONCE",
     "section_details": "DÉTAILS DE L'ANNONCE",
     "input_label_title": "Titre",
     "input_title": "Écrivez un titre clair pour votre article",
@@ -219,7 +234,8 @@
     "btn_submit": "PUBLIER MON ANNONCE",
     "btn_pay_submit": "PAYER ET PUBLIER",
     "gallery": "Galerie",
-    "camera": "Appareil photo"
+    "camera": "Appareil photo",
+    "terms_disclaimer": "En cliquant sur Publier, vous acceptez les conditions d'utilisation, confirmez respecter les conseils de sécurité et déclarez que cette annonce ne contient aucun article interdit."
   },
   "academy": {
     "title": "SURA IA Académie",
@@ -300,5 +316,49 @@
     "message": "Vous devez être connecté pour publier ou sauvegarder vos annonces sur PROMOGO AI.",
     "btn_login": "SE CONNECTER",
     "btn_cancel": "PLUS TARD"
+  },
+  "top_ranking": {
+    "select_category": "Sélectionner la catèg...",
+    "filter_all": "Tous",
+    "filter_featured": "Ventes à la Une",
+    "filter_popular": "Les plus populaires",
+    "filter_top_rated": "Mieux notés",
+    "empty_title": "Aucun produit trouvé",
+    "empty_subtitle": "Essayez de changer de catégorie ou de filtre"
+  },
+  "login": {
+    "title": "Connexion",
+    "subtitle": "Bienvenue sur Promogo. Connectez-vous pour continuer.",
+    "phone": "Téléphone",
+    "password": "Mot de passe",
+    "forgot_password": "Mot de passe oublié ?",
+    "login_button": "Se connecter",
+    "no_account": "Vous n'avez pas de compte ? ",
+    "register_link": "Inscrivez-vous",
+    "phone_required": "Le numéro de téléphone est requis",
+    "password_required": "Le mot de passe est requis",
+    "invalid_credentials": "Identifiants incorrects. Veuillez réessayer.",
+    "network_error": "Erreur réseau. Vérifiez votre connexion."
+  },
+  "product_detail": {
+    "request_callback": "Rappeler-moi",
+    "call": "Appeler",
+    "make_offer": "Faire une offre",
+    "store_address": "Adresse de la boutique",
+    "show": "Afficher",
+    "hide": "Masquer",
+    "feedback_title": "Avis sur le vendeur",
+    "view_all_reviews": "Voir tout ({count}) >",
+    "view_ads": "Voir les annonces ({count}) >",
+    "typically_replies": "Répond généralement en quelques minutes",
+    "discuter": "Discuter",
+    "interest_message": "Bonjour, je suis intéressé par votre annonce : {}",
+    "same_seller": "Du même vendeur",
+    "similar_items": "Articles similaires"
+  },
+  "payment_modal": {
+    "unavailable_title": "Service Indisponible",
+    "unavailable_message": "Le service de paiement est temporairement indisponible. Veuillez réessayer plus tard ou contacter le support.",
+    "btn_close": "FERMER"
   }
 }

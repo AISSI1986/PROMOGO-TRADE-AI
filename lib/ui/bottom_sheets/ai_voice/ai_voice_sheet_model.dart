@@ -85,15 +85,19 @@ class AiVoiceSheetModel extends BaseViewModel {
           final vector = response['vector'];
           
           if (vector != null) {
-            // Laisse le temps à l'utilisateur de lire la transcription avant de fermer
-            Future.delayed(const Duration(milliseconds: 1500), () {
-              completer(SheetResponse(
-                confirmed: true, 
-                data: {
-                  'vector': vector,
-                  'transcription': _agentResponse,
-                },
-              ));
+            // 1. On envoie immédiatement le résultat à HomeViewModel pour lancer la recherche en arrière-plan
+            completer(SheetResponse(
+              confirmed: true, 
+              data: {
+                'vector': vector,
+                'transcription': _agentResponse,
+              },
+            ));
+
+            // 2. On laisse la transcription affichée pendant 3 secondes, puis on incite à faire une autre recherche !
+            Future.delayed(const Duration(seconds: 3), () {
+              _agentResponse = "Touchez le micro pour une autre recherche IA 🎙️";
+              notifyListeners();
             });
           }
         }

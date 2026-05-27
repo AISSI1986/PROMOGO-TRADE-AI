@@ -4,6 +4,7 @@ import 'package:promogoai/ui/common/app_colors.dart';
 import 'package:promogoai/ui/common/ui_helpers.dart';
 import 'package:stacked/stacked.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'product_detail_viewmodel.dart';
 
 class ProductDetailView extends StackedView<ProductDetailViewModel> {
@@ -88,76 +89,129 @@ class ProductDetailView extends StackedView<ProductDetailViewModel> {
                           verticalSpaceMedium,
                         ],
 
-                        // PRIX ET RATING
+                        // 1. LOCALISATION ET CROWN BADGE
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              product.price,
-                              style: const TextStyle(
-                                fontSize: 30,
-                                fontWeight: FontWeight.w900,
-                                color: Color(0xFFE74C3C),
-                                fontFamily: 'Outfit',
+                            const Icon(Icons.location_on, color: kcMediumGrey, size: 16),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                "${(product.location ?? '').isNotEmpty ? product.location : 'Abidjan, CI'} • 3 hours ago",
+                                style: const TextStyle(color: kcMediumGrey, fontSize: 13, fontWeight: FontWeight.w600),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            _buildRatingBadge(),
+                            if (product.hasPremiumVisibility)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: kcGoldLight,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Icon(Icons.emoji_events_rounded, color: kcSecondaryGold, size: 16),
+                              ),
                           ],
                         ),
-                        verticalSpaceTiny,
-                        
-                        // TITRE DU PRODUIT
+                        const SizedBox(height: 8),
+
+                        // 2. TITRE
                         Text(
                           product.name,
                           style: const TextStyle(
-                            fontSize: 24,
+                            fontSize: 22,
                             fontWeight: FontWeight.w800,
                             color: kcPrimaryColor,
                             height: 1.2,
                           ),
                         ),
-                        verticalSpaceMedium,
+                        const SizedBox(height: 8),
 
-                        // BADGES DE CARACTERISTIQUES
-                        _buildProductFeatures(),
-                        verticalSpaceLarge,
-
-                        // SECTION VENDEUR
-                        _buildPremiumSellerCard(),
-                        verticalSpaceLarge,
-
-                        // DESCRIPTION
-                        const Text(
-                          "Détails du produit",
-                          style: TextStyle(
-                            fontSize: 18, 
-                            fontWeight: FontWeight.w800,
-                            color: kcPrimaryColor,
-                          ),
-                        ),
-                        verticalSpaceSmall,
+                        // 3. PRIX
                         Text(
-                          product.description,
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: Colors.grey[700],
-                            height: 1.6,
-                            letterSpacing: 0.1,
+                          product.price,
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            color: kcPrimaryColor,
+                            fontFamily: 'Outfit',
                           ),
                         ),
-                        verticalSpaceLarge,
+                        const SizedBox(height: 20),
 
-                        // SECTION REASSURANCE / GARANTIES
-                        _buildTrustSection(),
-                        verticalSpaceLarge,
-
-                        // PRODUITS SIMILAIRES (Titre)
-                        const Text(
-                          "Vous pourriez aussi aimer",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kcPrimaryColor),
+                        // 4. ACTION BUTTONS (Request call back & Call)
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () {},
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: kcPrimaryColor, width: 1.5),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                                child: Text(
+                                  'product_detail.request_callback'.tr(),
+                                  style: const TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.bold, fontSize: 14),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () {},
+                                icon: const Icon(Icons.phone, color: Colors.white, size: 18),
+                                label: Text(
+                                  'product_detail.call'.tr(),
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: kcPrimaryColor,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        verticalSpaceMedium,
-                        _buildSuggestedProducts(),
+                        const SizedBox(height: 24),
+
+                        // 6. SPECIFICATIONS GRID
+                        _buildSpecsGrid(),
+                        const SizedBox(height: 24),
+
+                        // 7. STORE ADDRESS
+                        _buildStoreAddress(),
+                        const SizedBox(height: 24),
+
+                        // 8. DESCRIPTION CARD
+                        _buildDescriptionCard(),
+                        const SizedBox(height: 24),
+
+                        // 9. SECONDARY MAKE AN OFFER BUTTON
+                        _buildSecondaryOfferButton(),
+                        const SizedBox(height: 24),
+
+                        // 10. SELLER CARD (ENRICHIE)
+                        _buildEnrichedSellerCard(),
+                        const SizedBox(height: 24),
+
+                        // 11. FEEDBACK / REVIEWS
+                        _buildFeedbackSection(),
+                        const SizedBox(height: 24),
+
+                        // 12. PRODUITS SUGGÉRÉS DYNAMIQUE
+                        if (viewModel.loadingSuggestions)
+                          const Center(child: CircularProgressIndicator(color: kcPrimaryColor))
+                        else if (viewModel.suggestedProducts.isNotEmpty) ...[
+                          Text(
+                            viewModel.suggestionTitle,
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kcPrimaryColor),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildSuggestedProducts(viewModel),
+                        ],
 
                         const SizedBox(height: 120),
                       ],
@@ -232,128 +286,379 @@ class ProductDetailView extends StackedView<ProductDetailViewModel> {
     );
   }
 
-  Widget _buildProductFeatures() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      child: Row(
-        children: [
-          _buildFeatureBadge(Icons.location_on_outlined, "Abidjan, CI"),
-          const SizedBox(width: 8),
-          _buildFeatureBadge(Icons.inventory_2_outlined, "Neuf"),
-          const SizedBox(width: 8),
-          _buildFeatureBadge(Icons.visibility_outlined, "1.2k vues"),
-          const SizedBox(width: 8),
-          _buildFeatureBadge(Icons.category_outlined, "Mode"),
-          const SizedBox(width: 8),
-          _buildFeatureBadge(Icons.balance_outlined, "Comparateur de prix"),
-        ],
-      ),
-    );
-  }
+  // Chat card removed, using the bottom action bar's Discuter button.
 
-  Widget _buildFeatureBadge(IconData icon, String label) {
+  Widget _buildSpecsGrid() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: kcVeryLightGrey,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: kcMediumGrey),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12, 
-                fontWeight: FontWeight.w600, 
-                color: kcMediumGrey,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              softWrap: false,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTrustSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0F7FF),
-        borderRadius: BorderRadius.circular(20),
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         children: [
-          _buildTrustItem(Icons.handshake_rounded, "Relation directe Client-Vendeur"),
-          const Divider(height: 24, color: Colors.black12),
-          _buildTrustItem(Icons.local_shipping_rounded, "Remise en main propre & Livraison"),
-          const Divider(height: 24, color: Colors.black12),
-          _buildTrustItem(Icons.check_circle_outline_rounded, "Vendeur vérifié par Promogo AI"),
+          Row(
+            children: [
+              Expanded(child: _buildSpecItem("Type", "Other")),
+              Expanded(child: _buildSpecItem("Condition", "Brand New")),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _buildSpecItem("Brand", "Other")),
+              const Expanded(child: SizedBox.shrink()),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTrustItem(IconData icon, String label) {
-    return Row(
+  Widget _buildSpecItem(String key, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: const Color(0xFF2980B9), size: 22),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2C3E50), fontSize: 13),
-          ),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kcPrimaryColor),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          key,
+          style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
         ),
       ],
     );
   }
 
-  Widget _buildSuggestedProducts() {
+  Widget _buildStoreAddress() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.store, color: kcMediumGrey),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'product_detail.store_address'.tr(),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kcPrimaryColor),
+            ),
+          ),
+          Text(
+            'product_detail.show'.tr(),
+            style: const TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          const SizedBox(width: 4),
+          const Icon(Icons.keyboard_arrow_down, color: kcPrimaryColor),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDescriptionCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            product.description.isNotEmpty ? product.description : "No description provided.",
+            style: const TextStyle(fontSize: 14, color: kcPrimaryColor, height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSecondaryOfferButton() {
     return SizedBox(
-      height: 200,
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () {},
+        icon: const Icon(Icons.chat_bubble_outline_rounded, color: kcPrimaryColor, size: 18),
+        label: Text(
+          'product_detail.make_offer'.tr(),
+          style: const TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: kcPrimaryColor, width: 1.5),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEnrichedSellerCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Avatar
+              Container(
+                width: 55,
+                height: 55,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.grey.shade100,
+                ),
+                child: const Center(
+                  child: Icon(Icons.person, color: kcMediumGrey, size: 30),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Name & Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.sellerName,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: kcPrimaryColor),
+                    ),
+                    const SizedBox(height: 4),
+                    // Badges row
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        _buildSmallBadge(Icons.check, "Verified ID"),
+                        _buildSmallBadge(Icons.person_outline, "5+ years on Jiji"),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "online 16 min ago",
+                      style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              // View Ads Link
+              GestureDetector(
+                onTap: () {},
+                child: Text(
+                  'product_detail.view_ads'.tr(args: ['383']),
+                  style: const TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Response time indicator
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.schedule, color: Colors.grey.shade600, size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  'product_detail.typically_replies'.tr(),
+                  style: TextStyle(color: Colors.grey.shade700, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSmallBadge(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: Colors.blue.shade600),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(color: Colors.blue.shade700, fontSize: 10, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeedbackSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'product_detail.feedback_title'.tr(),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kcPrimaryColor),
+              ),
+              GestureDetector(
+                onTap: () {},
+                child: Text(
+                  'product_detail.view_all_reviews'.tr(args: ['20']),
+                  style: const TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // User Review
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: kcPrimaryColor,
+                child: const Text("P", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Prophet",
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kcPrimaryColor),
+                        ),
+                        Text(
+                          "23/06/25",
+                          style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    // Stars
+                    Row(
+                      children: List.generate(5, (index) => const Icon(Icons.star, color: kcSecondaryGold, size: 14)),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "The guy is very respectful and a calm person n my purchase was very successful even though I merse up but he had faith in me replace the microphone for me and I will recommend him to every one who needs something like musical",
+                      style: TextStyle(color: Colors.grey.shade700, fontSize: 12, height: 1.4),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestedProducts(ProductDetailViewModel viewModel) {
+    return SizedBox(
+      height: 220,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        itemCount: 4,
+        itemCount: viewModel.suggestedProducts.length,
         itemBuilder: (context, index) {
-          return Container(
-            width: 140,
-            margin: const EdgeInsets.only(right: 16),
-            decoration: BoxDecoration(
-              color: kcVeryLightGrey,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Center(child: Icon(Icons.image_outlined, color: Colors.white)),
-                  ),
+          final suggestedProduct = viewModel.suggestedProducts[index];
+          return GestureDetector(
+            onTap: () {
+              // Ouvrir le produit suggéré en poussant un nouveau ProductDetailView
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => ProductDetailView(product: suggestedProduct),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("Article Similaire", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                      Text("5 000 F CFA", style: TextStyle(color: Colors.red[700], fontWeight: FontWeight.w900, fontSize: 12)),
-                    ],
+              );
+            },
+            child: Container(
+              width: 150,
+              margin: const EdgeInsets.only(right: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade100),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                )
-              ],
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                      child: CachedNetworkImage(
+                        imageUrl: suggestedProduct.imageUrl,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(color: Colors.grey[100]),
+                        errorWidget: (context, url, error) => Container(
+                          color: Colors.grey[100],
+                          child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          suggestedProduct.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          suggestedProduct.price,
+                          style: const TextStyle(
+                            color: kcPrimaryColor,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                ],
+              ),
             ),
           );
         },
@@ -397,78 +702,17 @@ class ProductDetailView extends StackedView<ProductDetailViewModel> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1C40F).withOpacity(0.12),
+        color: kcSecondaryGold.withOpacity(0.12),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.star_rounded, color: Color(0xFFF1C40F), size: 20),
+          const Icon(Icons.star_rounded, color: kcSecondaryGold, size: 20),
           const SizedBox(width: 4),
           Text(
             '${product.rating}',
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF7D6608)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPremiumSellerCard() {
-    const bool isVerified = true; 
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Row(
-        children: [
-          Stack(
-            children: [
-              const CircleAvatar(
-                radius: 28,
-                backgroundColor: Color(0xFFE9ECEF),
-                child: Icon(Icons.person_rounded, color: Colors.white, size: 34),
-              ),
-              if (isVerified)
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                    child: const Icon(Icons.verified_rounded, color: Color(0xFF3498DB), size: 20),
-                  ),
-                ),
-            ],
-          ),
-          horizontalSpaceMedium,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.sellerName,
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: kcPrimaryColor),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  isVerified ? "Vendeur Premium Certifié" : "Vendeur Particulier",
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600], fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: kcPrimaryColor.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Text("Profil", style: TextStyle(fontWeight: FontWeight.w900, color: kcPrimaryColor, fontSize: 13)),
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: kcSecondaryGold),
           ),
         ],
       ),
@@ -476,9 +720,9 @@ class ProductDetailView extends StackedView<ProductDetailViewModel> {
   }
 
   Widget _buildSubscriptionActions(BuildContext context, ProductDetailViewModel viewModel, double bottomPadding) {
-    const bool canChat = true;
-    const bool canWhatsApp = true;
-    const bool canCall = true;
+    final bool canChat = true;
+    final bool canWhatsApp = product.canShowWhatsapp;
+    final bool canCall = product.canShowPhone;
 
     return Container(
       padding: EdgeInsets.fromLTRB(20, 16, 20, bottomPadding + 16),
@@ -525,14 +769,14 @@ class ProductDetailView extends StackedView<ProductDetailViewModel> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                   elevation: 0,
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 22),
-                    SizedBox(width: 10),
+                    const Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 22),
+                    const SizedBox(width: 10),
                     Text(
-                      "Discuter", 
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16),
+                      'product_detail.discuter'.tr(), 
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16),
                     ),
                   ],
                 ),

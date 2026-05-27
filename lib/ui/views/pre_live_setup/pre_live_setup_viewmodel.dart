@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:collection';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
@@ -79,7 +80,10 @@ class PreLiveSetupViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> selectProducts() async {
+  List<dynamic> myCatalogProducts = [];
+
+  Future<void> fetchMyCatalogProducts() async {
+    setBusy(true);
     try {
       final response = await http.get(
         Uri.parse(ApiConstants.myAdsEndpoint),
@@ -91,42 +95,55 @@ class PreLiveSetupViewModel extends BaseViewModel {
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(utf8.decode(response.bodyBytes));
-        List<dynamic> data;
-        
-        // CORRECTION : On gère le cas où Django renvoie une Map (pagination) ou une Liste
         if (decoded is Map && decoded.containsKey('results')) {
-          data = decoded['results'];
+          myCatalogProducts = decoded['results'] as List<dynamic>;
         } else if (decoded is List) {
-          data = decoded;
+          myCatalogProducts = decoded;
         } else {
-          data = [];
-        }
-        
-        if (data.isEmpty) {
-          await _dialogService.showDialog(
-            title: "Catalogue Vide",
-            description: "Vous n'avez pas de produits. Publiez-en d'abord !",
-          );
-          return;
-        }
-
-        // On ajoute les produits au live (on pourrait ici ouvrir une vraie liste de sélection)
-        for (var p in data.take(5)) { // On prend les 5 premiers pour le test
-          selectedProducts.add({
-            "id": p['id'].toString(),
-            "name": p['titre'] ?? "Produit",
-            "price": "${p['prix']} GHS",
-            "isFlash": false,
-          });
+          myCatalogProducts = [];
         }
       } else if (response.statusCode == 401) {
-        if (await _authService.refreshAccessToken()) return await selectProducts();
+        if (await _authService.refreshAccessToken()) {
+          return await fetchMyCatalogProducts();
+        }
       }
     } catch (e) {
-      print("Erreur: $e");
+      print("Erreur fetch catalog: $e");
     } finally {
+      setBusy(false);
       notifyListeners();
     }
+  }
+
+  void toggleCatalogProduct(Map<String, dynamic> p) {
+    final existingIndex = selectedProducts.indexWhere((item) => item['id'] == p['id'].toString());
+    if (existingIndex >= 0) {
+      selectedProducts.removeAt(existingIndex);
+    } else {
+      String? imageUrl;
+      if (p['images'] != null && p['images'] is List && (p['images'] as List).isNotEmpty) {
+        imageUrl = p['images'][0]['image'] as String?;
+      } else if (p['image'] != null) {
+        imageUrl = p['image'] as String?;
+      }
+
+      selectedProducts.add({
+        "id": p['id'].toString(),
+        "name": p['titre'] ?? p['title'] ?? "Produit",
+        "price": "${p['prix'] ?? 200} GHS",
+        "image": imageUrl,
+        "isFlash": false,
+      });
+    }
+    notifyListeners();
+  }
+
+  bool isProductSelected(String id) {
+    return selectedProducts.any((item) => item['id'] == id);
+  }
+
+  Future<void> selectProducts() async {
+    await fetchMyCatalogProducts();
   }
 
   Future<void> takeFlashPhoto() async {
@@ -145,17 +162,18 @@ class PreLiveSetupViewModel extends BaseViewModel {
         ? ImageSource.camera 
         : ImageSource.gallery;
 
-    final XFile? image = await _picker.pickImage(source: source);
+    final XFile? image = await _picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 80,
+    );
     
     if (image != null) {
-      // 2. OUVERTURE DU FORMULAIRE (Simulation de Bottom Sheet via Dialog pour le moment)
-      // Je vais mettre en place une logique qui simule la saisie
-      // Dans la vue, je vais ajouter un vrai champ pour cela
-      
       selectedProducts.add({
         "id": "flash_${DateTime.now().millisecondsSinceEpoch}",
         "name": "Produit Flash #${selectedProducts.length + 1}", 
-        "price": "À négocier",
+        "price": "200", 
         "imagePath": image.path,
         "isFlash": true,
       });
@@ -177,18 +195,25 @@ class PreLiveSetupViewModel extends BaseViewModel {
       
       if (!sessionValid) {
         setBusy(false);
-        await _dialogService.showDialog(
-          title: "Session expirée",
-          description: "Votre session a expiré. Veuillez vous reconnecter pour continuer.",
-        );
-        // Redirection vers l'écran de login
-        _navigationService.clearStackAndShow(Routes.loginView);
+        if (!_authService.isLogged) {
+          await _dialogService.showDialog(
+            title: "Session expirée",
+            description: "Votre session a expiré. Veuillez vous reconnecter pour continuer.",
+          );
+          // Redirection vers l'écran de login
+          _navigationService.clearStackAndShow<dynamic>(Routes.loginView);
+        } else {
+          await _dialogService.showDialog(
+            title: "Erreur Connexion",
+            description: "Impossible de joindre le serveur. Veuillez vérifier votre connexion Internet.",
+          );
+        }
         return;
       }
 
       // 2. CRÉATION ATOMIQUE (Live + Produits + Images en une seule fois)
       final uri = Uri.parse(ApiConstants.createLiveEndpoint);
-      var request = http.MultipartRequest('POST', uri);
+      var request = CustomMultipartRequest('POST', uri);
       
       request.headers['Authorization'] = 'Bearer ${_authService.accessToken}';
       
@@ -208,15 +233,15 @@ class PreLiveSetupViewModel extends BaseViewModel {
       // Ajout des produits FLASH avec leurs images
       for (int i = 0; i < flashProducts.length; i++) {
         final p = flashProducts[i];
-        request.fields['flash_name_$i'] = p['name'] ?? "Produit Flash";
+        request.fields['flash_name_$i'] = (p['name'] as String?) ?? "Produit Flash";
         // Si le prix est "À négocier" ou vide, on envoie "0"
-        String price = (p['price'] ?? "0").replaceAll(RegExp(r'[^0-9.]'), '');
+        final String price = ((p['price'] as String?) ?? "0").replaceAll(RegExp(r'[^0-9.]'), '');
         request.fields['flash_price_$i'] = price.isEmpty ? "0" : price;
         
         if (p['imagePath'] != null) {
           request.files.add(await http.MultipartFile.fromPath(
             'flash_image_$i',
-            p['imagePath'],
+            p['imagePath'] as String,
           ));
         }
       }
@@ -231,27 +256,29 @@ class PreLiveSetupViewModel extends BaseViewModel {
         // On récupère les produits officiels retournés par le serveur
         List<Map<String, dynamic>> officialProducts = [];
         if (liveData['products'] != null) {
-          final List<dynamic> prodList = liveData['products'];
+          final List<dynamic> prodList = liveData['products'] as List<dynamic>;
           officialProducts = prodList.map((item) {
-             final Map<String, dynamic> p = Map<String, dynamic>.from(item);
+             final Map<String, dynamic> p = Map<String, dynamic>.from(item as Map);
              if (p['product'] != null && p['product_details'] != null) {
-                return {
-                   "id": p['product'].toString(),
-                   "name": p['product_details']['title'],
-                   "price": p['product_details']['prix'].toString(),
-                   "image": p['product_details']['images'].isNotEmpty ? p['product_details']['images'][0]['image'] : null,
-                   "isFlash": false,
-                };
+                 final details = p['product_details'] as Map<String, dynamic>;
+                 final images = details['images'] as List<dynamic>;
+                 return {
+                    "id": p['product'].toString(),
+                    "name": details['title'] as String?,
+                    "price": details['prix'].toString(),
+                    "image": images.isNotEmpty ? images[0]['image'] as String? : null,
+                    "isFlash": false,
+                 };
              } else {
-                return {
-                   "id": p['id'].toString(),
-                   "name": p['name'],
-                   "price": p['price'].toString(),
-                   "image": p['image'], 
-                   "isFlash": true,
-                };
+                 return {
+                    "id": p['id'].toString(),
+                    "name": p['name'] as String?,
+                    "price": p['price'].toString(),
+                    "image": p['image'] as String?, 
+                    "isFlash": true,
+                 };
              }
-          }).toList();
+          }).cast<Map<String, dynamic>>().toList();
         }
 
         print("🚀 Live créé atomiquement avec succès ! ID: $realLiveId");
@@ -263,7 +290,7 @@ class PreLiveSetupViewModel extends BaseViewModel {
           await cameraController!.dispose();
           cameraController = null;
           // IMPORTANT: Délai indispensable pour que le système d'exploitation Android libère physiquement le capteur
-          await Future.delayed(const Duration(milliseconds: 600));
+          await Future<void>.delayed(const Duration(milliseconds: 600));
         }
 
         // 4. NAVIGATION VERS LE BROADCASTER (Remplacement pour ne pas empiler)
@@ -308,4 +335,64 @@ class PreLiveSetupViewModel extends BaseViewModel {
     cameraController?.dispose();
     super.dispose();
   }
+}
+
+class MultiValueMap extends MapBase<String, String> {
+  final List<MapEntry<String, String>> _entries = [];
+
+  @override
+  String? operator [](Object? key) {
+    for (var entry in _entries.reversed) {
+      if (entry.key == key) return entry.value;
+    }
+    return null;
+  }
+
+  @override
+  void operator []=(String key, String value) {
+    _entries.add(MapEntry(key, value));
+  }
+
+  @override
+  void clear() {
+    _entries.clear();
+  }
+
+  @override
+  Iterable<String> get keys => _entries.map((e) => e.key).toSet();
+
+  @override
+  String? remove(Object? key) {
+    String? lastValue;
+    _entries.removeWhere((entry) {
+      if (entry.key == key) {
+        lastValue = entry.value;
+        return true;
+      }
+      return false;
+    });
+    return lastValue;
+  }
+
+  @override
+  void forEach(void Function(String key, String value) action) {
+    for (var entry in _entries) {
+      action(entry.key, entry.value);
+    }
+  }
+
+  @override
+  Iterable<MapEntry<String, String>> get entries => _entries;
+
+  @override
+  int get length => _entries.length;
+}
+
+class CustomMultipartRequest extends http.MultipartRequest {
+  final Map<String, String> _customFields = MultiValueMap();
+
+  CustomMultipartRequest(String method, Uri url) : super(method, url);
+
+  @override
+  Map<String, String> get fields => _customFields;
 }

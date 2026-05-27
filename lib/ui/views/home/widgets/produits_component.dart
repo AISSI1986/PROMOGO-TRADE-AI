@@ -53,13 +53,13 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
       return _buildShimmerLoading(context);
     }
 
-    final allAds = viewModel.allAds;
-    final bool isEmpty = allAds.isEmpty;
+    final bool isEmpty = viewModel.allAds.isEmpty;
     
-    final catAds = allAds.take(4).toList();
-    final offerAds = allAds.skip(4).take(4).toList();
-    final customAds = allAds.skip(8).take(4).toList();
-    final gridAds = allAds.skip(12).toList();
+    // Chaque section affiche TOUS les produits que son API lui renvoie
+    final promoAds = viewModel.promoAds;
+    final offerAds = viewModel.offerAds;
+    final customAds = viewModel.customAds;
+    final gridAds = viewModel.gridAds;
 
     return SingleChildScrollView(
       controller: viewModel.productsScrollController,
@@ -87,7 +87,7 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
           _buildCategorySelector(context, viewModel),
           
           // Section Catégories (Réelles ou Squelettes)
-          if (catAds.isNotEmpty)
+          if (promoAds.isNotEmpty)
             _buildProductList(
               context, 
               viewModel,
@@ -102,7 +102,13 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
               backgroundDecorationIcon: Icons.double_arrow_rounded,
               decorationColor: Colors.orange.shade800,
               decorationRotation: 0.5,
-              products: catAds,
+              products: promoAds,
+              seeAllGradient: const LinearGradient(
+                colors: [Color(0xFFFFA726), Color(0xFFE65100)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              seeAllIcon: Icons.local_fire_department_rounded,
             )
           else if (isEmpty)
             _buildSkeletonSection(context, title: 'home.section_produits_cat'.tr()),
@@ -120,10 +126,16 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
                 end: Alignment.bottomLeft,
               ),
               titleColor: Colors.black,
-              backgroundDecorationIcon: Icons.bolt_rounded,
-              decorationColor: Colors.blue.shade800,
-              decorationRotation: 0.0,
+              backgroundDecorationIcon: Icons.local_offer_rounded,
+              decorationColor: Colors.white,
+              decorationRotation: -0.2,
               products: offerAds,
+              seeAllGradient: const LinearGradient(
+                colors: [Color(0xFF42A5F5), Color(0xFF0D47A1)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              seeAllIcon: Icons.discount_rounded,
             )
           else if (isEmpty)
             _buildSkeletonSection(context, title: 'home.section_meilleures_offres'.tr()),
@@ -141,10 +153,16 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
                 end: Alignment.bottomCenter,
               ),
               titleColor: Colors.black,
-              backgroundDecorationIcon: Icons.auto_awesome_rounded,
-              decorationColor: Colors.amber.shade800,
-              decorationRotation: -0.2,
+              backgroundDecorationIcon: Icons.stars_rounded,
+              decorationColor: kcPrimaryColor,
+              decorationRotation: 0.8,
               products: customAds,
+              seeAllGradient: const LinearGradient(
+                colors: [Color(0xFFAB47BC), Color(0xFF4A148C)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              seeAllIcon: Icons.auto_awesome_rounded,
             )
           else if (isEmpty)
             _buildSkeletonSection(context, title: 'home.section_selection_sur_mesure'.tr()),
@@ -191,6 +209,8 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
                 viewModel.navigateToDemandeDevis();
               } else if (promo['trKey'] == 'home.comparator_title') {
                 viewModel.navigateToPriceComparator();
+              } else if (promo['trKey'] == 'home.promo_top_ranking') {
+                viewModel.navigateToTopRanking();
               }
             },
             child: Container(
@@ -271,7 +291,7 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
   Widget _buildInfoBanner() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
       decoration: BoxDecoration(
         color: kcGoldLight,
         borderRadius: BorderRadius.zero,
@@ -286,26 +306,40 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.local_shipping_outlined, color: kcPrimaryColor, size: 20),
-              horizontalSpaceTiny,
-              Text(
-                'home.badge_livraison'.tr(),
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kcDarkGreyColor),
-              ),
-            ],
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.local_shipping_outlined, color: kcPrimaryColor, size: 18),
+                horizontalSpaceTiny,
+                Expanded(
+                  child: Text(
+                    'home.badge_livraison'.tr(),
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kcDarkGreyColor),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
           Container(height: 20, width: 1, color: kcLightGrey.withOpacity(0.5)),
-          Row(
-            children: [
-              const Icon(Icons.security_outlined, color: kcPrimaryColor, size: 20),
-              horizontalSpaceTiny,
-              Text(
-                'home.badge_securite'.tr(),
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kcDarkGreyColor),
-              ),
-            ],
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.security_outlined, color: kcPrimaryColor, size: 18),
+                horizontalSpaceTiny,
+                Expanded(
+                  child: Text(
+                    'home.badge_securite'.tr(),
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kcDarkGreyColor),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -437,8 +471,10 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
     required Color titleColor,
     required IconData backgroundDecorationIcon,
     required Color decorationColor,
-    required List<Product> products,
     double decorationRotation = 0.0,
+    required List<Product> products,
+    Gradient? seeAllGradient,
+    IconData? seeAllIcon,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
@@ -508,9 +544,14 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
-                  itemCount: products.length,
+                  itemCount: products.length > 10 ? 11 : products.length,
                   itemBuilder: (context, index) {
                     final itemWidth = (MediaQuery.of(context).size.width - 20) / 2.5;
+                    
+                    if (products.length > 10 && index == 10) {
+                      return _buildSeeAllCard(context, viewModel, title, itemWidth, seeAllGradient, seeAllIcon);
+                    }
+                    
                     return _buildProductCard(
                       viewModel,
                       products[index], 
@@ -522,6 +563,86 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSeeAllCard(BuildContext context, HomeViewModel viewModel, String sectionTitle, double width, Gradient? gradient, IconData? icon) {
+    final cardIcon = icon ?? Icons.explore_rounded;
+    
+    return InkWell(
+      onTap: () {
+        print("➡️ [Navigation] 'Voir tout' cliqué pour la section : $sectionTitle");
+      },
+      child: Container(
+        width: width,
+        margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        clipBehavior: Clip.antiAlias, // Pour couper l'icône de fond qui dépasse
+        decoration: BoxDecoration(
+          gradient: gradient ?? const LinearGradient(
+            colors: [kcPrimaryColor, Color(0xFF0F2050)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // Effet visuel : Grande icône en filigrane transparent
+            Positioned(
+              right: -20,
+              bottom: -20,
+              child: Icon(
+                cardIcon,
+                size: 110,
+                color: Colors.white.withOpacity(0.1),
+              ),
+            ),
+            // Contenu de la carte
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(cardIcon, color: Colors.white, size: 28),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'home.see_all'.tr(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800, 
+                      color: Colors.white,
+                      fontSize: 14,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(Icons.arrow_forward_rounded, color: Colors.black87, size: 16),
+                  )
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -655,6 +776,7 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
       ),
     );
   }
+
 
   Widget _buildSkeletonSection(BuildContext context, {required String title}) {
     return Column(

@@ -4,6 +4,7 @@ import 'package:stacked/stacked.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:promogoai/ui/common/app_colors.dart';
 import 'package:promogoai/models/subscription_plan.dart';
+import 'package:promogoai/models/user_subscription.dart';
 import 'vendre_viewmodel.dart';
 
 class VendreView extends StackedView<VendreViewModel> {
@@ -161,6 +162,8 @@ class VendreView extends StackedView<VendreViewModel> {
 
                 // Subscription
                 _buildSectionHeader('post_ad.section_promo'.tr()),
+                _buildActiveSubscriptionInfoCard(context, viewModel),
+                const SizedBox(height: 16),
                 _buildSubscriptionOptions(context, viewModel),
                 
                 const SizedBox(height: 32),
@@ -862,7 +865,7 @@ class VendreView extends StackedView<VendreViewModel> {
                         ),
                       ),
                       Text(
-                        '${variations.first.prix.toInt()} ${variations.first.devise}',
+                        viewModel.formatPrice(variations.first.prix, context),
                         style: TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: 14,
@@ -942,6 +945,146 @@ class VendreView extends StackedView<VendreViewModel> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildActiveSubscriptionInfoCard(BuildContext context, VendreViewModel viewModel) {
+    final sub = viewModel.activeUserSubscription;
+    
+    // Si pas d'abonnement ou BASIC
+    final String planName = sub?.planDetails?.nom ?? "BASIC";
+    final int maxAds = sub?.maxAds ?? 1;
+    final int activeAdsCount = sub?.activeAdsCount ?? 0;
+    final bool isActive = sub?.isActive ?? false;
+    final bool hasRemainingSlots = activeAdsCount < maxAds;
+
+    Color statusColor = Colors.grey;
+    String statusText = "Non actif";
+    if (planName != "BASIC") {
+      if (isActive) {
+        statusColor = Colors.green;
+        statusText = "Actif";
+      } else {
+        statusColor = Colors.orange;
+        statusText = sub?.statutPaiement ?? "En attente";
+      }
+    } else {
+      statusColor = Colors.blue;
+      statusText = "Gratuit";
+    }
+
+    return _buildCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "MON ABONNEMENT ACTUEL",
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.grey[600],
+                  letterSpacing: 0.5,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  statusText.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: statusColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(
+                planName == "BASIC" ? Icons.info_outline : Icons.rocket_launch,
+                color: planName == "BASIC" ? Colors.blue : kcTabIndicatorColor,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Pack $planName",
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  if (sub?.dateExpiration != null)
+                    Text(
+                      "Expire le ${sub!.dateExpiration!.day}/${sub.dateExpiration!.month}/${sub.dateExpiration!.year}",
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                ],
+              ),
+              const Spacer(),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    "$activeAdsCount / $maxAds",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: kcPrimaryColor,
+                    ),
+                  ),
+                  const Text(
+                    "Annonces Actives",
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const Divider(height: 20, color: Color(0xFFF0F0F0)),
+          Row(
+            children: [
+              Icon(
+                hasRemainingSlots ? Icons.check_circle_outline : Icons.error_outline,
+                color: hasRemainingSlots ? Colors.green : Colors.orange[800],
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  hasRemainingSlots
+                      ? "Vous disposez de slots libres pour publier cette annonce gratuitement !"
+                      : "Limite atteinte. Veuillez sélectionner un plan payant ci-dessous pour publier cette annonce.",
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: hasRemainingSlots ? Colors.green[800] : Colors.orange[900],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -1032,10 +1175,10 @@ class VendreView extends StackedView<VendreViewModel> {
 
   Widget _buildSubmitButton(BuildContext context, VendreViewModel viewModel) {
     final bool isPaid = viewModel.isPaidPlan;
-    final String priceText = isPaid ? " (${viewModel.selectedPlan!.prix.toInt()} ${viewModel.selectedPlan!.devise})" : "";
+    final String priceText = isPaid ? " (${viewModel.formatPrice(viewModel.selectedPlan!.prix, context)})" : "";
     final String btnText = isPaid 
-        ? "Buy ${viewModel.selectedPlan!.nom} & Post ad$priceText"
-        : "Post ad";
+        ? "${'post_ad.btn_pay_submit'.tr()}$priceText"
+        : 'post_ad.btn_submit'.tr();
 
     return Column(
       children: [
@@ -1053,7 +1196,7 @@ class VendreView extends StackedView<VendreViewModel> {
             ],
           ),
           child: ElevatedButton(
-            onPressed: () => viewModel.submitAd(context.locale.languageCode),
+            onPressed: () => viewModel.submitAd(context.locale.languageCode, context),
             style: ElevatedButton.styleFrom(
               backgroundColor: isPaid ? kcTabIndicatorColor : kcPrimaryColor,
               foregroundColor: Colors.white,
@@ -1074,7 +1217,7 @@ class VendreView extends StackedView<VendreViewModel> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
           child: Text(
-            "By clicking on Post ad, you accept the Terms of Use, confirm that you will abide by the Safety Tips, and declare that this posting does not include any Prohibited Items.",
+            'post_ad.terms_disclaimer'.tr(),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 11,

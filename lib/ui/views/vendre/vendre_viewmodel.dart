@@ -10,12 +10,18 @@ import 'package:promogoai/ui/common/api_constants.dart';
 import 'package:http/http.dart' as http;
 import 'package:promogoai/app/app.router.dart';
 import 'package:promogoai/ui/common/setup_snackbar_ui.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:promogoai/ui/widgets/common/premium_dialog.dart';
 
 import 'package:promogoai/services/local_storage_service.dart';
 import 'package:promogoai/services/subscription_service.dart';
 import 'package:promogoai/services/category_service.dart';
 import 'package:promogoai/services/auth_service.dart';
+import 'package:promogoai/services/currency_service.dart';
+import 'package:promogoai/services/ad_service.dart'; // <--- AJOUT DE L'AD SERVICE
 import 'package:promogoai/models/subscription_plan.dart';
+import 'package:promogoai/models/user_subscription.dart';
+import 'package:promogoai/ui/views/vendre/paystack_payment_view.dart';
 
 class VendreViewModel extends BaseViewModel {
   final _navigationService = locator<NavigationService>();
@@ -24,7 +30,11 @@ class VendreViewModel extends BaseViewModel {
   final _snackbarService = locator<SnackbarService>();
   final _localStorageService = locator<LocalStorageService>();
   final _subscriptionService = locator<SubscriptionService>();
+  final _currencyService = locator<CurrencyService>();
+  final _adService = locator<AdService>(); // <--- INJECTION DE L'AD SERVICE
   final _imagePicker = ImagePicker();
+
+  String formatPrice(double price, BuildContext context) => _currencyService.formatPrice(price, context);
  
    // Contrôleurs pour l'UI (pour afficher les brouillons)
    final titleController = TextEditingController();
@@ -40,6 +50,9 @@ class VendreViewModel extends BaseViewModel {
   String _categorySearchQuery = '';
   List<Map<String, dynamic>> get categories => _categoryService.filterCategories(_categorySearchQuery);
 
+  UserSubscription? _activeUserSubscription;
+  UserSubscription? get activeUserSubscription => _activeUserSubscription;
+
   void init() async {
     loadDraft();
     if (_subscriptionService.cachedPlans == null) {
@@ -47,13 +60,23 @@ class VendreViewModel extends BaseViewModel {
         await _subscriptionService.fetchPlans();
         // After fetching, try to map the draft subscription name to a plan object
         _syncSelectedPlanFromDraft();
-        notifyListeners();
       } catch (e) {
         debugPrint("❌ [VendreViewModel] Erreur fetchPlans: $e");
       }
     } else {
       _syncSelectedPlanFromDraft();
     }
+
+    // Charger l'abonnement actif
+    if (_authService.isLogged) {
+      try {
+        _activeUserSubscription = await _subscriptionService.fetchActiveSubscription();
+        print("👤 [VendreViewModel] Abonnement actif chargé: Nom=${_activeUserSubscription?.planDetails?.nom}, Actives=${_activeUserSubscription?.activeAdsCount}/${_activeUserSubscription?.maxAds}");
+      } catch (e) {
+        debugPrint("❌ [VendreViewModel] Erreur active subscription: $e");
+      }
+    }
+    notifyListeners();
   }
 
   void _syncSelectedPlanFromDraft() {
@@ -111,18 +134,18 @@ class VendreViewModel extends BaseViewModel {
     try {
       final draftJson = await _localStorageService.getData(_draftFileName);
       if (draftJson != null) {
-        final Map<String, dynamic> data = jsonDecode(draftJson);
-        _title = data['title'] ?? '';
-        _price = data['price'] ?? '';
-        _location = data['location'] ?? '';
-        _description = data['description'] ?? '';
-        _videoLink = data['videoLink'] ?? '';
-        _selectedCategoryId = data['selectedCategoryId'];
-        _selectedCategory = data['selectedCategory'];
-        _negotiation = data['negotiation'];
-        _selectedSubscription = data['selectedSubscription'] ?? 'Free';
+        final Map<String, dynamic> data = Map<String, dynamic>.from(jsonDecode(draftJson) as Map);
+        _title = (data['title'] as String?) ?? '';
+        _price = (data['price'] as String?) ?? '';
+        _location = (data['location'] as String?) ?? '';
+        _description = (data['description'] as String?) ?? '';
+        _videoLink = (data['videoLink'] as String?) ?? '';
+        _selectedCategoryId = data['selectedCategoryId'] as int?;
+        _selectedCategory = data['selectedCategory'] as String?;
+        _negotiation = data['negotiation'] as String?;
+        _selectedSubscription = (data['selectedSubscription'] as String?) ?? 'Free';
         
-        final List<dynamic> savedBulk = data['bulkPrices'] ?? [];
+        final List<dynamic> savedBulk = (data['bulkPrices'] as List<dynamic>?) ?? [];
         _bulkPrices = savedBulk.map((item) => Map<String, String>.from(item as Map)).toList();
         
         // Mettre à jour les contrôleurs pour l'UI
@@ -132,7 +155,7 @@ class VendreViewModel extends BaseViewModel {
         descriptionController.text = _description;
         videoController.text = _videoLink;
         
-        final List<dynamic> paths = data['imagePaths'] ?? [];
+        final List<dynamic> paths = (data['imagePaths'] as List<dynamic>?) ?? [];
         _images = paths.map((p) => File(p as String)).where((f) => f.existsSync()).toList();
         
         notifyListeners();
@@ -210,7 +233,16 @@ class VendreViewModel extends BaseViewModel {
 
   List<SubscriptionPlan> get subscriptionPlans => _subscriptionService.cachedPlans ?? [];
 
-  bool get isPaidPlan => _selectedPlan != null && _selectedPlan!.prix > 0;
+  bool get isPaidPlan {
+    // Si l'utilisateur a un abonnement actif et qu'il lui reste des slots disponibles, il ne paie pas.
+    if (_activeUserSubscription != null && 
+        _activeUserSubscription!.isActive &&
+        _activeUserSubscription!.activeAdsCount < _activeUserSubscription!.maxAds) {
+      return false;
+    }
+    // Sinon, il paie s'il a sélectionné un plan payant.
+    return _selectedPlan != null && _selectedPlan!.prix > 0;
+  }
 
   String get submitButtonText => isPaidPlan ? 'post_ad.btn_pay_submit' : 'post_ad.btn_submit';
 
@@ -258,8 +290,8 @@ class VendreViewModel extends BaseViewModel {
 
   void setCategory(Map<String, dynamic>? category) {
     if (category != null) {
-      _selectedCategory = category['libele'];
-      _selectedCategoryId = category['id'];
+      _selectedCategory = category['libele'] as String?;
+      _selectedCategoryId = category['id'] as int?;
       _categoryHasError = false; // Reset error
     } else {
       _selectedCategory = null;
@@ -383,7 +415,7 @@ class VendreViewModel extends BaseViewModel {
   }
 
   // SUBMIT AD
-  Future<void> submitAd(String languageCode) async {
+  Future<void> submitAd(String languageCode, BuildContext context) async {
     // 0. Vérification Authentification
     if (!_authService.isLogged) {
       _snackbarService.showCustomSnackBar(
@@ -445,6 +477,72 @@ class VendreViewModel extends BaseViewModel {
     setBusy(true);
 
     try {
+      if (isPaidPlan) {
+        if (_selectedPlan == null) {
+          _snackbarService.showCustomSnackBar(
+            message: "Veuillez sélectionner un plan d'abonnement.",
+            variant: SnackbarType.warning,
+          );
+          setBusy(false);
+          return;
+        }
+
+        // 1. Initialiser le paiement
+        final payInit = await _subscriptionService.initializePayment(_selectedPlan!.id, 'paystack');
+        if (payInit['success'] != true) {
+          final errorMsg = payInit['error'] as String?;
+          if (errorMsg == 'PAYMENT_SERVICE_UNAVAILABLE' || (errorMsg != null && errorMsg.contains('PAYMENT_SERVICE_UNAVAILABLE'))) {
+            // Afficher le joli modal PremiumDialog pour service indisponible
+            showPremiumDialog(
+              context,
+              title: 'payment_modal.unavailable_title'.tr(),
+              description: 'payment_modal.unavailable_message'.tr(),
+              buttonTitle: 'payment_modal.btn_close'.tr(),
+              onConfirm: () {},
+            );
+          } else {
+            _snackbarService.showCustomSnackBar(
+              message: errorMsg ?? "Erreur d'initialisation du paiement.",
+              variant: SnackbarType.error,
+            );
+          }
+          setBusy(false);
+          return;
+        }
+
+        final String authUrl = payInit['authorization_url'] as String;
+        final String reference = payInit['reference'] as String;
+
+        // 2. Ouvrir la WebView de paiement Paystack
+        final bool? paymentSuccess = await _navigationService.navigateWithTransition(
+          PaystackPaymentView(paymentUrl: authUrl, reference: reference),
+          transitionStyle: Transition.downToUp,
+        );
+
+        if (paymentSuccess != true) {
+          _snackbarService.showCustomSnackBar(
+            message: "Transaction annulée.",
+            variant: SnackbarType.warning,
+          );
+          setBusy(false);
+          return;
+        }
+
+        // 3. Vérifier le paiement
+        final payVerify = await _subscriptionService.verifyPayment(reference);
+        if (payVerify['success'] != true || payVerify['status'] != 'success') {
+          _snackbarService.showCustomSnackBar(
+            message: (payVerify['message'] as String?) ?? "La vérification du paiement a échoué.",
+            variant: SnackbarType.error,
+          );
+          setBusy(false);
+          return;
+        }
+
+        // Rafraîchir l'abonnement actif localement après le succès du paiement
+        _activeUserSubscription = await _subscriptionService.fetchActiveSubscription();
+      }
+
       final request = http.MultipartRequest('POST', Uri.parse(ApiConstants.addAdEndpoint));
       
       // Headers
@@ -458,7 +556,8 @@ class VendreViewModel extends BaseViewModel {
       request.fields['categorie'] = _selectedCategoryId.toString();
       request.fields['description'] = _description;
       request.fields['lien_video'] = _videoLink;
-      request.fields['language'] = languageCode; // <--- AJOUT DE LA LANGUE AUTOMATIQUE
+      request.fields['language'] = languageCode;
+      request.fields['status'] = 'PUBLISHED'; // Toujours publier directement car le paiement est fait ou valide
 
       // Images (Multipart)
       for (var file in _images) {
@@ -470,8 +569,8 @@ class VendreViewModel extends BaseViewModel {
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 201) {
-        final adData = jsonDecode(response.body);
-        final int adId = adData['id'];
+        final adData = jsonDecode(response.body) as Map<String, dynamic>;
+        final int adId = int.parse(adData['id'].toString());
 
         // --- ENVOI DES PRIX EN GROS (MÉTHODE INDÉPENDANTE) ---
         if (_showBulkPriceForm && _bulkPrices.isNotEmpty) {
@@ -496,18 +595,25 @@ class VendreViewModel extends BaseViewModel {
           variant: SnackbarType.success,
         );
         clearDraft();
+        // NOUVEAU : On recharge les annonces pour que le nouveau produit apparaisse instantanément en première position sur l'accueil !
+        await _adService.loadAds();
         // Petit délai pour laisser le temps de lire le message de succès
         await Future.delayed(const Duration(seconds: 2));
         _navigationService.replaceWithSavedView();
       } else if (response.statusCode == 401) {
-        // Session expirée
-        _snackbarService.showCustomSnackBar(
-          message: "Votre session a expiré. Veuillez vous reconnecter.",
-          variant: SnackbarType.error,
-        );
-        clearDraft();
-        _authService.logout(); 
-        _navigationService.navigateToLoginView();
+        print("🔄 [SubmitAd] Session expirée (401). Tentative de rafraîchissement...");
+        bool refreshed = await _authService.refreshAccessToken();
+        if (refreshed) {
+          print("🔄 [SubmitAd] Token rafraîchi, nouvelle tentative de publication...");
+          return await submitAd(languageCode, context);
+        } else {
+          _snackbarService.showCustomSnackBar(
+            message: "Votre session a expiré. Veuillez vous reconnecter.",
+            variant: SnackbarType.error,
+          );
+          clearDraft();
+          _navigationService.navigateToLoginView();
+        }
       } else {
         print("❌ [SubmitAd] Erreur ${response.statusCode}: ${response.body}");
         _snackbarService.showCustomSnackBar(

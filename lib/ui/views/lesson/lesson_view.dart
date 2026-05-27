@@ -72,17 +72,69 @@ class LessonView extends StackedView<LessonViewModel> {
                   ),
                   const SizedBox(height: 24),
                   
-                  // Contenu de la leçon
+                  // Contenu de la leçon (Logique conditionnelle TEXT vs VIDEO)
                   MarkdownBody(
-                    data: viewModel.currentLesson.description ?? 'Pas de contenu pour cette leçon.',
+                    data: viewModel.currentLesson.type == 'TEXT'
+                        ? "${viewModel.currentLesson.description ?? ''}\n\n${viewModel.currentLesson.contenuUrl ?? ''}".trim().isEmpty 
+                            ? 'Pas de contenu pour cette leçon.' 
+                            : "${viewModel.currentLesson.description ?? ''}\n\n${viewModel.currentLesson.contenuUrl ?? ''}".trim()
+                        : viewModel.currentLesson.description ?? 'Pas de description pour ce contenu.',
                     styleSheet: MarkdownStyleSheet(
                       p: GoogleFonts.inter(fontSize: 16, height: 1.7, color: const Color(0xFF2D3436)),
                       h1: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: kcPrimaryColor),
                       h2: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: kcPrimaryColor),
                       strong: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
                       blockSpacing: 20,
+                      tableBorder: TableBorder.all(color: kcLightGrey.withOpacity(0.4), width: 1),
+                      tableCellsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
                   ),
+                  const SizedBox(height: 24),
+
+                  // Si c'est une vidéo ou un PDF, afficher un bouton d'action élégant
+                  if (viewModel.currentLesson.type != 'TEXT' && viewModel.currentLesson.contenuUrl != null && viewModel.currentLesson.contenuUrl!.isNotEmpty)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: kcPrimaryColor.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: kcPrimaryColor.withOpacity(0.1)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: kcPrimaryColor,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              viewModel.currentLesson.type == 'VIDEO' ? Icons.play_arrow_rounded : Icons.picture_as_pdf_rounded,
+                              color: kcSecondaryGold,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  viewModel.currentLesson.type == 'VIDEO' ? 'Support Vidéo' : 'Document PDF',
+                                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: kcPrimaryColor),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Cliquez ci-dessous pour ouvrir le support',
+                                  style: GoogleFonts.inter(fontSize: 13, color: kcMediumGrey),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   const SizedBox(height: 40),
                 ],
               ),

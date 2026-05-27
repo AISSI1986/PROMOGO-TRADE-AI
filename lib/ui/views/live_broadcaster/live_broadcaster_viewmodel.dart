@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:stacked/stacked.dart';
 import 'dart:async';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 // IMPORTS POUR LE MOTEUR APIVIDEO (Plus stable que HaishinKit sur Android)
 import 'package:apivideo_live_stream/apivideo_live_stream.dart';
@@ -19,6 +20,9 @@ class LiveBroadcasterViewModel extends BaseViewModel {
   
   ApiVideoLiveStreamController? _controller;
   ApiVideoLiveStreamController? get controller => _controller;
+
+  bool _isStreamingInitialized = false;
+  bool get isStreamingInitialized => _isStreamingInitialized;
 
   bool _isLive = false;
   bool get isLive => _isLive;
@@ -118,6 +122,12 @@ class LiveBroadcasterViewModel extends BaseViewModel {
           "name": newName,
           "price": "$newPrice GHS",
         });
+      } else if (response.statusCode == 401) {
+        print("🔑 [LiveBroadcaster] 401 sur update product. Tentative de refresh...");
+        final refreshed = await _authService.refreshAccessToken();
+        if (refreshed) {
+          return await updateProduct(index, newName, newPrice);
+        }
       } else {
         print("⚠️ [LiveBroadcaster] Erreur backend (${response.statusCode}): ${response.body}");
       }
@@ -129,10 +139,11 @@ class LiveBroadcasterViewModel extends BaseViewModel {
   void initBroadcaster(String id, List<Map<String, dynamic>> products) async {
     this.liveId = id;
     this.sellerProducts = products;
+    WakelockPlus.enable(); // Garde l'écran allumé pendant le Live !
     
     // 🛑 VITAL : On attend 1 seconde complète pour que l'animation de changement de page soit finie
     // et que l'ancien écran Pre-Live ait TOTALEMENT libéré le capteur photo Android.
-    await Future.delayed(const Duration(milliseconds: 1000));
+    await Future<void>.delayed(const Duration(milliseconds: 1000));
     await _initStreaming();
     _socketService.connect(liveId);
     _fetchChatHistory();
@@ -198,7 +209,7 @@ class LiveBroadcasterViewModel extends BaseViewModel {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final List<dynamic> data = json.decode(response.body) as List<dynamic>;
         for (var msg in data) {
           _chatMessages.add({
             "user": msg['user'],
@@ -208,6 +219,12 @@ class LiveBroadcasterViewModel extends BaseViewModel {
           });
         }
         notifyListeners();
+      } else if (response.statusCode == 401) {
+        print("🔑 [LiveBroadcaster] 401 sur fetch chat history. Tentative de refresh...");
+        final refreshed = await _authService.refreshAccessToken();
+        if (refreshed) {
+          return await _fetchChatHistory();
+        }
       }
     } catch (e) {
       print("❌ [LiveBroadcaster] Erreur récupération historique chat: $e");
@@ -216,23 +233,25 @@ class LiveBroadcasterViewModel extends BaseViewModel {
 
   Future<void> _initStreaming() async {
     try {
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future<void>.delayed(const Duration(milliseconds: 500));
       
-      _controller = ApiVideoLiveStreamController(
-        initialAudioConfig: AudioConfig(bitrate: 128000),
-        initialVideoConfig: VideoConfig.withDefaultBitrate(resolution: Resolution.RESOLUTION_720),
-        onConnectionSuccess: () { print("✅ [LiveBroadcaster] RTMP Connecté"); },
-        onConnectionFailed: (error) { print("❌ [LiveBroadcaster] Erreur RTMP: $error"); },
+      final controller = ApiVideoLiveStreamController(
+        initialAudioConfig: AudioConfig(bitrate: 64000),
+        initialVideoConfig: VideoConfig.withDefaultBitrate(resolution: Resolution.RESOLUTION_480),
+        onConnectionSuccess: () { print("[LiveBroadcaster] RTMP Connecté"); },
+        onConnectionFailed: (error) { print("[LiveBroadcaster] Erreur RTMP: $error"); },
       );
 
       _isFrontCamera = true;
       
       // Allumer la caméra locale
-      await _controller!.initialize();
+      await controller.initialize();
       
+      _controller = controller;
+      _isStreamingInitialized = true;
       notifyListeners();
     } catch (e) {
-      print("❌ [LiveBroadcaster] Erreur Init apivideo : $e");
+      print("[LiveBroadcaster] Erreur Init apivideo : $e");
     }
   }
 
@@ -240,16 +259,54 @@ class LiveBroadcasterViewModel extends BaseViewModel {
   bool _showLiveIndicator = false;
   bool get showLiveIndicator => _showLiveIndicator;
 
+  Future<void> endLiveSession() async {
+    if (_isLive || liveId.isNotEmpty) {
+      try {
+        final response = await http.patch(
+          Uri.parse(ApiConstants.getUpdateLiveStatusEndpoint(liveId)),
+          headers: {'Authorization': 'Bearer ${_authService.accessToken}'},
+          body: {'status': 'ENDED'},
+        );
+        if (response.statusCode == 401) {
+          print("🔑 [LiveBroadcaster] 401 sur endLiveSession. Tentative de refresh...");
+          final refreshed = await _authService.refreshAccessToken();
+          if (refreshed) {
+            return await endLiveSession();
+          }
+        }
+        print("[LiveBroadcaster] Statut passé à ENDED dans la base de données");
+      } catch (e) {
+        print("[LiveBroadcaster] Erreur appel API ENDED : $e");
+      }
+      try {
+        await _controller!.stop();
+      } catch (e) {
+        print("[LiveBroadcaster] Erreur lors de la fermeture RTMP : $e");
+      }
+      _isLive = false;
+      _stopTimer();
+      _socketService.sendEvent({"type": "live_status", "status": "ended"});
+      notifyListeners();
+    }
+  }
+
   void toggleLive() async {
     if (!_isLive) {
-      final rtmpUrl = _srsService.getRtmpPushUrl(liveId);
       try {
         // 1. MISE À JOUR DU STATUT EN BASE DE DONNÉES (Django)
-        await http.patch(
+        final response = await http.patch(
           Uri.parse(ApiConstants.getUpdateLiveStatusEndpoint(liveId)),
           headers: {'Authorization': 'Bearer ${_authService.accessToken}'},
           body: {'status': 'LIVE'},
         );
+
+        if (response.statusCode == 401) {
+          print("🔑 [LiveBroadcaster] 401 sur toggleLive. Tentative de refresh...");
+          final refreshed = await _authService.refreshAccessToken();
+          if (refreshed) {
+            return toggleLive();
+          }
+        }
 
         // 2. CONNEXION RTMP APIVIDEO
         String baseUrl = "rtmp://${ApiConstants.srsHost}:1935/live";
@@ -268,35 +325,11 @@ class LiveBroadcasterViewModel extends BaseViewModel {
         _startTimer();
         _socketService.sendEvent({"type": "live_status", "status": "started"});
       } catch (e) {
-        print("❌ [LiveBroadcaster] Erreur Lancement : $e");
+        print("[LiveBroadcaster] Erreur Lancement : $e");
       }
     } else {
-      // ARRÊT DU LIVE
-      _showLiveIndicator = false;
-      
-      try {
-        // Mise à jour du statut en base de données EN PREMIER (au cas où la vidéo plante)
-        await http.patch(
-          Uri.parse(ApiConstants.getUpdateLiveStatusEndpoint(liveId)),
-          headers: {'Authorization': 'Bearer ${_authService.accessToken}'},
-          body: {'status': 'ENDED'},
-        );
-        print("✅ [LiveBroadcaster] Statut passé à ENDED dans la base de données");
-      } catch (e) {
-        print("❌ [LiveBroadcaster] Erreur appel API ENDED : $e");
-      }
-
-      try {
-        await _controller!.stop();
-      } catch (e) {
-        print("⚠️ [LiveBroadcaster] Erreur lors de la fermeture RTMP : $e");
-      }
-      
-      _isLive = false;
-      _stopTimer();
-      _socketService.sendEvent({"type": "live_status", "status": "ended"});
+      await endLiveSession();
     }
-    notifyListeners();
   }
 
   void _startTimer() {
@@ -329,7 +362,7 @@ class LiveBroadcasterViewModel extends BaseViewModel {
   Duration _liveDuration = Duration.zero;
   String get formattedDuration => _liveDuration.toString().split('.').first.padLeft(8, "0");
   Timer? _liveTimer;
-  StreamSubscription? _socketSubscription;
+  StreamSubscription<dynamic>? _socketSubscription;
 
   void pinAllProducts() {
     _pinnedProducts.clear();
@@ -346,10 +379,24 @@ class LiveBroadcasterViewModel extends BaseViewModel {
 
   @override
   void dispose() {
+    // Si l'utilisateur quitte l'écran sans avoir arrêté le live, on force le statut ENDED sur Django
+    if (_isLive || liveId.isNotEmpty) {
+      http.patch(
+        Uri.parse(ApiConstants.getUpdateLiveStatusEndpoint(liveId)),
+        headers: {'Authorization': 'Bearer ${_authService.accessToken}'},
+        body: {'status': 'ENDED'},
+      ).catchError((_) => http.Response('', 500));
+    }
     _socketSubscription?.cancel();
     _socketService.disconnect();
     _stopTimer();
-    _controller?.stop();
+    try {
+      _controller?.stop();
+      _controller?.dispose();
+    } catch (e) {
+      print("[LiveBroadcaster] Erreur lors du dispose du controleur: $e");
+    }
+    WakelockPlus.disable(); // Permet à l'écran de se remettre en veille
     super.dispose();
   }
 }

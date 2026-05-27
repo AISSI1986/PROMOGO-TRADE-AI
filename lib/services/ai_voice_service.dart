@@ -6,6 +6,7 @@ import 'package:record/record.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:promogoai/ui/common/api_constants.dart';
+import 'package:promogoai/ui/views/home/home_viewmodel.dart';
 
 class AiVoiceService {
   final _logger = Logger();
@@ -77,47 +78,46 @@ class AiVoiceService {
 
     try {
       final channel = WebSocketChannel.connect(wsUrl);
-      
       if (onProgress != null) onProgress("Envoi de l'audio ($_selectedLangue)...");
       
       final audioFile = File(audioFilePath);
       final bytes = await audioFile.readAsBytes();
       channel.sink.add(bytes);
       
-      if (onProgress != null) onProgress("Analyse en cours...");
+      if (onProgress != null) onProgress("Analyse par l'IA en cours...");
 
-      String finalResult = "Analyse terminée.";
-
-      await for (var message in channel.stream) {
-        _logger.i('Message WebSocket reçu: $message');
-        
-        try {
-          final data = jsonDecode(message as String);
-          
-          if (data['status'] != null) {
-            if (onProgress != null) onProgress(data['status']);
-          }
-          
-          if (data.containsKey('transcription')) {
-            return {
-              "transcription": data['transcription']?.toString() ?? "Analyse terminée.",
-              "vector": data['vector'] ?? data['vecteur']
-            };
-          } else if (data.containsKey('error')) {
-            return {"error": "Erreur: ${data['error']}"};
-          }
-        } catch (e) {
-          finalResult = message.toString();
-        }
-      }
-      
-      channel.sink.close();
-      return {"transcription": finalResult};
-      
+      return await _listenToChannel(channel, onProgress);
     } catch (e) {
       _logger.e('Erreur de connexion WebSocket: $e');
       return {"error": "Erreur de connexion au serveur IA."};
     }
+  }
+
+  Future<Map<String, dynamic>> _listenToChannel(WebSocketChannel channel, Function(String)? onProgress) async {
+    String finalResult = "Analyse terminée.";
+    await for (var message in channel.stream) {
+      _logger.i('Message WebSocket reçu: $message');
+      try {
+        final data = jsonDecode(message as String);
+        if (data['status'] != null) {
+          if (onProgress != null) onProgress(data['status']);
+        }
+        if (data.containsKey('transcription')) {
+          channel.sink.close();
+          return {
+            "transcription": data['transcription']?.toString() ?? "Analyse terminée.",
+            "vector": data['vector'] ?? data['vecteur']
+          };
+        } else if (data.containsKey('error')) {
+          channel.sink.close();
+          return {"error": "Erreur: ${data['error']}"};
+        }
+      } catch (e) {
+        finalResult = message.toString();
+      }
+    }
+    channel.sink.close();
+    return {"transcription": finalResult};
   }
 
   void dispose() {

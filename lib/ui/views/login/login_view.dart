@@ -34,15 +34,20 @@ class LoginView extends StackedView<LoginViewModel> {
                   ),
                 ),
                 verticalSpaceMedium, // Espacement réduit
-                const Text(
-                  'Connexion',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: kcPrimaryColor),
+                Center(
+                  child: Text(
+                    'login.title'.tr(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: kcPrimaryColor),
+                  ),
                 ),
                 verticalSpaceSmall,
-                const Text(
-                  'Bienvenue sur Promogo. Connectez-vous pour continuer.',
-                  style: TextStyle(fontSize: 15, color: Colors.grey),
+                Center(
+                  child: Text(
+                    'login.subtitle'.tr(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 15, color: Colors.grey),
+                  ),
                 ),
                 verticalSpaceMedium, // Espacement réduit pour remonter le formulaire
                 Row(
@@ -85,7 +90,7 @@ class LoginView extends StackedView<LoginViewModel> {
                           FilteringTextInputFormatter.digitsOnly,
                         ],
                         decoration: InputDecoration(
-                          labelText: 'Téléphone',
+                          labelText: 'login.phone'.tr(),
                           errorText: viewModel.phoneError,
                           prefixIcon: const Icon(Icons.phone_outlined),
                           border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
@@ -96,12 +101,19 @@ class LoginView extends StackedView<LoginViewModel> {
                 ),
                 verticalSpaceMedium,
                 TextField(
-                  obscureText: true,
+                  obscureText: viewModel.obscurePassword,
                   onChanged: (val) => viewModel.password = val,
                   decoration: InputDecoration(
-                    labelText: 'Mot de passe',
+                    labelText: 'login.password'.tr(),
                     errorText: viewModel.passwordError,
                     prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        viewModel.obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        color: Colors.grey,
+                      ),
+                      onPressed: viewModel.toggleObscurePassword,
+                    ),
                     border: const OutlineInputBorder(borderRadius: BorderRadius.zero),
                   ),
                 ),
@@ -110,8 +122,8 @@ class LoginView extends StackedView<LoginViewModel> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: viewModel.navigateToForgotPassword,
-                    child: const Text('Mot de passe oublié ?',
-                        style: TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.bold, fontSize: 13)),
+                    child: Text('login.forgot_password'.tr(),
+                        style: const TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.bold, fontSize: 13)),
                   ),
                 ),
                 verticalSpaceSmall,
@@ -131,18 +143,18 @@ class LoginView extends StackedView<LoginViewModel> {
                           width: 20, 
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
                         )
-                      : const Text('Se connecter',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      : Text('login.login_button'.tr(),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   ),
                 ),
                 verticalSpaceMedium, // Espacement réduit
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text("Vous n'avez pas de compte ? "),
+                    Text('login.no_account'.tr()),
                     TextButton(
                       onPressed: viewModel.navigateToRegister,
-                      child: const Text('Inscrivez-vous', style: TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.bold)),
+                      child: Text('login.register_link'.tr(), style: const TextStyle(color: kcPrimaryColor, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),

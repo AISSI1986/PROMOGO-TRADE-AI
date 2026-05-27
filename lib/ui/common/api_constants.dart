@@ -9,8 +9,9 @@ class ApiConstants {
 
   // --- Serveur Django (Backend Principal) ---
   static const String djangoServerHost = '31.97.116.73';
-  static const String djangoRootUrl = 'http://$djangoServerHost';
+  static const String djangoRootUrl = 'http://$djangoServerHost:8085';
   static const String djangoBaseUrl = '$djangoRootUrl/api';
+  static const String djangoWsBaseUrl = 'ws://$djangoServerHost:8085';
 
   // Routes Authentification
   static const String sendOtpEndpoint = '$djangoBaseUrl/auth/otp/send/';
@@ -26,6 +27,9 @@ class ApiConstants {
   static const String myAdsEndpoint = '$djangoBaseUrl/ads/me/';
   static const String subscriptionPlansEndpoint = '$djangoBaseUrl/subscription-plans/';
   static const String mySubscriptionsEndpoint = '$djangoBaseUrl/my-subscriptions/';
+  static const String activeSubscriptionEndpoint = '$djangoBaseUrl/my-subscriptions/active/';
+  static const String initializePaymentEndpoint = '$djangoBaseUrl/payments/initialize/';
+  static const String verifyPaymentEndpoint = '$djangoBaseUrl/payments/verify/';
   static String getBulkPricesEndpoint(int adId) => '$djangoBaseUrl/ads/$adId/bulk-prices/';
 
   // Academy
@@ -49,4 +53,11 @@ class ApiConstants {
   static String getUpdateLiveProductEndpoint(String productId) => '${liveBaseEndpoint}product/$productId/update/';
   static String getLiveOrdersEndpoint(String liveId) => '$liveBaseEndpoint$liveId/orders/';
   static String getLiveChatHistoryEndpoint(String liveId) => '$liveBaseEndpoint$liveId/chat/';
+
+  // --- Endpoints Chat (Messagerie) ---
+  static const String chatRoomsEndpoint = '$djangoBaseUrl/chat/rooms/';
+  static const String chatGetOrCreateRoomEndpoint = '$djangoBaseUrl/chat/rooms/get-or-create/';
+  static String getChatMessagesEndpoint(int roomId) => '$djangoBaseUrl/chat/rooms/$roomId/messages/';
+  static String getSendChatMessageEndpoint(int roomId) => '$djangoBaseUrl/chat/rooms/$roomId/messages/send/';
+  static String getChatWebSocketUrl(int roomId) => '$djangoWsBaseUrl/ws/chat/$roomId/';
 }
