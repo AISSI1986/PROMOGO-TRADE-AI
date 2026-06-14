@@ -27,6 +27,8 @@ import '../services/settings_service.dart';
 import '../services/srs_streaming_service.dart';
 import '../services/subscription_service.dart';
 import '../services/translation_service.dart';
+import '../services/adaptive_stream_service.dart';
+import '../services/stream_quality_service.dart';
 
 final locator = StackedLocator.instance;
 
@@ -61,4 +63,13 @@ Future<void> setupLocator(
   locator.registerLazySingleton(() => AdService());
   locator.registerLazySingleton(() => ChatService());
   locator.registerLazySingleton(() => NotificationService());
+
+  // 🆕 Services Streaming Adaptatif
+  locator.registerSingleton<AdaptiveStreamService>(
+    AdaptiveStreamService(),
+  );
+
+  locator.registerSingleton<StreamQualityService>(
+    StreamQualityService(),
+  );
 }

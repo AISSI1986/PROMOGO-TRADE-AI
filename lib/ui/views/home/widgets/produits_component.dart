@@ -167,6 +167,33 @@ class ProduitsComponent extends ViewModelWidget<HomeViewModel> {
           else if (isEmpty)
             _buildSkeletonSection(context, title: 'home.section_selection_sur_mesure'.tr()),
 
+          // Section Agriculture (Réelles ou Squelettes)
+          if (customAds.isNotEmpty)
+            _buildProductList(
+              context, 
+              viewModel,
+              title: 'home.section_agriculture'.tr(),
+              subtitle: 'home.section_agriculture_sub'.tr(),
+              backgroundGradient: const LinearGradient(
+                colors: [Color(0xFFE8F5E9), Color(0xFFF1F8E9)],
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+              ),
+              titleColor: Colors.black,
+              backgroundDecorationIcon: Icons.agriculture_rounded,
+              decorationColor: Colors.green,
+              decorationRotation: -0.1,
+              products: customAds,
+              seeAllGradient: const LinearGradient(
+                colors: [Color(0xFF43A047), Color(0xFF1B5E20)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              seeAllIcon: Icons.grass_rounded,
+            )
+          else if (isEmpty)
+            _buildSkeletonSection(context, title: 'home.section_agriculture'.tr()),
+
           _buildBottomPromoWidgets(viewModel),
 
           if (gridAds.isNotEmpty)

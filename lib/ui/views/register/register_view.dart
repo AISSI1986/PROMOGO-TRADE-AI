@@ -139,6 +139,20 @@ class _StepPersonalInfo extends ViewModelWidget<RegisterViewModel> {
             ),
             verticalSpaceMedium,
 
+            // --- NOM DE LA BOUTIQUE (Vendeur Uniquement) ---
+            if (viewModel.isSeller) ...[
+              _buildTextField(
+                label: 'Nom de la boutique',
+                icon: Icons.store_outlined,
+                controller: viewModel.shopNameController,
+                onChanged: (val) {
+                  viewModel.shopName = val;
+                  viewModel.updateField();
+                },
+              ),
+              verticalSpaceMedium,
+            ],
+
             // --- NATIONALITÉ ---
             InkWell(
               onTap: () {

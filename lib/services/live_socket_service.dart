@@ -22,8 +22,9 @@ class LiveSocketService {
   void _connectInternal() {
     if (_currentLiveId == null) return;
     if (_channel != null) {
-      print("⚠️ [WebSocket] Déjà connecté, tentative ignorée.");
-      return;
+      print("⚠️ [WebSocket] Déjà connecté, on ferme l'ancienne connexion avant de reconnecter.");
+      _channel!.sink.close();
+      _channel = null;
     }
     
     final url = 'ws://${ApiConstants.djangoServerHost}:8085/ws/live/$_currentLiveId/';

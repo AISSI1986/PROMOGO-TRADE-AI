@@ -43,6 +43,7 @@ class RegisterViewModel extends BaseViewModel {
   String email = '';
   String adresse = '';
   bool isSeller = false;
+  String shopName = '';
 
   // Validation State
   bool hasPhoneError = false;
@@ -57,6 +58,7 @@ class RegisterViewModel extends BaseViewModel {
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
   final phoneController = TextEditingController();
+  final shopNameController = TextEditingController();
 
   void init() {
     loadDraft();
@@ -100,6 +102,7 @@ class RegisterViewModel extends BaseViewModel {
       'email': email,
       'adresse': adresse,
       'isSeller': isSeller,
+      'shopName': shopName,
     };
     await _localStorageService.saveData(_draftFileName, jsonEncode(draft));
   }
@@ -121,6 +124,7 @@ class RegisterViewModel extends BaseViewModel {
         email = draft['email'] ?? '';
         adresse = draft['adresse'] ?? '';
         isSeller = draft['isSeller'] ?? false;
+        shopName = draft['shopName'] ?? '';
 
         // Mise à jour des controllers
         firstNameController.text = firstName;
@@ -131,6 +135,7 @@ class RegisterViewModel extends BaseViewModel {
         phoneController.text = phoneNumber;
         passwordController.text = password;
         confirmPasswordController.text = confirmPassword;
+        shopNameController.text = shopName;
 
         notifyListeners();
       } catch (e) {
@@ -248,23 +253,29 @@ class RegisterViewModel extends BaseViewModel {
       String civiliteValue = (gender == 'Homme') ? 'M.' : 'Mme.';
       String userTypeValue = isSeller ? 'seller' : 'custumer';
 
+      final Map<String, dynamic> payload = {
+        'username': fullPhone,
+        'email': email,
+        'password1': password,
+        'password2': confirmPassword,
+        'first_name': firstName,
+        'last_name': lastName,
+        'call_number': fullPhone,
+        'adresse': adresse.isEmpty ? "Abidjan, Côte d'Ivoire" : adresse,
+        'nationality': nationality,
+        'civilite': civiliteValue,
+        'profession': profession,
+        'user_type': userTypeValue,
+      };
+
+      if (isSeller && shopName.isNotEmpty) {
+        payload['shop_name'] = shopName;
+      }
+
       final response = await http.post(
         Uri.parse(ApiConstants.registerEndpoint),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'username': fullPhone, // Utilisation du tel car le backend refuse le vide
-          'email': email,
-          'password1': password,
-          'password2': confirmPassword,
-          'first_name': firstName,
-          'last_name': lastName,
-          'call_number': fullPhone,
-          'adresse': adresse.isEmpty ? "Abidjan, Côte d'Ivoire" : adresse,
-          'nationality': nationality,
-          'civilite': civiliteValue,
-          'profession': profession,
-          'user_type': userTypeValue,
-        }),
+        body: jsonEncode(payload),
       );
 
       setBusy(false);
@@ -367,6 +378,7 @@ class RegisterViewModel extends BaseViewModel {
     passwordController.dispose();
     confirmPasswordController.dispose();
     phoneController.dispose();
+    shopNameController.dispose();
     super.dispose();
   }
 }

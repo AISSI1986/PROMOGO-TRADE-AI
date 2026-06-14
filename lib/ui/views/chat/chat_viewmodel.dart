@@ -88,6 +88,9 @@ class ChatViewModel extends BaseViewModel with WidgetsBindingObserver {
     // 4. Écouter les nouveaux messages arrivant du WebSocket
     _messageSubscription = _chatService.messageStream.listen((newMsg) {
       if (newMsg.roomId == _room.id) {
+        // Ignorer l'écho WebSocket de nos propres messages (déjà gérés via REST dans _sendPendingMessage)
+        if (newMsg.senderId == currentUserId) return;
+
         if (!_messages.any((m) => m.id == newMsg.id)) {
           _messages.add(newMsg);
           notifyListeners();
@@ -98,6 +101,7 @@ class ChatViewModel extends BaseViewModel with WidgetsBindingObserver {
           _chatService.updateRoomLastMessage(_room.id, newMsg.content, newMsg.timestamp);
 
           // Si le message vient de l'autre, on met à jour la lecture
+          final userId = currentUserId;
           if (newMsg.senderId == otherUserId && userId != null) {
             _chatService.sendReadAll(_room.id, userId);
           }

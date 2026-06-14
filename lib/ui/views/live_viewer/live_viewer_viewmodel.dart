@@ -13,6 +13,8 @@ import 'dart:async';
 import 'package:stacked_services/stacked_services.dart';
 import 'package:promogoai/ui/common/setup_snackbar_ui.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:promogoai/services/adaptive_stream_service.dart';
+import 'package:promogoai/services/stream_quality_service.dart';
 
 class LivePlayerData {
   final Player player;
@@ -26,13 +28,20 @@ class LivePlayerData {
   }
 }
 
-class LiveViewerViewModel extends BaseViewModel {
+class LiveViewerViewModel extends BaseViewModel with WidgetsBindingObserver {
   final _srsService = locator<SrsStreamingService>();
   final _socketService = locator<LiveSocketService>();
   final _authService = locator<AuthService>();
   final _navigationService = locator<NavigationService>();
   final _snackbarService = locator<SnackbarService>();
   
+  final _adaptiveStreamService = locator<AdaptiveStreamService>();
+  final _qualityService = locator<StreamQualityService>();
+  
+  // Expose for View
+  AdaptiveStreamService get adaptiveStreamService => _adaptiveStreamService;
+  StreamQualityService get qualityService => _qualityService;
+
   // Pool de contrôleurs (TikTok Strategy)
   Map<int, LivePlayerData> controllers = {};
   int currentVideoIndex = 0;
@@ -47,6 +56,56 @@ class LiveViewerViewModel extends BaseViewModel {
 
   // ID du Live
   String liveId = "";
+
+  bool isStreamPaused = false;
+  String currentQuality = "Auto";
+  Stream<dynamic>? adaptiveHealthStream;
+
+  void _setupSocketListener() {
+    _socketSubscription?.cancel();
+    _socketSubscription = _socketService.events.listen((event) {
+      if (event != null && event['type'] != null) {
+        final type = event['type'];
+        if (type == 'chat_message') {
+          final incomingUser = formatUserName((event['user'] ?? "Anonyme").toString());
+          // Ignorer l'écho de notre propre message (déjà ajouté localement dans sendMessage)
+          if (incomingUser != getCurrentUserName()) {
+            chatMessages.add({
+              "user": incomingUser,
+              "message": event['message']?.toString() ?? "",
+            });
+            notifyListeners();
+          }
+        } else if (type == 'stream_paused') {
+          isStreamPaused = true;
+          notifyListeners();
+        } else if (type == 'stream_resumed') {
+          isStreamPaused = false;
+          notifyListeners();
+        } else if (type == 'pin_product') {
+          _pinnedProduct = event['product'] as Map<String, dynamic>?;
+          notifyListeners();
+        } else if (type == 'unpin_product') {
+          final prodId = event['product_id']?.toString();
+          if (_pinnedProduct != null && _pinnedProduct!['id']?.toString() == prodId) {
+            _pinnedProduct = null;
+            notifyListeners();
+          }
+        } else if (type == 'unpin_all_products') {
+          _pinnedProduct = null;
+          notifyListeners();
+        } else if (type == 'like_event') {
+          addLike(remote: true);
+        } else if (type == 'live_ended' || (type == 'live_status' && event['status'] == 'ended')) {
+          if (event['reason'] == 'socket_closed') {
+            print("⚠️ [LiveViewer] WebSocket déconnecté définitivement.");
+          } else {
+            handleLiveEnded(currentVideoIndex);
+          }
+        }
+      }
+    });
+  }
 
   bool isControllerInitialized(int index) {
     return controllers.containsKey(index) && controllers[index]!.isInitialized;
@@ -65,14 +124,24 @@ class LiveViewerViewModel extends BaseViewModel {
   String getBroadcasterName(int index) {
     if (index < sessions.length) {
       final s = sessions[index];
-      if (s['seller_name'] != null && s['seller_name'].toString().isNotEmpty) {
-        return s['seller_name'].toString();
-      }
-      if (s['seller'] != null) {
-        if (s['seller'] is Map && s['seller']['username'] != null) {
-          return s['seller']['username'].toString();
+      
+      // Essayer d'utiliser seller_details (qui contient first_name, last_name de l'API)
+      if (s['seller_details'] != null && s['seller_details'] is Map) {
+        final details = s['seller_details'];
+        final firstName = details['first_name']?.toString() ?? '';
+        final lastName = details['last_name']?.toString() ?? '';
+        if (firstName.isNotEmpty || lastName.isNotEmpty) {
+          final firstInitial = firstName.isNotEmpty ? firstName[0].toUpperCase() : '';
+          final lastInitial = lastName.isNotEmpty ? lastName[0].toUpperCase() : '';
+          return "$firstInitial$lastInitial Fashion";
         }
-        return s['seller'].toString();
+        if (details['username'] != null && details['username'].toString().isNotEmpty) {
+          return details['username'].toString() + " Fashion";
+        }
+      }
+      
+      if (s['seller_name'] != null && s['seller_name'].toString().isNotEmpty) {
+        return s['seller_name'].toString() + " Fashion";
       }
       if (s['title'] != null && s['title'].toString().isNotEmpty) {
         return s['title'].toString();
@@ -80,6 +149,16 @@ class LiveViewerViewModel extends BaseViewModel {
       return "Vendeur #${s['id']}";
     }
     return broadcasterNames[index % broadcasterNames.length];
+  }
+
+  String getBroadcasterInitials(int index) {
+    final name = getBroadcasterName(index);
+    if (name.startsWith("Vendeur")) return "V";
+    if (name.contains("Fashion")) {
+      return name.split(" ")[0]; // "SF" à partir de "SF Fashion"
+    }
+    if (name.isNotEmpty) return name[0].toUpperCase();
+    return "V";
   }
 
   final List<String> dummyVideoUrls = [
@@ -129,7 +208,22 @@ class LiveViewerViewModel extends BaseViewModel {
     failedVideoIndices.clear();
     await WakelockPlus.enable(); // Garde l'écran allumé pendant le visionnage du Live !
     
+    // Initialiser les services adaptatifs
+    _adaptiveStreamService.initialize();
+    _qualityService.initialize();
+
+    // Listen aux changements de santé du stream
+    _adaptiveStreamService.healthStream.listen((health) {
+      _onStreamHealthChanged(health);
+    });
+
+    // Listen aux changements de qualité
+    _qualityService.addListener(() {
+      _onQualityChanged();
+    });
     try {
+      WidgetsBinding.instance.addObserver(this);
+      
       // 1. Récupérer les lives actifs depuis le backend
       final response = await http.get(Uri.parse(ApiConstants.activeLivesEndpoint));
       if (_isDisposed) return;
@@ -188,41 +282,7 @@ class LiveViewerViewModel extends BaseViewModel {
     if (liveId.isNotEmpty) {
       await _fetchChatHistory(liveId);
       _socketService.connect(liveId);
-      
-      _socketSubscription = _socketService.events.listen((event) {
-        final type = event['type'];
-        if (type == 'chat_message') {
-          chatMessages.add({
-            "user": (event['user'] ?? "Anonyme").toString(),
-            "message": event['message']?.toString() ?? "",
-          });
-          notifyListeners();
-        } else if (type == 'pin_product') {
-          _pinnedProduct = event['product'] as Map<String, dynamic>?;
-          notifyListeners();
-        } else if (type == 'unpin_product') {
-          final prodId = event['product_id']?.toString();
-          if (_pinnedProduct != null && _pinnedProduct!['id']?.toString() == prodId) {
-            _pinnedProduct = null;
-            notifyListeners();
-          }
-        } else if (type == 'unpin_all_products') {
-          _pinnedProduct = null;
-          notifyListeners();
-        } else if (type == 'like_event') {
-          addLike(remote: true);
-        } else if (type == 'live_ended' || (type == 'live_status' && event['status'] == 'ended')) {
-          if (event['reason'] == 'socket_closed') {
-            print("⚠️ [LiveViewer] WebSocket déconnecté définitivement, mais conservation du flux vidéo.");
-            _snackbarService.showCustomSnackBar(
-              variant: SnackbarType.warning,
-              message: "Connexion au chat interrompue.",
-            );
-          } else {
-            handleLiveEnded(currentVideoIndex);
-          }
-        }
-      });
+      _setupSocketListener();
     }
     
     // 5. Démarrer le rafraîchissement périodique du hub
@@ -299,7 +359,8 @@ class LiveViewerViewModel extends BaseViewModel {
 
         // Réinitialiser le Hero en silencieux
         if (videoUrls.isNotEmpty && !controllers.containsKey(0)) {
-          await _initController(0, autoPlay: false);
+          // VITAL: On force autoPlay à true pour que la première vidéo (index 0) démarre immédiatement
+          await _initController(0, autoPlay: true);
         }
         notifyListeners();
       }
@@ -319,107 +380,108 @@ class LiveViewerViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> _initController(int index, {bool autoPlay = true, int retryCount = 0}) async {
-    if (_isDisposed) return;
-    if (index >= videoUrls.length) return;
+  Future<void> _initController(int index, {bool autoPlay = true}) async {
+    if (controllers.containsKey(index)) return;
 
-    // Éviter de réinitialiser si déjà prêt
-    if (controllers.containsKey(index)) {
-      if (controllers[index]!.isInitialized) {
-        if (index == currentVideoIndex && autoPlay) {
-          await controllers[index]!.player.play();
-        }
-        return;
-      }
+    if (index >= sessions.length) return;
+
+    // 🆕 Obtenir l'URL optimale avec fallback intelligent
+    final streamId = sessions[index]['id'].toString();
+    final url = await _adaptiveStreamService.getOptimalStreamUrl(streamId);
+
+    if (url == null) {
+      failedVideoIndices.add(index);
+      print("❌ [LiveViewer] Failed to get stream URL for index $index");
+      _snackbarService.showCustomSnackBar(
+        variant: SnackbarType.error,
+        message: "Impossible de charger le stream",
+      );
+      return;
     }
-    
-    final String url = videoUrls[index];
-    
+
     try {
       final player = Player();
       final videoController = VideoController(player);
-      
-      controllers[index] = LivePlayerData(player: player, videoController: videoController);
-      
-      // Configuration FLV / Live
-      if (url.startsWith('assets/')) {
-        player.setPlaylistMode(PlaylistMode.loop);
-      } else {
-        player.setPlaylistMode(PlaylistMode.none);
-        // Configuration media_kit pour un flux en direct très basse latence
-        try {
-          if (player.platform is NativePlayer) {
-            final nativePlayer = player.platform as NativePlayer;
-            await nativePlayer.setProperty('profile', 'low-latency');
-            await nativePlayer.setProperty('cache', 'no');
-            await nativePlayer.setProperty('cache-pause', 'no');
-            await nativePlayer.setProperty('demuxer-lavf-o', 'fflags=+nobuffer');
-            await nativePlayer.setProperty('demuxer-lavf-analyzeduration', '0.1');
-            await nativePlayer.setProperty('demuxer-lavf-probe-info', 'nostreams');
-            await nativePlayer.setProperty('stream-buffer-size', '4096');
-            await nativePlayer.setProperty('video-sync', 'audio');
-            await nativePlayer.setProperty('video-latency-hacks', 'yes');
-            await nativePlayer.setProperty('demuxer-max-bytes', '500000');
-            await nativePlayer.setProperty('demuxer-max-back-bytes', '0');
-            await nativePlayer.setProperty('vd-lavc-fast', 'yes');
-            await nativePlayer.setProperty('framedrop', 'vo');
-            print("[LiveViewer] Propriétés MPV ultra low-latency appliquées");
-          }
-        } catch (e) {
-          print("[LiveViewer] Erreur configuration low-latency: $e");
-        }
-      }
-      
-      final String openUrl = url.startsWith('assets/') ? 'asset:///$url' : url;
-      await player.open(Media(openUrl), play: autoPlay && index == currentVideoIndex);
-      await player.setVolume(100.0);
-      
-      controllers[index]!.isInitialized = true;
-      failedVideoIndices.remove(index);
-      
-      // Écoute des erreurs de flux
-      player.stream.error.listen((event) {
-        if (_isDisposed) return;
-        print("❌ [LiveViewer] Erreur media_kit ($url): $event");
-        if (index == currentVideoIndex && !failedVideoIndices.contains(index)) {
-          failedVideoIndices.add(index);
-          controllers[index]?.dispose();
-          controllers.remove(index);
-          notifyListeners();
-          
-          Future.delayed(const Duration(seconds: 3), () {
-            if (!_isDisposed && index == currentVideoIndex) {
-              _initController(index, autoPlay: true);
-            }
-          });
-        }
+
+      // 🆕 Adapter la qualité recommandée
+      final recommendedQuality = _qualityService.getRecommendedQuality();
+      _qualityService.setQuality(recommendedQuality);
+
+      // Ouvrir le stream
+      await player.open(Media(url));
+
+      // Créer le contrôleur
+      controllers[index] = LivePlayerData(
+        player: player,
+        videoController: videoController,
+      );
+      controllers[index]?.isInitialized = true;
+
+      // 🆕 Listen au buffer level
+      player.stream.buffering.listen((isBuffering) {
+        final bufferPercent = isBuffering ? 0.0 : 100.0;
+        _adaptiveStreamService.updateBufferLevel(bufferPercent);
       });
-      
-      print("[LiveViewer] Vidéo $index prête (autoPlay: $autoPlay) ($url)");
+
+      // 🆕 Listen aux erreurs de lecture
+      player.stream.error.listen((error) {
+        print("❌ [LiveViewer] Playback error: $error");
+        _adaptiveStreamService.onStreamError?.call(error.toString());
+      });
+
+      if (autoPlay) {
+        player.play();
+      }
+
+      print("✅ [LiveViewer] Controller initialized for index $index");
+      notifyListeners();
+
     } catch (e) {
-      if (_isDisposed) return;
-      print("[LiveViewer] Échec ou timeout vidéo $index ($url) (Essai $retryCount/4): $e");
-      controllers[index]?.dispose();
-      controllers.remove(index);
+      print("❌ [LiveViewer] Error initializing controller $index: $e");
       failedVideoIndices.add(index);
 
-      if (!url.startsWith('assets/')) {
-        if (retryCount < 4 && !_isDisposed) {
-          print("🔄 [LiveViewer] Flux non prêt. Nouvelle tentative dans 3 secondes ($retryCount/4)...");
-          await Future<void>.delayed(const Duration(seconds: 3));
-          if (!_isDisposed) {
-            return _initController(index, autoPlay: autoPlay, retryCount: retryCount + 1);
-          }
-        } else {
-          if (index == currentVideoIndex && pageController != null) {
-            handleLiveEnded(index);
-          }
-        }
+      // 🆕 Tentative de reconnexion
+      await _retryWithExponentialBackoff(index);
+    }
+  }
+
+  /// 🆕 AJOUTER CETTE NOUVELLE MÉTHODE:
+  /// Reconnecter avec backoff exponentiel en cas d'erreur
+  Future<void> _retryWithExponentialBackoff(int index) async {
+    if (index >= sessions.length || _isDisposed) return;
+
+    final streamId = sessions[index]['id'].toString();
+    int attempt = 0;
+    const maxAttempts = 5;
+
+    print("🔄 [LiveViewer] Starting reconnection for stream $index");
+
+    while (attempt < maxAttempts && !_isDisposed) {
+      attempt++;
+
+      final delay = Duration(seconds: attempt * 2);
+      print("⏳ [LiveViewer] Reconnection attempt $attempt/$maxAttempts in $delay");
+
+      await Future.delayed(delay);
+
+      final success = await _adaptiveStreamService.reconnect(streamId);
+
+      if (success) {
+        await _initController(index, autoPlay: currentVideoIndex == index);
+        print("✅ [LiveViewer] Reconnected to stream $index");
+        return;
       }
-    } finally {
-      if (!_isDisposed) {
-        notifyListeners();
-      }
+    }
+
+    print("❌ [LiveViewer] Failed to reconnect after $maxAttempts attempts");
+    failedVideoIndices.add(index);
+
+    if (!_isDisposed) {
+      _snackbarService.showCustomSnackBar(
+        variant: SnackbarType.error,
+        message: "Stream indisponible",
+      );
+      notifyListeners();
     }
   }
 
@@ -545,17 +607,29 @@ class LiveViewerViewModel extends BaseViewModel {
     return "Live Officiel";
   }
 
+  String formatUserName(String rawName) {
+    if (rawName.isEmpty) return "Anonyme";
+    // Masquer le numéro de téléphone pour la sécurité (ex: +2250102030405 -> +22501****05)
+    final phoneRegex = RegExp(r'^\+?[0-9]{8,}$');
+    if (phoneRegex.hasMatch(rawName)) {
+      if (rawName.length >= 8) {
+        return rawName.substring(0, 4) + '****' + rawName.substring(rawName.length - 2);
+      }
+    }
+    return rawName;
+  }
+
   String getCurrentUserName() {
     if (_authService.userData != null) {
       final user = _authService.userData!;
-      if (user['username'] != null && user['username'].toString().isNotEmpty) {
-        return user['username'].toString();
-      }
       if (user['first_name'] != null && user['first_name'].toString().isNotEmpty) {
-        return user['first_name'].toString();
+        return formatUserName(user['first_name'].toString());
+      }
+      if (user['username'] != null && user['username'].toString().isNotEmpty) {
+        return formatUserName(user['username'].toString());
       }
     }
-    return getCurrentLiveTitle();
+    return "Spectateur";
   }
 
   Future<void> _fetchChatHistory(String id) async {
@@ -592,26 +666,51 @@ class LiveViewerViewModel extends BaseViewModel {
   }
 
   void onPageChanged(int index) async {
-    // 1. Pause la vidéo précédente
-    await controllers[currentVideoIndex]?.player.pause();
-    
+    if (index == currentVideoIndex) return;
+
+    final previousIndex = currentVideoIndex;
     currentVideoIndex = index;
+
+    print("📄 [LiveViewer] Page changed: $previousIndex → $index");
+
+    // 🆕 Pause la vidéo précédente
+    if (previousIndex < videoUrls.length && previousIndex != index) {
+      getPlayer(previousIndex)?.pause();
+    }
     
     // 2. Logique de connexion (Live vs Replay)
     if (index < sessions.length) {
-      liveId = sessions[index]['id'].toString();
-      await _fetchLiveProducts(liveId);
-      await _fetchChatHistory(liveId);
-      _socketService.connect(liveId); 
+      isStreamPaused = false;
+      final liveId = sessions[index]['id'].toString();
+      _socketService.connect(liveId);
+      
+      // Notifier l'arrivée dans le live après 1 seconde (laisser le temps au socket de se connecter)
+      Future.delayed(const Duration(seconds: 1), () {
+        _socketService.sendEvent({
+          "type": "chat_message",
+          "user": "SURA IA",
+          "message": "${getCurrentUserName()} a rejoint le live ! 👋"
+        });
+      });
+      
+      _fetchChatHistory(liveId);
+      _fetchLiveProducts(liveId); 
     } else {
       currentLiveProducts = List.from(liveProducts);
     }
 
-    // 3. Lancer la lecture de la nouvelle vidéo de manière robuste
-    if (controllers[index] != null && controllers[index]!.isInitialized) {
-      await controllers[index]!.player.play();
+    // 🆕 Initialiser ou jouer la nouvelle
+    if (!isControllerInitialized(index)) {
+      print("🔧 [LiveViewer] Initializing new controller for index $index");
+
+      Future.delayed(const Duration(milliseconds: 100), () async {
+        if (!_isDisposed && currentVideoIndex == index) {
+          await _initController(index, autoPlay: true);
+        }
+      });
     } else {
-      await _initController(index, autoPlay: true);
+      print("▶️ [LiveViewer] Playing existing controller at index $index");
+      getPlayer(index)?.play();
     }
 
     _managePool(index);
@@ -631,6 +730,18 @@ class LiveViewerViewModel extends BaseViewModel {
   }
 
   bool _isDisposed = false;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_isDisposed) return;
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      getPlayer(currentVideoIndex)?.pause();
+      print("⏸️ [LiveViewer] App en arrière-plan, mise en pause de la vidéo.");
+    } else if (state == AppLifecycleState.resumed) {
+      getPlayer(currentVideoIndex)?.play();
+      print("▶️ [LiveViewer] App de retour au premier plan, reprise de la lecture.");
+    }
+  }
 
   @override
   void notifyListeners() {
@@ -755,8 +866,70 @@ class LiveViewerViewModel extends BaseViewModel {
     });
   }
 
+  void _onStreamHealthChanged(StreamHealthStatus health) {
+    print("🏥 [LiveViewer] Stream health: ${health.toString()}");
+
+    if (_isDisposed) return;
+
+    switch (health) {
+      case StreamHealthStatus.healthy:
+        print("✅ [LiveViewer] Stream is healthy");
+        break;
+
+      case StreamHealthStatus.degraded:
+        print("⚠️ [LiveViewer] Stream quality degraded");
+        if (!_isDisposed) {
+          _snackbarService.showCustomSnackBar(
+            variant: SnackbarType.warning,
+            message: "Qualité réduite - connexion faible",
+            duration: const Duration(seconds: 3),
+          );
+        }
+        break;
+
+      case StreamHealthStatus.critical:
+        print("🔴 [LiveViewer] Stream health critical");
+        if (!_isDisposed) {
+          _snackbarService.showCustomSnackBar(
+            variant: SnackbarType.warning,
+            message: "Tentative de reconnexion...",
+            duration: const Duration(seconds: 2),
+          );
+        }
+        break;
+
+      case StreamHealthStatus.offline:
+        print("❌ [LiveViewer] Stream offline");
+        if (!_isDisposed) {
+          _snackbarService.showCustomSnackBar(
+            variant: SnackbarType.error,
+            message: "Stream indisponible",
+          );
+        }
+        break;
+    }
+
+    notifyListeners();
+  }
+
+  void _onQualityChanged() {
+    if (_isDisposed) return;
+
+    final newQuality = _qualityService.currentQuality;
+    print("📺 [LiveViewer] Quality changed to: ${newQuality.shortLabel}");
+
+    _snackbarService.showCustomSnackBar(
+      variant: SnackbarType.success,
+      message: "Qualité: ${newQuality.shortLabel}",
+      duration: const Duration(seconds: 2),
+    );
+
+    notifyListeners();
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _isDisposed = true;
     _hubRefreshTimer?.cancel();
     _socketSubscription?.cancel();
@@ -764,6 +937,12 @@ class LiveViewerViewModel extends BaseViewModel {
     chatController.dispose();
     chatFocusNode.dispose();
     pageController?.dispose();
+    
+    // 🆕 AJOUTER CES LIGNES AVANT super.onDispose:
+    print("🛑 [LiveViewer] Stopping adaptive services");
+    _adaptiveStreamService.dispose();
+    _qualityService.stop();
+
     for (var controller in controllers.values) {
       controller.dispose();
     }

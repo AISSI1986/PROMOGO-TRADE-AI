@@ -8,6 +8,10 @@ class ApiConstants {
   static String getAnalyseAudioWs(String langue) => '$wsBaseUrl/ws/analyser-audio/$langue';
 
   // --- Serveur Django (Backend Principal) ---
+  // DÉCOMMENTER LA LIGNE SUIVANTE POUR TESTER EN LOCAL SUR L'ÉMULATEUR
+  // static const String djangoServerHost = '10.0.2.2';
+  
+  // DÉCOMMENTER LA LIGNE SUIVANTE POUR LA PRODUCTION (Génération de l'APK) OU UTILISER LES DONNÉES DU SERVEUR
   static const String djangoServerHost = '31.97.116.73';
   static const String djangoRootUrl = 'http://$djangoServerHost:8085';
   static const String djangoBaseUrl = '$djangoRootUrl/api';

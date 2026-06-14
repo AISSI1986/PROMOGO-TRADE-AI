@@ -12,11 +12,16 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 // IMPORTS POUR LE MOTEUR APIVIDEO (Plus stable que HaishinKit sur Android)
 import 'package:apivideo_live_stream/apivideo_live_stream.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-class LiveBroadcasterViewModel extends BaseViewModel {
+import 'package:stacked_services/stacked_services.dart';
+import 'package:promogoai/ui/common/setup_snackbar_ui.dart';
+
+class LiveBroadcasterViewModel extends BaseViewModel with WidgetsBindingObserver {
   final _socketService = locator<LiveSocketService>();
   final _srsService = locator<SrsStreamingService>();
   final _authService = locator<AuthService>();
+  final _snackbarService = locator<SnackbarService>();
   
   ApiVideoLiveStreamController? _controller;
   ApiVideoLiveStreamController? get controller => _controller;
@@ -140,6 +145,7 @@ class LiveBroadcasterViewModel extends BaseViewModel {
     this.liveId = id;
     this.sellerProducts = products;
     WakelockPlus.enable(); // Garde l'écran allumé pendant le Live !
+    WidgetsBinding.instance.addObserver(this);
     
     // 🛑 VITAL : On attend 1 seconde complète pour que l'animation de changement de page soit finie
     // et que l'ancien écran Pre-Live ait TOTALEMENT libéré le capteur photo Android.
@@ -152,12 +158,17 @@ class LiveBroadcasterViewModel extends BaseViewModel {
       final type = event['type'];
       
       if (type == 'chat_message') {
-        _chatMessages.add({
-          "user": event['user'] ?? "Anonyme",
-          "message": event['message'] ?? "",
-          "isMe": false,
-        });
-        notifyListeners();
+        final incomingUser = formatUserName((event['user'] ?? "Anonyme").toString());
+        final myUserName = formatUserName(_authService.userData?['username']?.toString() ?? "Vendeur");
+        // Ignorer l'écho de notre propre message (déjà ajouté localement dans sendMessage)
+        if (incomingUser != myUserName) {
+          _chatMessages.add({
+            "user": incomingUser,
+            "message": event['message'] ?? "",
+            "isMe": false,
+          });
+          notifyListeners();
+        }
       } else if (type == 'order_request') {
         // Notification dans le chat aussi pour la preuve sociale
         _chatMessages.add({
@@ -185,13 +196,28 @@ class LiveBroadcasterViewModel extends BaseViewModel {
   List<Map<String, dynamic>> get chatMessages => _chatMessages;
   final TextEditingController chatController = TextEditingController();
 
+  String formatUserName(String rawName) {
+    if (rawName.isEmpty) return "Anonyme";
+    final phoneRegex = RegExp(r'^\+?[0-9]{8,}$');
+    if (phoneRegex.hasMatch(rawName)) {
+      // Le vendeur ne veut AUCUN chiffre. On transforme les 2 derniers chiffres en un acronyme de 2 lettres.
+      final letters = ["A","B","C","D","E","F","G","H","I","K"];
+      int d1 = int.parse(rawName[rawName.length - 2]);
+      int d2 = int.parse(rawName[rawName.length - 1]);
+      return "${letters[d1]}${letters[d2]}";
+    }
+    return rawName;
+  }
+
   void sendMessage() {
     final text = chatController.text.trim();
     if (text.isEmpty) return;
 
+    final userName = formatUserName(_authService.userData?['username']?.toString() ?? "Vendeur");
+
     final payload = {
       "type": "chat_message",
-      "user": _authService.userData?['username'] ?? "Vendeur",
+      "user": userName,
       "message": text,
     };
 
@@ -233,11 +259,49 @@ class LiveBroadcasterViewModel extends BaseViewModel {
 
   Future<void> _initStreaming() async {
     try {
+      // Vérifier le statut actuel
+      var cameraStatus = await Permission.camera.status;
+      var micStatus = await Permission.microphone.status;
+
+      // Demander explicitement les permissions si pas déjà accordées
+      if (!cameraStatus.isGranted) {
+        cameraStatus = await Permission.camera.request();
+      }
+      if (!micStatus.isGranted) {
+        micStatus = await Permission.microphone.request();
+      }
+
+      // Si l'utilisateur a coché "Ne plus demander" ou refusé 2 fois (sur Android)
+      if (cameraStatus.isPermanentlyDenied || micStatus.isPermanentlyDenied) {
+        print("❌ [LiveBroadcaster] Permissions refusées définitivement. Ouverture des paramètres...");
+        // Notifier l'utilisateur via Snackbar
+        _snackbarService.showCustomSnackBar(
+          variant: SnackbarType.error,
+          message: "Permissions requises. Veuillez les activer dans les paramètres.",
+          duration: const Duration(seconds: 4),
+        );
+        // Ouvre l'écran des paramètres de l'application
+        await openAppSettings();
+        return;
+      }
+
+      if (cameraStatus != PermissionStatus.granted || micStatus != PermissionStatus.granted) {
+        print("❌ [LiveBroadcaster] Permissions refusées ! Le flux ne peut pas démarrer.");
+        _snackbarService.showCustomSnackBar(
+          variant: SnackbarType.error,
+          message: "Vous devez autoriser la caméra et le micro pour diffuser.",
+        );
+        return;
+      }
+
       await Future<void>.delayed(const Duration(milliseconds: 500));
       
       final controller = ApiVideoLiveStreamController(
-        initialAudioConfig: AudioConfig(bitrate: 64000),
-        initialVideoConfig: VideoConfig.withDefaultBitrate(resolution: Resolution.RESOLUTION_480),
+        initialAudioConfig: AudioConfig(bitrate: 128000, sampleRate: SampleRate.kHz_44_1),
+        initialVideoConfig: VideoConfig.withDefaultBitrate(
+          resolution: Resolution.RESOLUTION_480,
+          fps: 30,
+        ),
         onConnectionSuccess: () { print("[LiveBroadcaster] RTMP Connecté"); },
         onConnectionFailed: (error) { print("[LiveBroadcaster] Erreur RTMP: $error"); },
       );
@@ -347,7 +411,7 @@ class LiveBroadcasterViewModel extends BaseViewModel {
 
   void toggleMute() async {
     _isMuted = !_isMuted;
-    _controller?.setAudioConfig(AudioConfig(bitrate: _isMuted ? 0 : 128000));
+    _controller?.setAudioConfig(AudioConfig(bitrate: _isMuted ? 0 : 128000, sampleRate: SampleRate.kHz_44_1));
     notifyListeners();
   }
 
@@ -378,7 +442,33 @@ class LiveBroadcasterViewModel extends BaseViewModel {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      if (_isLive && liveId.isNotEmpty) {
+        print("⏸️ [LiveBroadcaster] Arrière-plan : passage en TEMPORARILY_OFFLINE");
+        http.patch(
+          Uri.parse(ApiConstants.getUpdateLiveStatusEndpoint(liveId)),
+          headers: {'Authorization': 'Bearer ${_authService.accessToken}'},
+          body: {'status': 'TEMPORARILY_OFFLINE'},
+        );
+        _socketService.sendEvent({"type": "stream_paused"});
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      if (_isLive && liveId.isNotEmpty) {
+        print("▶️ [LiveBroadcaster] Premier plan : retour en LIVE");
+        http.patch(
+          Uri.parse(ApiConstants.getUpdateLiveStatusEndpoint(liveId)),
+          headers: {'Authorization': 'Bearer ${_authService.accessToken}'},
+          body: {'status': 'LIVE'},
+        );
+        _socketService.sendEvent({"type": "stream_resumed"});
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     // Si l'utilisateur quitte l'écran sans avoir arrêté le live, on force le statut ENDED sur Django
     if (_isLive || liveId.isNotEmpty) {
       http.patch(
