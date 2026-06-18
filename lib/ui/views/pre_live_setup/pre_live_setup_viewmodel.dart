@@ -1,21 +1,23 @@
 import 'dart:convert';
 import 'dart:collection';
-import 'package:camera/camera.dart';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:promogoai/app/app.locator.dart';
 import 'package:promogoai/app/app.router.dart';
 import 'package:promogoai/services/auth_service.dart';
 import 'package:promogoai/ui/common/api_constants.dart';
+import 'package:promogoai/services/live_streaming_service.dart';
 import 'package:stacked/stacked.dart';
 import 'package:stacked_services/stacked_services.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class PreLiveSetupViewModel extends BaseViewModel {
   final _navigationService = locator<NavigationService>();
   final _dialogService = locator<DialogService>();
   final _authService = locator<AuthService>();
+  final _streamingService = locator<LiveStreamingService>();
   
-  CameraController? cameraController;
   bool isCameraInitialized = false;
 
   String liveTitle = "";
@@ -36,36 +38,24 @@ class PreLiveSetupViewModel extends BaseViewModel {
 
   Future<void> setupCamera() async {
     try {
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) return;
-
-      CameraDescription targetCamera = cameras.firstWhere(
-        (cam) => cam.lensDirection == (_isFrontCamera ? CameraLensDirection.front : CameraLensDirection.back),
-        orElse: () => cameras.first,
-      );
-
-      cameraController = CameraController(
-        targetCamera,
-        ResolutionPreset.medium,
-        enableAudio: true,
-      );
-
-      await cameraController!.initialize();
+      await [Permission.camera, Permission.microphone].request();
+      await _streamingService.initialize();
+      await _streamingService.startLocalPreview();
       isCameraInitialized = true;
       notifyListeners();
     } catch (e) {
-      print("Erreur Caméra Aperçu: $e");
+      print("Erreur Caméra Aperçu (Agora): $e");
     }
   }
 
   void switchCamera() async {
-    if (cameraController != null) {
-      isCameraInitialized = false;
-      notifyListeners();
-      await cameraController!.dispose();
-    }
+    await _streamingService.switchCamera();
     _isFrontCamera = !_isFrontCamera;
-    await setupCamera();
+    notifyListeners();
+  }
+
+  Widget buildVideoView() {
+    return _streamingService.buildVideoView(channelId: 'preview', isBroadcaster: true);
   }
 
   void updateTitle(String value) {
@@ -283,15 +273,10 @@ class PreLiveSetupViewModel extends BaseViewModel {
 
         print("🚀 Live créé atomiquement avec succès ! ID: $realLiveId");
 
-        // 3. FERMETURE DE LA CAMERA LOCALE POUR LIBÉRER LE MATÉRIEL
-        if (cameraController != null) {
-          isCameraInitialized = false;
-          notifyListeners();
-          await cameraController!.dispose();
-          cameraController = null;
-          // IMPORTANT: Délai indispensable pour que le système d'exploitation Android libère physiquement le capteur
-          await Future<void>.delayed(const Duration(milliseconds: 600));
-        }
+        // 3. LA PREVIEW CONTINUE À TOURNER, NOUS NAVIGUONS JUSTE
+        // La libération n'est plus nécessaire avec Agora puisqu'on réutilise la même instance
+        isCameraInitialized = false;
+        notifyListeners();
 
         // 4. NAVIGATION VERS LE BROADCASTER (Remplacement pour ne pas empiler)
         await _navigationService.replaceWithLiveBroadcasterView(
@@ -332,7 +317,7 @@ class PreLiveSetupViewModel extends BaseViewModel {
 
   @override
   void dispose() {
-    cameraController?.dispose();
+    _streamingService.stopLocalPreview();
     super.dispose();
   }
 }

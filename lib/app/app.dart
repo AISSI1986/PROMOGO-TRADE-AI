@@ -50,6 +50,7 @@ import 'package:promogoai/services/ad_service.dart';
 import 'package:promogoai/ui/views/chat/chat_view.dart';
 import 'package:promogoai/services/chat_service.dart';
 import 'package:promogoai/services/notification_service.dart';
+import 'package:promogoai/services/live_streaming_service.dart';
 // @stacked-import
 
 @StackedApp(
@@ -105,6 +106,7 @@ import 'package:promogoai/services/notification_service.dart';
     LazySingleton(classType: AdService),
     LazySingleton(classType: ChatService),
     LazySingleton(classType: NotificationService),
+    LazySingleton(classType: AgoraStreamingService, asType: LiveStreamingService),
     // @stacked-service
   ],
   bottomsheets: [

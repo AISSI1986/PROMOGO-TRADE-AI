@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:stacked/stacked.dart';
 import 'package:promogoai/ui/common/app_colors.dart';
@@ -27,11 +26,7 @@ class PreLiveSetupView extends StackedView<PreLiveSetupViewModel> {
                     child: SizedBox.expand(
                       child: FittedBox(
                         fit: BoxFit.cover,
-                        child: SizedBox(
-                          width: viewModel.cameraController!.value.previewSize?.height ?? 1,
-                          height: viewModel.cameraController!.value.previewSize?.width ?? 1,
-                          child: CameraPreview(viewModel.cameraController!),
-                        ),
+                        child: viewModel.buildVideoView(),
                       ),
                     ),
                   )

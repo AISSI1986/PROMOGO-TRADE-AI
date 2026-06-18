@@ -26,7 +26,7 @@ class AiVoiceSheetModel extends BaseViewModel {
     {'code': 'fra', 'label': 'FR', 'flag': '🇫🇷'},
     {'code': 'eng', 'label': 'EN', 'flag': '🇺🇸'},
     {'code': 'hau', 'label': 'HA', 'flag': '🇳🇬'},
-    {'code': 'ewe', 'label': 'EW', 'flag': '🇹🇬'},
+    {'code': 'ewe', 'label': 'EW', 'flag': '🇬🇭'},
   ];
 
   void setLangue(String langue) {

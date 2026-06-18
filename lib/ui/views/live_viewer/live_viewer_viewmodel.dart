@@ -1,162 +1,77 @@
-import 'package:flutter/material.dart';
-import 'package:promogoai/services/live_socket_service.dart';
-import 'package:promogoai/services/auth_service.dart';
-import 'package:stacked/stacked.dart';
-import '../../../../app/app.locator.dart';
-import '../../../../services/srs_streaming_service.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:promogoai/ui/common/api_constants.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'dart:math' as math;
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:stacked/stacked.dart';
 import 'package:stacked_services/stacked_services.dart';
-import 'package:promogoai/ui/common/setup_snackbar_ui.dart';
+import 'package:http/http.dart' as http;
+import 'package:promogoai/app/app.locator.dart';
+import 'package:promogoai/services/auth_service.dart';
+import 'package:promogoai/services/live_socket_service.dart';
+import 'package:promogoai/services/live_streaming_service.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import 'package:promogoai/services/adaptive_stream_service.dart';
-import 'package:promogoai/services/stream_quality_service.dart';
-
-class LivePlayerData {
-  final Player player;
-  final VideoController videoController;
-  bool isInitialized = false;
-
-  LivePlayerData({required this.player, required this.videoController});
-  
-  void dispose() {
-    player.dispose();
-  }
-}
+import 'package:promogoai/ui/common/api_constants.dart';
+import 'package:video_player/video_player.dart';
+import 'package:promogoai/ui/common/setup_snackbar_ui.dart';
 
 class LiveViewerViewModel extends BaseViewModel with WidgetsBindingObserver {
-  final _srsService = locator<SrsStreamingService>();
-  final _socketService = locator<LiveSocketService>();
-  final _authService = locator<AuthService>();
   final _navigationService = locator<NavigationService>();
   final _snackbarService = locator<SnackbarService>();
-  
-  final _adaptiveStreamService = locator<AdaptiveStreamService>();
-  final _qualityService = locator<StreamQualityService>();
-  
-  // Expose for View
-  AdaptiveStreamService get adaptiveStreamService => _adaptiveStreamService;
-  StreamQualityService get qualityService => _qualityService;
+  final _authService = locator<AuthService>();
+  final _socketService = locator<LiveSocketService>();
+  final _streamingService = locator<LiveStreamingService>();
 
-  // Pool de contrôleurs (TikTok Strategy)
-  Map<int, LivePlayerData> controllers = {};
+  LiveStreamingService get streamingService => _streamingService;
+
   int currentVideoIndex = 0;
-  PageController? pageController;
-  Set<int> failedVideoIndices = {};
+  String liveId = "";
+  bool isStreamPaused = false;
+  bool isMuted = false;
   bool isViewingFullScreen = false;
+  bool _isDisposed = false;
+
   Timer? _hubRefreshTimer;
-  
-  // Contrôleur pour le chat
+
   final TextEditingController chatController = TextEditingController();
   final FocusNode chatFocusNode = FocusNode();
+  PageController? pageController;
 
-  // ID du Live
-  String liveId = "";
+  bool showEmojiPicker = false;
+  bool showStickerPicker = false;
 
-  bool isStreamPaused = false;
-  String currentQuality = "Auto";
-  Stream<dynamic>? adaptiveHealthStream;
-
-  void _setupSocketListener() {
-    _socketSubscription?.cancel();
-    _socketSubscription = _socketService.events.listen((event) {
-      if (event != null && event['type'] != null) {
-        final type = event['type'];
-        if (type == 'chat_message') {
-          final incomingUser = formatUserName((event['user'] ?? "Anonyme").toString());
-          // Ignorer l'écho de notre propre message (déjà ajouté localement dans sendMessage)
-          if (incomingUser != getCurrentUserName()) {
-            chatMessages.add({
-              "user": incomingUser,
-              "message": event['message']?.toString() ?? "",
-            });
-            notifyListeners();
-          }
-        } else if (type == 'stream_paused') {
-          isStreamPaused = true;
-          notifyListeners();
-        } else if (type == 'stream_resumed') {
-          isStreamPaused = false;
-          notifyListeners();
-        } else if (type == 'pin_product') {
-          _pinnedProduct = event['product'] as Map<String, dynamic>?;
-          notifyListeners();
-        } else if (type == 'unpin_product') {
-          final prodId = event['product_id']?.toString();
-          if (_pinnedProduct != null && _pinnedProduct!['id']?.toString() == prodId) {
-            _pinnedProduct = null;
-            notifyListeners();
-          }
-        } else if (type == 'unpin_all_products') {
-          _pinnedProduct = null;
-          notifyListeners();
-        } else if (type == 'like_event') {
-          addLike(remote: true);
-        } else if (type == 'live_ended' || (type == 'live_status' && event['status'] == 'ended')) {
-          if (event['reason'] == 'socket_closed') {
-            print("⚠️ [LiveViewer] WebSocket déconnecté définitivement.");
-          } else {
-            handleLiveEnded(currentVideoIndex);
-          }
-        }
-      }
-    });
+  void toggleEmojiPicker() {
+    showEmojiPicker = !showEmojiPicker;
+    if (showEmojiPicker) showStickerPicker = false;
+    notifyListeners();
   }
 
-  bool isControllerInitialized(int index) {
-    return controllers.containsKey(index) && controllers[index]!.isInitialized;
+  void toggleStickerPicker() {
+    showStickerPicker = !showStickerPicker;
+    if (showStickerPicker) showEmojiPicker = false;
+    notifyListeners();
   }
 
-  VideoController? getVideoController(int index) {
-    if (_isDisposed) return null;
-    return controllers[index]?.videoController;
-  }
-  
-  Player? getPlayer(int index) {
-    if (_isDisposed) return null;
-    return controllers[index]?.player;
-  }
-  
+  Map<String, VideoPlayerController> preloadedVideoControllers = {};
+  VideoPlayerController? videoController;
+
   String getBroadcasterName(int index) {
-    if (index < sessions.length) {
-      final s = sessions[index];
-      
-      // Essayer d'utiliser seller_details (qui contient first_name, last_name de l'API)
-      if (s['seller_details'] != null && s['seller_details'] is Map) {
-        final details = s['seller_details'];
-        final firstName = details['first_name']?.toString() ?? '';
-        final lastName = details['last_name']?.toString() ?? '';
-        if (firstName.isNotEmpty || lastName.isNotEmpty) {
-          final firstInitial = firstName.isNotEmpty ? firstName[0].toUpperCase() : '';
-          final lastInitial = lastName.isNotEmpty ? lastName[0].toUpperCase() : '';
-          return "$firstInitial$lastInitial Fashion";
-        }
-        if (details['username'] != null && details['username'].toString().isNotEmpty) {
-          return details['username'].toString() + " Fashion";
-        }
-      }
-      
-      if (s['seller_name'] != null && s['seller_name'].toString().isNotEmpty) {
-        return s['seller_name'].toString() + " Fashion";
-      }
-      if (s['title'] != null && s['title'].toString().isNotEmpty) {
-        return s['title'].toString();
-      }
-      return "Vendeur #${s['id']}";
+    if (index >= sessions.length) {
+      final dummyIdx = index - sessions.length;
+      if (dummyIdx < broadcasterNames.length) return broadcasterNames[dummyIdx];
+      return "Vendeur ${dummyIdx + 1}";
     }
-    return broadcasterNames[index % broadcasterNames.length];
+    final s = sessions[index];
+    if (s['seller_name'] != null && s['seller_name'].toString().isNotEmpty) return s['seller_name'].toString();
+    if (s['seller__store_name'] != null && s['seller__store_name'].toString().isNotEmpty) return s['seller__store_name'].toString();
+    if (s['title'] != null && s['title'].toString().isNotEmpty) return s['title'].toString();
+    return "Vendeur Inconnu";
   }
 
   String getBroadcasterInitials(int index) {
     final name = getBroadcasterName(index);
     if (name.startsWith("Vendeur")) return "V";
-    if (name.contains("Fashion")) {
-      return name.split(" ")[0]; // "SF" à partir de "SF Fashion"
-    }
+    if (name.contains("Fashion")) return name.split(" ")[0];
     if (name.isNotEmpty) return name[0].toUpperCase();
     return "V";
   }
@@ -196,36 +111,33 @@ class LiveViewerViewModel extends BaseViewModel with WidgetsBindingObserver {
     {"user": "SURA IA", "message": "Bienvenue sur le live !"},
   ];
 
-  List<int> floatingHearts = [];
+  List<Map<String, dynamic>> floatingHearts = [];
   int heartCounter = 0;
   StreamSubscription<dynamic>? _socketSubscription;
 
   List<String> videoUrls = [];
   List<Map<String, dynamic>> sessions = [];
+  List<Map<String, dynamic>> currentLiveProducts = [];
 
   Future<void> initViewer({bool initializeVideo = true, bool autoPlay = true}) async {
     setBusy(true);
-    failedVideoIndices.clear();
-    await WakelockPlus.enable(); // Garde l'écran allumé pendant le visionnage du Live !
+    await WakelockPlus.enable(); 
     
-    // Initialiser les services adaptatifs
-    _adaptiveStreamService.initialize();
-    _qualityService.initialize();
-
-    // Listen aux changements de santé du stream
-    _adaptiveStreamService.healthStream.listen((health) {
-      _onStreamHealthChanged(health);
+    _streamingService.initialize();
+    _streamingService.setRemoteUserCallback((uid) {
+      notifyListeners();
     });
 
-    // Listen aux changements de qualité
-    _qualityService.addListener(() {
-      _onQualityChanged();
-    });
     try {
       WidgetsBinding.instance.addObserver(this);
-      
-      // 1. Récupérer les lives actifs depuis le backend
-      final response = await http.get(Uri.parse(ApiConstants.activeLivesEndpoint));
+      final Map<String, String> headers = {};
+      if (_authService.accessToken != null) {
+        headers['Authorization'] = 'Bearer ${_authService.accessToken}';
+      }
+      final response = await http.get(
+        Uri.parse(ApiConstants.activeLivesEndpoint),
+        headers: headers,
+      );
       if (_isDisposed) return;
       
       if (response.statusCode == 200) {
@@ -238,7 +150,6 @@ class LiveViewerViewModel extends BaseViewModel with WidgetsBindingObserver {
           sessions = List<Map<String, dynamic>>.from(data['data'] as Iterable);
         }
 
-        // Tri : Les sessions avec le statut "LIVE" sont placées en première position
         sessions.sort((a, b) {
           final statusA = (a['status']?.toString() ?? '').toUpperCase();
           final statusB = (b['status']?.toString() ?? '').toUpperCase();
@@ -251,41 +162,50 @@ class LiveViewerViewModel extends BaseViewModel with WidgetsBindingObserver {
       print("[LiveViewer] Erreur fetch lives: $e");
     }
 
-    // 2. Construire la liste (Utilise HTTP-FLV pour le vrai temps réel avec media_kit)
     videoUrls = [];
     for (var s in sessions) {
-      videoUrls.add(_srsService.getHttpFlvPlayUrl(s['id'].toString()));
+      videoUrls.add("");
     }
-    videoUrls.addAll(dummyVideoUrls); // On ajoute les démos après
+    videoUrls.addAll(dummyVideoUrls); 
+
+    // Précharger toutes les vidéos (VODs) pour un affichage instantané
+    for (var url in dummyVideoUrls) {
+      if (!preloadedVideoControllers.containsKey(url)) {
+        VideoPlayerController ctrl;
+        if (url.startsWith('assets/')) {
+          ctrl = VideoPlayerController.asset(url);
+        } else {
+          ctrl = VideoPlayerController.networkUrl(Uri.parse(url));
+        }
+        try {
+          await ctrl.initialize();
+          ctrl.setLooping(true);
+          preloadedVideoControllers[url] = ctrl;
+        } catch (e) {
+          print("[LiveViewer] Erreur pre-chargement vidéo: $e");
+        }
+      }
+    } 
 
     if (sessions.isNotEmpty) {
       liveId = sessions[0]['id'].toString();
-      await _fetchLiveProducts(liveId); // Charger les produits du 1er live
+      await _fetchLiveProducts(liveId);
     } else {
-      currentLiveProducts = List.from(liveProducts); // Produits démo par défaut
+      currentLiveProducts = List.from(liveProducts);
     }
 
-    // 3. Initialisation de toutes les vidéos pour générer les frames de prévisualisation
-    if (initializeVideo && videoUrls.isNotEmpty) {
-      setBusy(false);
-      for (int i = 0; i < videoUrls.length; i++) {
-        // On initialise en différé pour ne pas bloquer l'UI
-        Future.delayed(Duration(milliseconds: 300 * i), () async {
-          await _initController(i, autoPlay: i == currentVideoIndex && autoPlay);
-        });
-      }
-    } else {
-      setBusy(false);
+    setBusy(false);
+
+    if (initializeVideo) {
+      onPageChanged(0);
     }
 
-    // 4. CONNEXION RÉELLE WEBSOCKET
     if (liveId.isNotEmpty) {
       await _fetchChatHistory(liveId);
       _socketService.connect(liveId);
       _setupSocketListener();
     }
     
-    // 5. Démarrer le rafraîchissement périodique du hub
     startHubRefreshTimer();
   }
 
@@ -300,7 +220,14 @@ class LiveViewerViewModel extends BaseViewModel with WidgetsBindingObserver {
 
   Future<void> refreshActiveLives() async {
     try {
-      final response = await http.get(Uri.parse(ApiConstants.activeLivesEndpoint));
+      final Map<String, String> headers = {};
+      if (_authService.accessToken != null) {
+        headers['Authorization'] = 'Bearer ${_authService.accessToken}';
+      }
+      final response = await http.get(
+        Uri.parse(ApiConstants.activeLivesEndpoint),
+        headers: headers,
+      );
       if (_isDisposed) return;
       
       List<Map<String, dynamic>> newSessions = [];
@@ -310,11 +237,8 @@ class LiveViewerViewModel extends BaseViewModel with WidgetsBindingObserver {
           newSessions = List<Map<String, dynamic>>.from(data);
         } else if (data is Map && data.containsKey('results')) {
           newSessions = List<Map<String, dynamic>>.from(data['results'] as Iterable);
-        } else if (data is Map && data.containsKey('data')) {
-          newSessions = List<Map<String, dynamic>>.from(data['data'] as Iterable);
         }
-
-        // Tri : Les sessions avec le statut "LIVE" sont placées en première position
+        
         newSessions.sort((a, b) {
           final statusA = (a['status']?.toString() ?? '').toUpperCase();
           final statusB = (b['status']?.toString() ?? '').toUpperCase();
@@ -324,7 +248,6 @@ class LiveViewerViewModel extends BaseViewModel with WidgetsBindingObserver {
         });
       }
 
-      // Comparer et mettre à jour seulement si la liste a changé
       bool hasChanged = newSessions.length != sessions.length;
       if (!hasChanged) {
         for (int i = 0; i < sessions.length; i++) {
@@ -337,233 +260,148 @@ class LiveViewerViewModel extends BaseViewModel with WidgetsBindingObserver {
       }
 
       if (hasChanged) {
-        print("🔄 [LiveViewer] Liste des lives mise à jour périodiquement (Trié)");
+        final oldIsLive = currentVideoIndex < sessions.length;
+        final oldLiveId = oldIsLive ? sessions[currentVideoIndex]['id'].toString() : null;
+        final oldUrl = videoUrls.isNotEmpty && currentVideoIndex < videoUrls.length ? videoUrls[currentVideoIndex] : null;
+
         sessions = newSessions;
-        
-        // Recréer la liste des urls
         videoUrls = [];
         for (var s in sessions) {
-          videoUrls.add(_srsService.getHttpFlvPlayUrl(s['id'].toString()));
+          videoUrls.add("");
         }
         videoUrls.addAll(dummyVideoUrls);
-
-        // Nettoyer les anciens contrôleurs et réinitialiser la première vidéo si nécessaire
-        for (var key in controllers.keys.toList()) {
-          // Ne pas toucher à la vidéo actuellement en cours de lecture
-          if (key != currentVideoIndex) {
-            controllers[key]?.dispose();
-            controllers.remove(key);
-          }
-        }
-        failedVideoIndices.clear();
-
-        // Réinitialiser le Hero en silencieux
-        if (videoUrls.isNotEmpty && !controllers.containsKey(0)) {
-          // VITAL: On force autoPlay à true pour que la première vidéo (index 0) démarre immédiatement
-          await _initController(0, autoPlay: true);
-        }
-        notifyListeners();
-      }
-    } catch (e) {
-      print("[LiveViewer] Erreur refresh active lives: $e");
-    }
-  }
-
-  Future<void> startVideo({bool autoPlay = true}) async {
-    if (videoUrls.isNotEmpty && !_isDisposed) {
-      await _initController(currentVideoIndex, autoPlay: autoPlay);
-      if (videoUrls.length > 1 && currentVideoIndex + 1 < videoUrls.length) {
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (!_isDisposed) _initController(currentVideoIndex + 1, autoPlay: false);
-        });
-      }
-    }
-  }
-
-  Future<void> _initController(int index, {bool autoPlay = true}) async {
-    if (controllers.containsKey(index)) return;
-
-    if (index >= sessions.length) return;
-
-    // 🆕 Obtenir l'URL optimale avec fallback intelligent
-    final streamId = sessions[index]['id'].toString();
-    final url = await _adaptiveStreamService.getOptimalStreamUrl(streamId);
-
-    if (url == null) {
-      failedVideoIndices.add(index);
-      print("❌ [LiveViewer] Failed to get stream URL for index $index");
-      _snackbarService.showCustomSnackBar(
-        variant: SnackbarType.error,
-        message: "Impossible de charger le stream",
-      );
-      return;
-    }
-
-    try {
-      final player = Player();
-      final videoController = VideoController(player);
-
-      // 🆕 Adapter la qualité recommandée
-      final recommendedQuality = _qualityService.getRecommendedQuality();
-      _qualityService.setQuality(recommendedQuality);
-
-      // Ouvrir le stream
-      await player.open(Media(url));
-
-      // Créer le contrôleur
-      controllers[index] = LivePlayerData(
-        player: player,
-        videoController: videoController,
-      );
-      controllers[index]?.isInitialized = true;
-
-      // 🆕 Listen au buffer level
-      player.stream.buffering.listen((isBuffering) {
-        final bufferPercent = isBuffering ? 0.0 : 100.0;
-        _adaptiveStreamService.updateBufferLevel(bufferPercent);
-      });
-
-      // 🆕 Listen aux erreurs de lecture
-      player.stream.error.listen((error) {
-        print("❌ [LiveViewer] Playback error: $error");
-        _adaptiveStreamService.onStreamError?.call(error.toString());
-      });
-
-      if (autoPlay) {
-        player.play();
-      }
-
-      print("✅ [LiveViewer] Controller initialized for index $index");
-      notifyListeners();
-
-    } catch (e) {
-      print("❌ [LiveViewer] Error initializing controller $index: $e");
-      failedVideoIndices.add(index);
-
-      // 🆕 Tentative de reconnexion
-      await _retryWithExponentialBackoff(index);
-    }
-  }
-
-  /// 🆕 AJOUTER CETTE NOUVELLE MÉTHODE:
-  /// Reconnecter avec backoff exponentiel en cas d'erreur
-  Future<void> _retryWithExponentialBackoff(int index) async {
-    if (index >= sessions.length || _isDisposed) return;
-
-    final streamId = sessions[index]['id'].toString();
-    int attempt = 0;
-    const maxAttempts = 5;
-
-    print("🔄 [LiveViewer] Starting reconnection for stream $index");
-
-    while (attempt < maxAttempts && !_isDisposed) {
-      attempt++;
-
-      final delay = Duration(seconds: attempt * 2);
-      print("⏳ [LiveViewer] Reconnection attempt $attempt/$maxAttempts in $delay");
-
-      await Future.delayed(delay);
-
-      final success = await _adaptiveStreamService.reconnect(streamId);
-
-      if (success) {
-        await _initController(index, autoPlay: currentVideoIndex == index);
-        print("✅ [LiveViewer] Reconnected to stream $index");
-        return;
-      }
-    }
-
-    print("❌ [LiveViewer] Failed to reconnect after $maxAttempts attempts");
-    failedVideoIndices.add(index);
-
-    if (!_isDisposed) {
-      _snackbarService.showCustomSnackBar(
-        variant: SnackbarType.error,
-        message: "Stream indisponible",
-      );
-      notifyListeners();
-    }
-  }
-
-  void handleLiveEnded(int index) {
-    if (_isDisposed) return;
-    
-    print("🔴 [LiveViewer] Le Live $index est terminé ou interrompu.");
-    
-    // 1. Informer le client
-    _snackbarService.showCustomSnackBar(
-      variant: SnackbarType.warning,
-      message: "🔴 Le Live est terminé ou a été interrompu par le vendeur.",
-    );
-
-    // 2. Supprimer dynamiquement la session terminée de nos listes locales pour éviter les lives fantômes
-    if (index >= 0 && index < sessions.length) {
-      sessions.removeAt(index);
-      if (index < videoUrls.length) {
-        videoUrls.removeAt(index);
-      }
-      
-      // Nettoyer et libérer le lecteur de ce live
-      controllers[index]?.player.dispose();
-      controllers.remove(index);
-      
-      // Réorganiser les index des contrôleurs restants dans le pool
-      final updatedControllers = <int, LivePlayerData>{};
-      for (var entry in controllers.entries) {
-        if (entry.key > index) {
-          updatedControllers[entry.key - 1] = entry.value;
-        } else {
-          updatedControllers[entry.key] = entry.value;
-        }
-      }
-      controllers = updatedControllers;
-
-      // Réorganiser les index des erreurs restantes dans le pool
-      final updatedFailed = <int>{};
-      for (var idx in failedVideoIndices) {
-        if (idx > index) {
-          updatedFailed.add(idx - 1);
-        } else if (idx < index) {
-          updatedFailed.add(idx);
-        }
-      }
-      failedVideoIndices = updatedFailed;
-
-      // Si le PageController est actif, on glisse le live suivant qui prend sa place
-      if (pageController != null && pageController!.hasClients) {
-        notifyListeners();
         
-        if (sessions.isEmpty) {
-          // Plus aucun live disponible
-          print("🚪 [LiveViewer] Plus aucun Live disponible. Retour au Hub.");
-          _navigationService.back<dynamic>();
-        } else {
-          // Relancer la lecture du live qui glisse à la position actuelle
+        notifyListeners();
+
+        final newIsLive = currentVideoIndex < sessions.length;
+        final newLiveId = newIsLive ? sessions[currentVideoIndex]['id'].toString() : null;
+        final newUrl = videoUrls.isNotEmpty && currentVideoIndex < videoUrls.length ? videoUrls[currentVideoIndex] : null;
+
+        // Si la vidéo que l'on regarde actuellement change (un nouveau live prend sa place par exemple), on recharge
+        if (oldIsLive != newIsLive || oldLiveId != newLiveId || oldUrl != newUrl) {
           onPageChanged(currentVideoIndex);
         }
-        return;
       }
+    } catch (e) {
+      print("[LiveViewer] Erreur catch refresh lives: $e");
+    }
+  }
+
+  void _setupSocketListener() {
+    _socketSubscription?.cancel();
+    _socketSubscription = _socketService.events.listen((data) {
+      if (!_isDisposed) {
+        if (data['type'] == 'like') {
+          viewerCount++;
+          heartCounter++;
+          _showLocalHeart(heartCounter);
+        } else {
+          chatMessages.insert(0, {
+            "user": data['user']?.toString() ?? "Utilisateur",
+            "message": data['message']?.toString() ?? ""
+          });
+        }
+        notifyListeners();
+      }
+    });
+  }
+
+  String getCurrentUserName() {
+    final userData = _authService.userData;
+    if (userData != null) {
+      return userData['first_name']?.toString().isNotEmpty == true 
+          ? userData['first_name'].toString() 
+          : (userData['username']?.toString() ?? "Utilisateur");
+    }
+    return "Utilisateur";
+  }
+
+  Future<void> onPageChanged(int index) async {
+    if (_isDisposed) return;
+    
+    currentVideoIndex = index;
+    
+    videoController?.pause();
+    videoController = null;
+    
+    await _streamingService.leaveChannel();
+
+    if (index < sessions.length) {
+      isStreamPaused = false;
+      liveId = sessions[index]['id'].toString();
+      _socketService.connect(liveId);
+      
+      String? token;
+      try {
+        final Map<String, String> headers = {};
+        if (_authService.accessToken != null) {
+          headers['Authorization'] = 'Bearer ${_authService.accessToken}';
+        }
+        
+        final tokenResponse = await http.get(
+          Uri.parse("${ApiConstants.getAgoraTokenEndpoint}?channelName=$liveId&role=audience"),
+          headers: headers,
+        );
+        if (tokenResponse.statusCode == 200) {
+          final data = jsonDecode(tokenResponse.body);
+          token = data['token'];
+        }
+      } catch(e) {
+        print("Erreur Token Agora Viewer: $e");
+      }
+      await _streamingService.joinChannelAsViewer(liveId, token: token);
+      
+      Future.delayed(const Duration(seconds: 1), () {
+        _socketService.sendEvent({
+          "type": "chat_message",
+          "user": "SURA IA",
+          "message": "${getCurrentUserName()} a rejoint le live ! 👋"
+        });
+      });
+      
+      _fetchChatHistory(liveId);
+      _fetchLiveProducts(liveId); 
+    } else {
+      currentLiveProducts = List.from(liveProducts);
+      liveId = ""; 
+      
+      final url = videoUrls[index];
+      videoController = preloadedVideoControllers[url];
+      
+      // Fallback si non préchargée
+      if (videoController == null) {
+        if (url.startsWith('assets/')) {
+          videoController = VideoPlayerController.asset(url);
+        } else {
+          videoController = VideoPlayerController.networkUrl(Uri.parse(url));
+        }
+        await videoController!.initialize();
+        videoController!.setLooping(true);
+        preloadedVideoControllers[url] = videoController!;
+      }
+      
+      videoController!.play();
     }
 
-    // Comportement de secours (fallback)
-    if (index + 1 < videoUrls.length) {
+    notifyListeners();
+  }
+
+  void skipToNextLive() {
+    if (currentVideoIndex + 1 < videoUrls.length) {
       if (pageController?.hasClients ?? false) {
         pageController!.nextPage(
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
         );
       } else {
-        onPageChanged(index + 1);
+        onPageChanged(currentVideoIndex + 1);
       }
     } else {
       _navigationService.back<dynamic>();
     }
   }
 
-  List<Map<String, dynamic>> currentLiveProducts = [];
-
   Future<void> _fetchLiveProducts(String id) async {
-    // 1. Vérifier si la session contient déjà la liste des produits préchargés par Django
     try {
       final session = sessions.firstWhere((s) => s['id'].toString() == id, orElse: () => {});
       if (session.isNotEmpty && session['products'] != null && session['products'] is List && (session['products'] as List).isNotEmpty) {
@@ -573,7 +411,6 @@ class LiveViewerViewModel extends BaseViewModel with WidgetsBindingObserver {
       }
     } catch (_) {}
  
-    // 2. Sinon, tenter l'appel HTTP dédié
     try {
       final response = await http.get(Uri.parse("${ApiConstants.liveProductsEndpoint}/$id/"));
       if (response.statusCode == 200) {
@@ -591,7 +428,6 @@ class LiveViewerViewModel extends BaseViewModel with WidgetsBindingObserver {
         currentLiveProducts = List.from(liveProducts);
       }
     } catch (e) {
-      print("[LiveViewer] Erreur fetch produits live: $e");
       currentLiveProducts = List.from(liveProducts);
     }
     notifyListeners();
@@ -604,210 +440,66 @@ class LiveViewerViewModel extends BaseViewModel with WidgetsBindingObserver {
         return s['title'].toString();
       }
     }
-    return "Live Officiel";
-  }
-
-  String formatUserName(String rawName) {
-    if (rawName.isEmpty) return "Anonyme";
-    // Masquer le numéro de téléphone pour la sécurité (ex: +2250102030405 -> +22501****05)
-    final phoneRegex = RegExp(r'^\+?[0-9]{8,}$');
-    if (phoneRegex.hasMatch(rawName)) {
-      if (rawName.length >= 8) {
-        return rawName.substring(0, 4) + '****' + rawName.substring(rawName.length - 2);
-      }
-    }
-    return rawName;
-  }
-
-  String getCurrentUserName() {
-    if (_authService.userData != null) {
-      final user = _authService.userData!;
-      if (user['first_name'] != null && user['first_name'].toString().isNotEmpty) {
-        return formatUserName(user['first_name'].toString());
-      }
-      if (user['username'] != null && user['username'].toString().isNotEmpty) {
-        return formatUserName(user['username'].toString());
-      }
-    }
-    return "Spectateur";
+    return getBroadcasterName(currentVideoIndex);
   }
 
   Future<void> _fetchChatHistory(String id) async {
     try {
       final response = await http.get(Uri.parse(ApiConstants.getLiveChatHistoryEndpoint(id)));
-      final liveTitle = getCurrentLiveTitle();
-      
-      List<Map<String, String>> history = [
-        {"user": "SURA IA", "message": "Bienvenue dans le live $liveTitle !"},
-      ];
-
       if (response.statusCode == 200) {
-        final dynamic data = json.decode(utf8.decode(response.bodyBytes));
-        if (data is List) {
-          final lastMessages = data.length > 10 ? data.sublist(data.length - 10) : data;
-          for (var m in lastMessages) {
-            history.add({
-              "user": m['user']?.toString() ?? "Anonyme",
-              "message": m['message']?.toString() ?? "",
-            });
-          }
+        final dynamic data = json.decode(response.body);
+        if (data is Map && data['history'] is List) {
+          chatMessages = List<Map<String, String>>.from((data['history'] as List).map((e) => {
+            "user": e["user"].toString(),
+            "message": e["message"].toString()
+          }));
+          notifyListeners();
         }
       }
-      chatMessages = history;
-      notifyListeners();
     } catch (e) {
-      print("❌ [LiveViewer] Erreur fetch chat history: $e");
-      final liveTitle = getCurrentLiveTitle();
-      chatMessages = [
-        {"user": "SURA IA", "message": "Bienvenue dans le live $liveTitle !"},
-      ];
-      notifyListeners();
+      print("[LiveViewer] Erreur fetch chat: $e");
     }
-  }
-
-  void onPageChanged(int index) async {
-    if (index == currentVideoIndex) return;
-
-    final previousIndex = currentVideoIndex;
-    currentVideoIndex = index;
-
-    print("📄 [LiveViewer] Page changed: $previousIndex → $index");
-
-    // 🆕 Pause la vidéo précédente
-    if (previousIndex < videoUrls.length && previousIndex != index) {
-      getPlayer(previousIndex)?.pause();
-    }
-    
-    // 2. Logique de connexion (Live vs Replay)
-    if (index < sessions.length) {
-      isStreamPaused = false;
-      final liveId = sessions[index]['id'].toString();
-      _socketService.connect(liveId);
-      
-      // Notifier l'arrivée dans le live après 1 seconde (laisser le temps au socket de se connecter)
-      Future.delayed(const Duration(seconds: 1), () {
-        _socketService.sendEvent({
-          "type": "chat_message",
-          "user": "SURA IA",
-          "message": "${getCurrentUserName()} a rejoint le live ! 👋"
-        });
-      });
-      
-      _fetchChatHistory(liveId);
-      _fetchLiveProducts(liveId); 
-    } else {
-      currentLiveProducts = List.from(liveProducts);
-    }
-
-    // 🆕 Initialiser ou jouer la nouvelle
-    if (!isControllerInitialized(index)) {
-      print("🔧 [LiveViewer] Initializing new controller for index $index");
-
-      Future.delayed(const Duration(milliseconds: 100), () async {
-        if (!_isDisposed && currentVideoIndex == index) {
-          await _initController(index, autoPlay: true);
-        }
-      });
-    } else {
-      print("▶️ [LiveViewer] Playing existing controller at index $index");
-      getPlayer(index)?.play();
-    }
-
-    _managePool(index);
-    notifyListeners();
-  }
-
-  void _managePool(int index) {
-    // Précharger la vidéo suivante EN PAUSE (autoPlay: false) pour ne pas voler le focus audio/vidéo
-    if (index + 1 < videoUrls.length) {
-      _initController(index + 1, autoPlay: false);
-    }
-    final keysToRemove = controllers.keys.where((k) => k != index && k != index + 1).toList();
-    for (var key in keysToRemove) {
-      controllers[key]?.dispose();
-      controllers.remove(key);
-    }
-  }
-
-  bool _isDisposed = false;
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (_isDisposed) return;
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-      getPlayer(currentVideoIndex)?.pause();
-      print("⏸️ [LiveViewer] App en arrière-plan, mise en pause de la vidéo.");
-    } else if (state == AppLifecycleState.resumed) {
-      getPlayer(currentVideoIndex)?.play();
-      print("▶️ [LiveViewer] App de retour au premier plan, reprise de la lecture.");
-    }
-  }
-
-  @override
-  void notifyListeners() {
-    if (_isDisposed) return;
-    super.notifyListeners();
-  }
-
-  @override
-  void setBusy(bool value) {
-    if (_isDisposed) return;
-    super.setBusy(value);
   }
 
   void sendMessage() {
     final text = chatController.text.trim();
-    if (text.isEmpty) return;
-    
-    final userName = getCurrentUserName();
-    
-    final payload = {
-      "type": "chat_message",
-      "user": userName, 
-      "message": text,
-    };
+    if (text.isNotEmpty) {
+      final userName = getCurrentUserName();
+      final msg = {"user": userName, "message": text};
+      // Le message local n'est plus inséré manuellement ici pour éviter les doublons avec le retour WebSockets.
+      // Il sera affiché quand il sera reçu via _socketService.events.listen.
 
-    _socketService.sendEvent(payload);
-    
-    chatMessages.add({
-      "user": userName,
-      "message": text,
-    });
-    
-    chatController.clear();
-    notifyListeners();
-  }
+      if (liveId.isNotEmpty) {
+        _socketService.sendEvent({
+          "type": "chat_message",
+          "user": userName,
+          "message": text
+        });
+      }
 
-  bool _showEmojiPicker = false;
-  bool get showEmojiPicker => _showEmojiPicker;
-
-  bool _showStickerPicker = false;
-  bool get showStickerPicker => _showStickerPicker;
-
-  void toggleEmojiPicker() {
-    _showEmojiPicker = !_showEmojiPicker;
-    _showStickerPicker = false;
-    notifyListeners();
-  }
-
-  void toggleStickerPicker() {
-    _showStickerPicker = !_showStickerPicker;
-    _showEmojiPicker = false;
-    notifyListeners();
+      chatController.clear();
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
   }
 
   void addSpecificEmoji(String emoji) {
-    final currentText = chatController.text;
-    chatController.text = "$currentText$emoji";
-    chatController.selection = TextSelection.fromPosition(TextPosition(offset: chatController.text.length));
+    chatController.text += emoji;
     notifyListeners();
   }
 
-  void addMention() {
-    final currentText = chatController.text;
-    chatController.text = "$currentText@";
-    chatController.selection = TextSelection.fromPosition(TextPosition(offset: chatController.text.length));
-    notifyListeners();
+  void sendSpecificSticker(String icon, String label) {
+    final userName = getCurrentUserName();
+    final text = "$icon a envoyé un $label !";
+    final msg = {"user": userName, "message": text};
+    // Pareil pour les cadeaux, pas d'ajout manuel.
+
+    if (liveId.isNotEmpty) {
+      _socketService.sendEvent({
+        "type": "chat_message",
+        "user": userName,
+        "message": text
+      });
+    }
   }
 
   void confirmOrder({
@@ -816,114 +508,79 @@ class LiveViewerViewModel extends BaseViewModel with WidgetsBindingObserver {
     required String phone,
     required String location,
   }) {
-    final orderPayload = {
-      "type": "order_request",
-      "product_id": product['id'],
-      "product_name": product['name'],
-      "buyer_name": buyerName,
-      "buyer_phone": phone,
-      "buyer_location": location,
-    };
+    final text = "🛍️ Nouvelle commande : ${product['name']} par $buyerName";
+    // Pareil pour les commandes.
 
-    _socketService.sendEvent(orderPayload);
-
-    chatMessages.add({
-      "user": "SYSTEME",
-      "message": "FÉLICITATIONS à $buyerName qui vient de commander ${product['name']}",
-    });
-
-    notifyListeners();
-  }
-
-  void sendSpecificSticker(String icon, String label) {
-    final payload = {
-      "type": "chat_message",
-      "user": "Moi",
-      "message": "$icon a envoyé un $label !",
-    };
-    _socketService.sendEvent(payload);
-    
-    chatMessages.add(payload);
-    notifyListeners();
-  }
-
-  void addLike({bool remote = false}) {
-    if (!remote) {
-      _socketService.sendEvent({"type": "like_event"});
+    if (liveId.isNotEmpty) {
+      _socketService.sendEvent({
+        "type": "chat_message",
+        "user": "SURA IA",
+        "message": text
+      });
     }
+  }
 
+  void addLike() {
+    viewerCount++;
     heartCounter++;
-    floatingHearts.add(heartCounter);
-    notifyListeners();
+    final currentId = heartCounter;
     
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!_isDisposed) {
-        if (floatingHearts.isNotEmpty) {
-          floatingHearts.removeAt(0);
+    _showLocalHeart(currentId);
+
+    if (liveId.isNotEmpty) {
+      _socketService.sendEvent({
+        "type": "like",
+        "user": getCurrentUserName(),
+      });
+    }
+  }
+
+  void _showLocalHeart(int id) {
+    if (!_isDisposed) {
+      final random = math.Random();
+      floatingHearts.add({
+        'id': id,
+        'xOffset': (random.nextDouble() * 80) - 40,
+        'colorIndex': random.nextInt(Colors.primaries.length),
+      });
+      notifyListeners();
+
+      Future.delayed(const Duration(milliseconds: 2000), () {
+        if (!_isDisposed) {
+          floatingHearts.removeWhere((h) => h['id'] == id);
           notifyListeners();
         }
-      }
-    });
-  }
-
-  void _onStreamHealthChanged(StreamHealthStatus health) {
-    print("🏥 [LiveViewer] Stream health: ${health.toString()}");
-
-    if (_isDisposed) return;
-
-    switch (health) {
-      case StreamHealthStatus.healthy:
-        print("✅ [LiveViewer] Stream is healthy");
-        break;
-
-      case StreamHealthStatus.degraded:
-        print("⚠️ [LiveViewer] Stream quality degraded");
-        if (!_isDisposed) {
-          _snackbarService.showCustomSnackBar(
-            variant: SnackbarType.warning,
-            message: "Qualité réduite - connexion faible",
-            duration: const Duration(seconds: 3),
-          );
-        }
-        break;
-
-      case StreamHealthStatus.critical:
-        print("🔴 [LiveViewer] Stream health critical");
-        if (!_isDisposed) {
-          _snackbarService.showCustomSnackBar(
-            variant: SnackbarType.warning,
-            message: "Tentative de reconnexion...",
-            duration: const Duration(seconds: 2),
-          );
-        }
-        break;
-
-      case StreamHealthStatus.offline:
-        print("❌ [LiveViewer] Stream offline");
-        if (!_isDisposed) {
-          _snackbarService.showCustomSnackBar(
-            variant: SnackbarType.error,
-            message: "Stream indisponible",
-          );
-        }
-        break;
+      });
     }
-
-    notifyListeners();
   }
 
-  void _onQualityChanged() {
-    if (_isDisposed) return;
+  void _hideLocalHeart(int id) {
+    if (!_isDisposed) {
+      floatingHearts.remove(id);
+      notifyListeners();
+    }
+  }
 
-    final newQuality = _qualityService.currentQuality;
-    print("📺 [LiveViewer] Quality changed to: ${newQuality.shortLabel}");
+  void togglePlayPause() {
+    if (currentVideoIndex >= sessions.length) {
+      if (videoController != null) {
+        if (videoController!.value.isPlaying) {
+          videoController!.pause();
+          isStreamPaused = true;
+        } else {
+          videoController!.play();
+          isStreamPaused = false;
+        }
+        notifyListeners();
+      }
+    }
+  }
 
-    _snackbarService.showCustomSnackBar(
-      variant: SnackbarType.success,
-      message: "Qualité: ${newQuality.shortLabel}",
-      duration: const Duration(seconds: 2),
-    );
-
+  void toggleMute() {
+    isMuted = !isMuted;
+    if (currentVideoIndex >= sessions.length) {
+      videoController?.setVolume(isMuted ? 0.0 : 1.0);
+    }
     notifyListeners();
   }
 
@@ -938,15 +595,14 @@ class LiveViewerViewModel extends BaseViewModel with WidgetsBindingObserver {
     chatFocusNode.dispose();
     pageController?.dispose();
     
-    // 🆕 AJOUTER CES LIGNES AVANT super.onDispose:
-    print("🛑 [LiveViewer] Stopping adaptive services");
-    _adaptiveStreamService.dispose();
-    _qualityService.stop();
-
-    for (var controller in controllers.values) {
-      controller.dispose();
+    for (var ctrl in preloadedVideoControllers.values) {
+      ctrl.dispose();
     }
-    WakelockPlus.disable(); // Remet l'écran en veille normale
+    preloadedVideoControllers.clear();
+    videoController = null;
+    _streamingService.dispose();
+    
+    WakelockPlus.disable();
     super.dispose();
   }
 }

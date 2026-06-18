@@ -1,12 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import 'package:stacked/stacked.dart';
+import 'package:video_player/video_player.dart';
 import 'package:promogoai/ui/common/app_colors.dart';
 import 'package:promogoai/app/app.locator.dart';
 import 'package:stacked_services/stacked_services.dart';
-import 'package:media_kit_video/media_kit_video.dart';
-import 'package:promogoai/services/adaptive_stream_service.dart';
-import 'package:promogoai/services/stream_quality_service.dart';
 import 'live_viewer_viewmodel.dart';
 
 class LiveViewerView extends StackedView<LiveViewerViewModel> {
@@ -26,15 +25,12 @@ class LiveViewerView extends StackedView<LiveViewerViewModel> {
     if (preloadedViewModel == null) {
       viewModel.initViewer();
     } else {
-      // Si c'est pré-chargé, on se contente de lancer la lecture !
-      viewModel.getPlayer(viewModel.currentVideoIndex)?.play();
+      // Si c'est pré-chargé, on ne fait rien de particulier ici
     }
   }
 
   @override
   void onDispose(LiveViewerViewModel viewModel) {
-    // ON MET EN PAUSE LA VIDÉO QUAND ON FERME LA PAGE !
-    viewModel.getPlayer(viewModel.currentVideoIndex)?.pause();
     super.onDispose(viewModel);
   }
 
@@ -48,6 +44,7 @@ class LiveViewerView extends StackedView<LiveViewerViewModel> {
       backgroundColor: Colors.black,
       resizeToAvoidBottomInset: false,
       body: PageView.builder(
+        controller: viewModel.pageController,
         scrollDirection: Axis.vertical,
         itemCount: viewModel.videoUrls.length,
         onPageChanged: viewModel.onPageChanged,
@@ -62,65 +59,58 @@ class LiveViewerView extends StackedView<LiveViewerViewModel> {
               children: [
                 // 1. VIDEO LAYER
                 Positioned.fill(
-                  child: viewModel.failedVideoIndices.contains(index)
-                      ? Container(
-                          color: Colors.black,
-                          child: const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.videocam_off, color: Colors.white54, size: 40),
-                                SizedBox(height: 10),
-                                Text(
-                                  "Le live est terminé ou interrompu.",
-                                  style: TextStyle(color: Colors.white54, fontSize: 14, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                      : Stack(
+                  child: Stack(
                           fit: StackFit.expand,
                           children: [
-                            viewModel.isControllerInitialized(index)
-                                ? Video(
-                                    controller: viewModel.getVideoController(index)!,
-                                    fit: BoxFit.cover,
-                                    controls: NoVideoControls,
+                            index == viewModel.currentVideoIndex
+                                ? (index < viewModel.sessions.length 
+                                    ? viewModel.streamingService.buildVideoView(
+                                        channelId: viewModel.sessions[index]['id'].toString(),
+                                        remoteUid: viewModel.streamingService.currentRemoteUid,
+                                        isBroadcaster: false,
+                                      )
+                                    : (viewModel.videoController != null && viewModel.videoController!.value.isInitialized 
+                                        ? SizedBox.expand(
+                                            child: FittedBox(
+                                              fit: BoxFit.cover,
+                                              child: SizedBox(
+                                                width: viewModel.videoController!.value.size.width,
+                                                height: viewModel.videoController!.value.size.height,
+                                                child: VideoPlayer(viewModel.videoController!),
+                                              ),
+                                            ),
+                                          )
+                                        : Container(
+                                            color: Colors.black,
+                                            decoration: const BoxDecoration(
+                                              image: DecorationImage(
+                                                image: AssetImage('assets/images/placeholder_live.png'),
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                            child: Container(
+                                              color: Colors.black54,
+                                              child: const Center(
+                                                child: CircularProgressIndicator(color: kcSecondaryGold),
+                                              ),
+                                            ),
+                                          )
+                                      )
                                   )
                                 : Container(
-                                    color: Colors.black,
-                                    child: const Center(
-                                      child: CircularProgressIndicator(color: kcSecondaryGold),
+                                    decoration: const BoxDecoration(
+                                      image: DecorationImage(
+                                        image: AssetImage('assets/images/placeholder_live.png'),
+                                        fit: BoxFit.cover,
+                                      ),
                                     ),
-                                  ),
-                            if (viewModel.isStreamPaused)
-                              ClipRect(
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                                  child: Container(
-                                    color: Colors.black.withOpacity(0.5),
-                                    child: const Center(
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.pause_circle_outline, color: kcSecondaryGold, size: 50),
-                                          SizedBox(height: 10),
-                                          Text(
-                                            "Le vendeur a mis le live en pause.",
-                                            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                                          ),
-                                          SizedBox(height: 5),
-                                          Text(
-                                            "Restez avec nous, ça reprend bientôt !",
-                                            style: TextStyle(color: Colors.white70, fontSize: 13),
-                                          ),
-                                        ],
+                                    child: Container(
+                                      color: Colors.black54,
+                                      child: const Center(
+                                        child: CircularProgressIndicator(color: kcSecondaryGold),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ),
                           ],
                         ),
                 ),
@@ -162,7 +152,7 @@ class LiveViewerView extends StackedView<LiveViewerViewModel> {
 
                 // 4. FLOATING HEARTS
                 ...viewModel.floatingHearts
-                    .map((id) => _buildHeartAnimation(id)),
+                    .map((heart) => _buildHeartAnimation(heart)),
 
                 // 5. CLOSE BUTTON
                 Positioned(
@@ -175,74 +165,7 @@ class LiveViewerView extends StackedView<LiveViewerViewModel> {
                   ),
                 ),
 
-                // 🆕 6. QUALITY BADGE (Bottom-Left)
-                Positioned(
-                  bottom: 70,
-                  left: 20,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.7),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.white.withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.videocam, color: Colors.white, size: 12),
-                        const SizedBox(width: 6),
-                        ValueListenableBuilder<VideoQuality>(
-                          valueListenable: ValueNotifier(viewModel.qualityService.currentQuality),
-                          builder: (context, quality, _) {
-                            return Text(
-                              quality.shortLabel,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
 
-                // 🆕 7. HEALTH INDICATOR (Bottom-Right)
-                Positioned(
-                  bottom: 70,
-                  right: 20,
-                  child: StreamBuilder<StreamHealthStatus>(
-                    stream: viewModel.adaptiveStreamService.healthStream,
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) return const SizedBox.shrink();
-
-                      final health = snapshot.data!;
-                      final colors = {
-                        StreamHealthStatus.healthy: Colors.green,
-                        StreamHealthStatus.degraded: Colors.orange,
-                        StreamHealthStatus.critical: Colors.red,
-                        StreamHealthStatus.offline: Colors.grey,
-                      };
-
-                      return Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: colors[health],
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: colors[health]!.withOpacity(0.5),
-                              blurRadius: 4,
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
               ],
             ),
           );
@@ -353,8 +276,7 @@ class LiveViewerView extends StackedView<LiveViewerViewModel> {
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 itemCount: viewModel.chatMessages.length,
                 itemBuilder: (context, index) {
-                  final chat = viewModel
-                      .chatMessages[viewModel.chatMessages.length - 1 - index];
+                  final chat = viewModel.chatMessages[index];
                   return _buildChatItem(chat);
                 },
               ),
@@ -390,6 +312,7 @@ class LiveViewerView extends StackedView<LiveViewerViewModel> {
                           focusNode: viewModel.chatFocusNode,
                           maxLines: 4,
                           minLines: 1,
+                          maxLength: 120,
                           style: const TextStyle(
                               color: Colors.white, fontSize: 14),
                           onTap: () {
@@ -463,19 +386,23 @@ class LiveViewerView extends StackedView<LiveViewerViewModel> {
     );
   }
 
-  Widget _buildHeartAnimation(int id) {
+  Widget _buildHeartAnimation(Map<String, dynamic> heart) {
+    final double xOffset = heart['xOffset'] as double;
+    final int colorIndex = heart['colorIndex'] as int;
+    final Color heartColor = Colors.primaries[colorIndex];
+
     return Positioned(
       bottom: 100,
-      right: 20,
+      right: 30,
       child: TweenAnimationBuilder<double>(
         tween: Tween(begin: 0.0, end: 1.0),
         duration: const Duration(seconds: 2),
         builder: (context, value, child) {
           return Opacity(
             opacity: 1.0 - value,
-            child: Padding(
-              padding: EdgeInsets.only(bottom: value * 300),
-              child: const Icon(Icons.favorite, color: Colors.red, size: 30),
+            child: Transform.translate(
+              offset: Offset(xOffset * math.sin(value * math.pi * 3), -value * 400),
+              child: Icon(Icons.favorite, color: heartColor, size: 36),
             ),
           );
         },

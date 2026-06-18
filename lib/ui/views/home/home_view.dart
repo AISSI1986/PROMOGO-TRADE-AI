@@ -141,7 +141,7 @@ class HomeView extends StackedView<HomeViewModel> {
   Widget _buildBodyContent(HomeViewModel viewModel) {
     switch (viewModel.currentTopTab) {
       case 0:
-        return const ModeIaView();
+        return ModeIaView(homeViewModel: viewModel);
       case 1:
         return const ProduitsComponent();
       case 2:
@@ -394,10 +394,10 @@ class _CustomBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double bottomPadding = MediaQuery.of(context).padding.bottom;
-
     final double totalHeight = getBottomNavHeight(context);
     const double barHeight = 85.0;
     const double notchDepth = 40.0;
+    final bool showDome = viewModel.currentIndex == 0 && viewModel.currentTopTab == 1;
     
     // The top padding above the white bar to accommodate the protruding 3D eye/button
     // totalHeight est déjà calculé responsivement via getBottomNavHeight.
@@ -413,7 +413,12 @@ class _CustomBottomNavBar extends StatelessWidget {
           // 1. Le CustomPainter dessinant le background en forme de dôme fluide
           CustomPaint(
             size: Size(MediaQuery.of(context).size.width, totalHeight),
-            painter: _DomePainter(barHeight: barHeight, domeHeight: notchDepth, bottomPadding: bottomPadding),
+            painter: _DomePainter(
+              barHeight: barHeight,
+              domeHeight: notchDepth,
+              bottomPadding: bottomPadding,
+              showDome: showDome,
+            ),
           ),
 
           // 2. Les icônes latérales
@@ -437,7 +442,7 @@ class _CustomBottomNavBar extends StatelessWidget {
                     child: _NavBarItem(icon: Icons.chat_bubble_outline_rounded, label: 'home.nav_message'.tr(), isSelected: viewModel.currentIndex == 1),
                   ),
                 ),
-                SizedBox(width: centralButtonSize * 1.2), // Espacement pour le gros dôme
+                if (showDome) SizedBox(width: centralButtonSize * 1.2), // Espacement pour le gros dôme
                 Expanded(
                   child: GestureDetector(
                     onTap: () => viewModel.setIndex(2),
@@ -453,32 +458,33 @@ class _CustomBottomNavBar extends StatelessWidget {
               ],
             ),
           ),
-          Positioned(
-            // Centrage parfait ! Le milieu de l'Oeil est à Y=41.5. 
-            // En descendant l'icône de 4 pixels (top: -18 au lieu de -22), 
-            // le milieu de l'icône tombe exactement au centre de la géométrie de l'Oeil !
-            top: -18, 
-            left: 0,
-            right: 0,
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: Container(
-                width: centralButtonSize,
-                height: centralButtonSize,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.transparent,
-                ),
-                child: ClipOval(
-                  // Nudge optical : Le logo "P" est asymétrique. On le décale manuellement de 4 pixels vers la gauche.
-                  child: Transform.translate(
-                    offset: const Offset(-4.0, 0),
-                    child: IaButton(onTap: viewModel.onVoiceIAClicked),
+          if (showDome)
+            Positioned(
+              // Centrage parfait ! Le milieu de l'Oeil est à Y=41.5. 
+              // En descendant l'icône de 4 pixels (top: -18 au lieu de -22), 
+              // le milieu de l'icône tombe exactement au centre de la géométrie de l'Oeil !
+              top: -18, 
+              left: 0,
+              right: 0,
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: Container(
+                  width: centralButtonSize,
+                  height: centralButtonSize,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.transparent,
+                  ),
+                  child: ClipOval(
+                    // Nudge optical : Le logo "P" est asymétrique. On le décale manuellement de 4 pixels vers la gauche.
+                    child: Transform.translate(
+                      offset: const Offset(-4.0, 0),
+                      child: IaButton(onTap: viewModel.onVoiceIAClicked),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -489,12 +495,34 @@ class _DomePainter extends CustomPainter {
   final double barHeight;
   final double domeHeight;
   final double bottomPadding;
+  final bool showDome;
 
-  _DomePainter({required this.barHeight, required this.domeHeight, required this.bottomPadding});
+  _DomePainter({
+    required this.barHeight,
+    required this.domeHeight,
+    required this.bottomPadding,
+    required this.showDome,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     final double barTop = size.height - (barHeight + bottomPadding); // 40.0
+
+    if (!showDome) {
+      // Dessine une barre de navigation plate standard
+      final Path rectPath = Path()
+        ..moveTo(0, barTop)
+        ..lineTo(size.width, barTop)
+        ..lineTo(size.width, size.height)
+        ..lineTo(0, size.height)
+        ..close();
+
+      final Paint barPaint = Paint()..color = Colors.white;
+      canvas.drawShadow(rectPath, Colors.black.withOpacity(0.06), 10.0, true);
+      canvas.drawPath(rectPath, barPaint);
+      return;
+    }
+
     final double cx = size.width / 2;
     // VISIBILITÉ ACCRUE (Radius 52 pour un dôme affirmé)
     final double startX = cx - 68; 

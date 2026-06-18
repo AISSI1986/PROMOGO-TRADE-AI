@@ -51,6 +51,7 @@ class ApiConstants {
   static const String liveBaseEndpoint = '$djangoBaseUrl/live/';
   static const String createLiveEndpoint = '${liveBaseEndpoint}create/';
   static const String activeLivesEndpoint = '${liveBaseEndpoint}active/';
+  static const String getAgoraTokenEndpoint = '${liveBaseEndpoint}agora-token/';
   static const String liveProductsEndpoint = '${liveBaseEndpoint}products';
   static String getAddProductsToLiveEndpoint(String liveId) => '$liveBaseEndpoint$liveId/add-products/';
   static String getUpdateLiveStatusEndpoint(String liveId) => '$liveBaseEndpoint$liveId/update-status/';

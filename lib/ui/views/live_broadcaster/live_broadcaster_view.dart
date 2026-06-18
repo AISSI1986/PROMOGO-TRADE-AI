@@ -1,7 +1,8 @@
 import 'dart:ui';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:apivideo_live_stream/apivideo_live_stream.dart';
+import 'dart:math' as math;
+
 import 'package:stacked/stacked.dart';
 import 'package:promogoai/ui/common/app_colors.dart';
 import 'package:promogoai/ui/common/api_constants.dart';
@@ -29,10 +30,10 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
       body: Stack(
         children: [
           // 1. APERÇU CAMÉRA RÉEL
-          if (viewModel.isStreamingInitialized && viewModel.controller != null)
+          if (viewModel.isStreamingInitialized)
             Positioned.fill(
               child: SizedBox.expand(
-                child: ApiVideoCameraPreview(controller: viewModel.controller!),
+                child: viewModel.buildVideoView(isBroadcaster: true),
               ),
             )
           else
@@ -72,7 +73,7 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
                   const Spacer(),
                   if (viewModel.showLiveIndicator) _buildLivePulsingIndicator(),
                   const Spacer(),
-                  _buildPremiumActionButton(viewModel),
+                  _buildPremiumActionButton(context, viewModel),
                   const SizedBox(height: 10),
                 ],
               ),
@@ -142,6 +143,9 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
           // 3.7 ZONE DE SAISIE CHAT (BAS GAUCHE)
           _buildChatInput(context, viewModel),
 
+          // FLOATING HEARTS
+          ...viewModel.floatingHearts.map((heart) => _buildHeartAnimation(heart)),
+
           // 3.8 CHAT OVERLAY (AU DESSUS DU INPUT)
           Positioned(
             left: 20,
@@ -155,7 +159,7 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
                 reverse: true,
                 itemCount: viewModel.chatMessages.length,
                 itemBuilder: (context, index) {
-                  final chat = viewModel.chatMessages[viewModel.chatMessages.length - 1 - index];
+                  final chat = viewModel.chatMessages[index];
                   return _buildChatBubble(chat);
                 },
               ),
@@ -168,9 +172,11 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
             right: 20,
             child: GestureDetector(
               onTap: () async {
-                await viewModel.endLiveSession();
-                if (context.mounted) {
-                  Navigator.pop(context);
+                if (viewModel.isLive) {
+                  await viewModel.endLiveSession();
+                  if (context.mounted) _showEndLiveStatsModal(context, viewModel);
+                } else {
+                  if (context.mounted) Navigator.pop(context);
                 }
               },
               child: Container(
@@ -290,10 +296,10 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
         ),
         const SizedBox(width: 15),
         _buildGlassStat(
-          icon: Icons.account_balance_wallet_rounded,
-          value: "0 GHS",
-          label: "VENTES",
-          color: kcSecondaryGold,
+          icon: Icons.favorite_rounded,
+          value: "${viewModel.likesCount}",
+          label: "J'AIME",
+          color: Colors.redAccent,
         ),
       ],
     );
@@ -573,9 +579,16 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
     );
   }
 
-  Widget _buildPremiumActionButton(LiveBroadcasterViewModel viewModel) {
+  Widget _buildPremiumActionButton(BuildContext context, LiveBroadcasterViewModel viewModel) {
     return GestureDetector(
-      onTap: viewModel.toggleLive,
+      onTap: () async {
+        if (viewModel.isLive) {
+          await viewModel.endLiveSession();
+          if (context.mounted) _showEndLiveStatsModal(context, viewModel);
+        } else {
+          viewModel.toggleLive();
+        }
+      },
       child: Container(
         height: 60,
         width: double.infinity,
@@ -756,15 +769,18 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
           ),
           child: Row(
             children: [
-              const SizedBox(width: 15),
               Expanded(
                 child: TextField(
                   controller: viewModel.chatController,
                   style: const TextStyle(color: Colors.white, fontSize: 13),
+                  maxLength: 120,
                   decoration: const InputDecoration(
-                    hintText: "Message...",
-                    hintStyle: TextStyle(color: Colors.white54, fontSize: 11),
+                    hintText: "Ajoutez un commentaire...",
+                    hintStyle: TextStyle(color: Colors.white54, fontSize: 13),
                     border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 12),
+                    counterText: "",
                   ),
                   onSubmitted: (_) => viewModel.sendMessage(),
                 ),
@@ -1038,4 +1054,86 @@ class LiveBroadcasterView extends StackedView<LiveBroadcasterViewModel> {
     BuildContext context,
   ) =>
       LiveBroadcasterViewModel();
+
+  void _showEndLiveStatsModal(BuildContext context, LiveBroadcasterViewModel viewModel) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: const Color(0xFF151923),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle_outline, color: kcSecondaryGold, size: 60),
+                const SizedBox(height: 16),
+                const Text("Live Terminé", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildStatItem(Icons.timer, "Durée", viewModel.formattedDuration),
+                    _buildStatItem(Icons.remove_red_eye, "Vues", "${viewModel.viewerCount}"),
+                    _buildStatItem(Icons.favorite, "J'aime", "${viewModel.likesCount}"),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kcPrimaryColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    Navigator.pop(context); // Close Live screen
+                  },
+                  child: const Text("QUITTER LE LIVE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatItem(IconData icon, String label, String value) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.white70, size: 24),
+        const SizedBox(height: 8),
+        Text(value, style: const TextStyle(color: kcSecondaryGold, fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+      ],
+    );
+  }
+
+  Widget _buildHeartAnimation(Map<String, dynamic> heart) {
+    final double xOffset = heart['xOffset'] as double;
+    final int colorIndex = heart['colorIndex'] as int;
+    final Color heartColor = Colors.primaries[colorIndex];
+
+    return Positioned(
+      bottom: 100,
+      right: 30,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: const Duration(seconds: 2),
+        builder: (context, value, child) {
+          return Opacity(
+            opacity: 1.0 - value,
+            child: Transform.translate(
+              offset: Offset(xOffset * math.sin(value * math.pi * 3), -value * 400),
+              child: Icon(Icons.favorite, color: heartColor, size: 36),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }

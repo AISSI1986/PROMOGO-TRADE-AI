@@ -8,23 +8,27 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:stacked/stacked.dart';
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:wakelock_plus/wakelock_plus.dart';
 
-// IMPORTS POUR LE MOTEUR APIVIDEO (Plus stable que HaishinKit sur Android)
-import 'package:apivideo_live_stream/apivideo_live_stream.dart';
+import 'package:promogoai/services/live_streaming_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'package:stacked_services/stacked_services.dart';
 import 'package:promogoai/ui/common/setup_snackbar_ui.dart';
 
 class LiveBroadcasterViewModel extends BaseViewModel with WidgetsBindingObserver {
-  final _socketService = locator<LiveSocketService>();
-  final _srsService = locator<SrsStreamingService>();
   final _authService = locator<AuthService>();
+  final _socketService = locator<LiveSocketService>();
+  final _streamingService = locator<LiveStreamingService>();
+  final _srsService = locator<SrsStreamingService>();
   final _snackbarService = locator<SnackbarService>();
+
+  bool _isDisposed = false;
   
-  ApiVideoLiveStreamController? _controller;
-  ApiVideoLiveStreamController? get controller => _controller;
+  Widget buildVideoView({bool isBroadcaster = false}) {
+    return _streamingService.buildVideoView(channelId: liveId, isBroadcaster: isBroadcaster);
+  }
 
   bool _isStreamingInitialized = false;
   bool get isStreamingInitialized => _isStreamingInitialized;
@@ -41,6 +45,9 @@ class LiveBroadcasterViewModel extends BaseViewModel with WidgetsBindingObserver
   int _viewerCount = 0;
   int get viewerCount => _viewerCount;
 
+  int _likesCount = 0;
+  int get likesCount => _likesCount;
+
   String liveId = "";
   List<Map<String, dynamic>> sellerProducts = [];
 
@@ -49,6 +56,9 @@ class LiveBroadcasterViewModel extends BaseViewModel with WidgetsBindingObserver
   
   Offset _pinnedPosition = const Offset(20, 250); // Position par défaut (un peu sur le côté)
   Offset get pinnedPosition => _pinnedPosition;
+
+  List<Map<String, dynamic>> floatingHearts = [];
+  int heartCounter = 0;
 
   void pinProduct(Map<String, dynamic> product) {
     // On vérifie si déjà épinglé
@@ -156,24 +166,28 @@ class LiveBroadcasterViewModel extends BaseViewModel with WidgetsBindingObserver
     
     _socketSubscription = _socketService.events.listen((event) {
       final type = event['type'];
-      
       if (type == 'chat_message') {
-        final incomingUser = formatUserName((event['user'] ?? "Anonyme").toString());
+        final incomingUser = event['user']?.toString() ?? "Utilisateur";
         final myUserName = formatUserName(_authService.userData?['username']?.toString() ?? "Vendeur");
         // Ignorer l'écho de notre propre message (déjà ajouté localement dans sendMessage)
         if (incomingUser != myUserName) {
-          _chatMessages.add({
+          _chatMessages.insert(0, {
             "user": incomingUser,
             "message": event['message'] ?? "",
             "isMe": false,
           });
           notifyListeners();
         }
+      } else if (type == 'like') {
+        _likesCount++;
+        heartCounter++;
+        _showLocalHeart(heartCounter);
+        notifyListeners();
       } else if (type == 'order_request') {
         // Notification dans le chat aussi pour la preuve sociale
-        _chatMessages.add({
+        _chatMessages.insert(0, {
           "user": "SYSTÈME",
-          "message": "🔥 ${event['buyer_name']} vient de commander ${event['product_name']} !",
+          "message": "🛍️ ${event['buyer_name']} vient de commander ${event['product_name']} !",
           "isMe": false,
           "isSystem": true,
         });
@@ -209,6 +223,25 @@ class LiveBroadcasterViewModel extends BaseViewModel with WidgetsBindingObserver
     return rawName;
   }
 
+  void _showLocalHeart(int id) {
+    if (!_isDisposed) {
+      final random = math.Random();
+      floatingHearts.add({
+        'id': id,
+        'xOffset': (random.nextDouble() * 80) - 40,
+        'colorIndex': random.nextInt(Colors.primaries.length),
+      });
+      notifyListeners();
+
+      Future.delayed(const Duration(milliseconds: 2000), () {
+        if (!_isDisposed) {
+          floatingHearts.removeWhere((h) => h['id'] == id);
+          notifyListeners();
+        }
+      });
+    }
+  }
+
   void sendMessage() {
     final text = chatController.text.trim();
     if (text.isEmpty) return;
@@ -222,7 +255,7 @@ class LiveBroadcasterViewModel extends BaseViewModel with WidgetsBindingObserver
     };
 
     _socketService.sendEvent(payload);
-    _chatMessages.add({...payload, "isMe": true});
+    _chatMessages.insert(0, {...payload, "isMe": true});
     chatController.clear();
     notifyListeners();
   }
@@ -237,7 +270,7 @@ class LiveBroadcasterViewModel extends BaseViewModel with WidgetsBindingObserver
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body) as List<dynamic>;
         for (var msg in data) {
-          _chatMessages.add({
+          _chatMessages.insert(0, {
             "user": msg['user'],
             "message": msg['message'],
             "isMe": msg['user'] == (_authService.userData?['username'] ?? ""),
@@ -259,63 +292,17 @@ class LiveBroadcasterViewModel extends BaseViewModel with WidgetsBindingObserver
 
   Future<void> _initStreaming() async {
     try {
-      // Vérifier le statut actuel
-      var cameraStatus = await Permission.camera.status;
-      var micStatus = await Permission.microphone.status;
+      // 1. Demander explicitement les permissions pour Agora
+      await [Permission.camera, Permission.microphone].request();
 
-      // Demander explicitement les permissions si pas déjà accordées
-      if (!cameraStatus.isGranted) {
-        cameraStatus = await Permission.camera.request();
+      if (!isStreamingInitialized) {
+        await _streamingService.initialize();
+        await _streamingService.startLocalPreview();
       }
-      if (!micStatus.isGranted) {
-        micStatus = await Permission.microphone.request();
-      }
-
-      // Si l'utilisateur a coché "Ne plus demander" ou refusé 2 fois (sur Android)
-      if (cameraStatus.isPermanentlyDenied || micStatus.isPermanentlyDenied) {
-        print("❌ [LiveBroadcaster] Permissions refusées définitivement. Ouverture des paramètres...");
-        // Notifier l'utilisateur via Snackbar
-        _snackbarService.showCustomSnackBar(
-          variant: SnackbarType.error,
-          message: "Permissions requises. Veuillez les activer dans les paramètres.",
-          duration: const Duration(seconds: 4),
-        );
-        // Ouvre l'écran des paramètres de l'application
-        await openAppSettings();
-        return;
-      }
-
-      if (cameraStatus != PermissionStatus.granted || micStatus != PermissionStatus.granted) {
-        print("❌ [LiveBroadcaster] Permissions refusées ! Le flux ne peut pas démarrer.");
-        _snackbarService.showCustomSnackBar(
-          variant: SnackbarType.error,
-          message: "Vous devez autoriser la caméra et le micro pour diffuser.",
-        );
-        return;
-      }
-
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-      
-      final controller = ApiVideoLiveStreamController(
-        initialAudioConfig: AudioConfig(bitrate: 128000, sampleRate: SampleRate.kHz_44_1),
-        initialVideoConfig: VideoConfig.withDefaultBitrate(
-          resolution: Resolution.RESOLUTION_480,
-          fps: 30,
-        ),
-        onConnectionSuccess: () { print("[LiveBroadcaster] RTMP Connecté"); },
-        onConnectionFailed: (error) { print("[LiveBroadcaster] Erreur RTMP: $error"); },
-      );
-
-      _isFrontCamera = true;
-      
-      // Allumer la caméra locale
-      await controller.initialize();
-      
-      _controller = controller;
       _isStreamingInitialized = true;
       notifyListeners();
     } catch (e) {
-      print("[LiveBroadcaster] Erreur Init apivideo : $e");
+      print("[LiveBroadcaster] Erreur Init Agora : $e");
     }
   }
 
@@ -328,9 +315,18 @@ class LiveBroadcasterViewModel extends BaseViewModel with WidgetsBindingObserver
       try {
         final response = await http.patch(
           Uri.parse(ApiConstants.getUpdateLiveStatusEndpoint(liveId)),
-          headers: {'Authorization': 'Bearer ${_authService.accessToken}'},
-          body: {'status': 'ENDED'},
+          headers: {
+            'Authorization': 'Bearer ${_authService.accessToken}',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'status': 'ENDED',
+            'duration_seconds': _liveDuration.inSeconds,
+            'final_viewer_count': _viewerCount,
+            'final_likes_count': _likesCount,
+          }),
         );
+        print("💡 [LiveBroadcaster] endLiveSession -> Status: ${response.statusCode}, Body: ${response.body}");
         if (response.statusCode == 401) {
           print("🔑 [LiveBroadcaster] 401 sur endLiveSession. Tentative de refresh...");
           final refreshed = await _authService.refreshAccessToken();
@@ -343,9 +339,10 @@ class LiveBroadcasterViewModel extends BaseViewModel with WidgetsBindingObserver
         print("[LiveBroadcaster] Erreur appel API ENDED : $e");
       }
       try {
-        await _controller!.stop();
+        await _streamingService.leaveChannel();
+        await _streamingService.stopLocalPreview();
       } catch (e) {
-        print("[LiveBroadcaster] Erreur lors de la fermeture RTMP : $e");
+        print("[LiveBroadcaster] Erreur lors de la fermeture Agora : $e");
       }
       _isLive = false;
       _stopTimer();
@@ -360,9 +357,13 @@ class LiveBroadcasterViewModel extends BaseViewModel with WidgetsBindingObserver
         // 1. MISE À JOUR DU STATUT EN BASE DE DONNÉES (Django)
         final response = await http.patch(
           Uri.parse(ApiConstants.getUpdateLiveStatusEndpoint(liveId)),
-          headers: {'Authorization': 'Bearer ${_authService.accessToken}'},
-          body: {'status': 'LIVE'},
+          headers: {
+            'Authorization': 'Bearer ${_authService.accessToken}',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'status': 'LIVE'}),
         );
+        print("💡 [LiveBroadcaster] toggleLive -> Status: ${response.statusCode}, Body: ${response.body}");
 
         if (response.statusCode == 401) {
           print("🔑 [LiveBroadcaster] 401 sur toggleLive. Tentative de refresh...");
@@ -372,9 +373,25 @@ class LiveBroadcasterViewModel extends BaseViewModel with WidgetsBindingObserver
           }
         }
 
-        // 2. CONNEXION RTMP APIVIDEO
-        String baseUrl = "rtmp://${ApiConstants.srsHost}:1935/live";
-        await _controller!.startStreaming(streamKey: liveId, url: baseUrl);
+        // 2. CONNEXION AGORA (Récupération du Token)
+        String? token;
+        try {
+          final tokenResponse = await http.get(
+            Uri.parse("${ApiConstants.getAgoraTokenEndpoint}?channelName=$liveId&role=broadcaster"),
+            headers: {'Authorization': 'Bearer ${_authService.accessToken}'},
+          );
+          if (tokenResponse.statusCode == 200) {
+            final data = jsonDecode(tokenResponse.body);
+            token = data['token'];
+            print("🔑 [LiveBroadcaster] Token Agora récupéré avec succès.");
+          } else {
+            print("⚠️ [LiveBroadcaster] Erreur Token Agora: ${tokenResponse.body}");
+          }
+        } catch(e) {
+          print("⚠️ [LiveBroadcaster] Impossible de récupérer le Token Agora: $e");
+        }
+
+        await _streamingService.joinChannelAsBroadcaster(liveId, token: token);
         
         _isLive = true;
         _showLiveIndicator = true; // Afficher l'indicateur
@@ -411,13 +428,13 @@ class LiveBroadcasterViewModel extends BaseViewModel with WidgetsBindingObserver
 
   void toggleMute() async {
     _isMuted = !_isMuted;
-    _controller?.setAudioConfig(AudioConfig(bitrate: _isMuted ? 0 : 128000, sampleRate: SampleRate.kHz_44_1));
+    await _streamingService.toggleMute(_isMuted);
     notifyListeners();
   }
 
   void switchCamera() async {
     _isFrontCamera = !_isFrontCamera;
-    await _controller?.switchCamera();
+    await _streamingService.switchCamera();
     notifyListeners();
   }
 
@@ -445,22 +462,28 @@ class LiveBroadcasterViewModel extends BaseViewModel with WidgetsBindingObserver
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       if (_isLive && liveId.isNotEmpty) {
-        print("⏸️ [LiveBroadcaster] Arrière-plan : passage en TEMPORARILY_OFFLINE");
+        print("💡 [LiveBroadcaster] Arrière-plan : passage en TEMPORARILY_OFFLINE");
         http.patch(
           Uri.parse(ApiConstants.getUpdateLiveStatusEndpoint(liveId)),
-          headers: {'Authorization': 'Bearer ${_authService.accessToken}'},
-          body: {'status': 'TEMPORARILY_OFFLINE'},
-        );
+          headers: {
+            'Authorization': 'Bearer ${_authService.accessToken}',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'status': 'TEMPORARILY_OFFLINE'}),
+        ).then((res) => print("💡 [LiveBroadcaster] Arrière-plan Status: ${res.statusCode}"));
         _socketService.sendEvent({"type": "stream_paused"});
       }
     } else if (state == AppLifecycleState.resumed) {
       if (_isLive && liveId.isNotEmpty) {
-        print("▶️ [LiveBroadcaster] Premier plan : retour en LIVE");
+        print("💡 [LiveBroadcaster] Premier plan : retour en LIVE");
         http.patch(
           Uri.parse(ApiConstants.getUpdateLiveStatusEndpoint(liveId)),
-          headers: {'Authorization': 'Bearer ${_authService.accessToken}'},
-          body: {'status': 'LIVE'},
-        );
+          headers: {
+            'Authorization': 'Bearer ${_authService.accessToken}',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'status': 'LIVE'}),
+        ).then((res) => print("💡 [LiveBroadcaster] Premier plan Status: ${res.statusCode}"));
         _socketService.sendEvent({"type": "stream_resumed"});
       }
     }
@@ -473,20 +496,23 @@ class LiveBroadcasterViewModel extends BaseViewModel with WidgetsBindingObserver
     if (_isLive || liveId.isNotEmpty) {
       http.patch(
         Uri.parse(ApiConstants.getUpdateLiveStatusEndpoint(liveId)),
-        headers: {'Authorization': 'Bearer ${_authService.accessToken}'},
-        body: {'status': 'ENDED'},
+        headers: {
+          'Authorization': 'Bearer ${_authService.accessToken}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'status': 'ENDED'}),
       ).catchError((_) => http.Response('', 500));
     }
     _socketSubscription?.cancel();
     _socketService.disconnect();
     _stopTimer();
     try {
-      _controller?.stop();
-      _controller?.dispose();
+      _streamingService.dispose();
     } catch (e) {
       print("[LiveBroadcaster] Erreur lors du dispose du controleur: $e");
     }
     WakelockPlus.disable(); // Permet à l'écran de se remettre en veille
+    _isDisposed = true;
     super.dispose();
   }
 }

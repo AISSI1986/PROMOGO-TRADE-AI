@@ -8,8 +8,10 @@ import 'package:stacked_services/stacked_services.dart';
 import 'package:easy_localization/easy_localization.dart';
 
 import 'package:promogoai/ui/common/setup_snackbar_ui.dart';
-import 'package:media_kit/media_kit.dart';
+
 import 'package:firebase_core/firebase_core.dart';
+
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,7 +23,6 @@ Future<void> main() async {
     print("⚠️ [Firebase] Erreur d'initialisation (google-services.json manquant ?) : $e");
   }
 
-  MediaKit.ensureInitialized();
   await setupLocator();
   setupSnackbarUi();
   setupDialogUi();
@@ -31,6 +32,8 @@ Future<void> main() async {
   
   // Désactiver les bordures de debug si elles ont été activées par erreur
   debugPaintSizeEnabled = false;
+
+  await dotenv.load(fileName: ".env");
 
   runApp(
     EasyLocalization(

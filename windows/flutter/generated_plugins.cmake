@@ -3,11 +3,11 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  agora_rtc_engine
   file_selector_windows
   firebase_core
   flutter_secure_storage_windows
-  media_kit_libs_windows_video
-  media_kit_video
+  iris_method_channel
   permission_handler_windows
   record_windows
 )

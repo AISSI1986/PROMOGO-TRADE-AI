@@ -9,8 +9,8 @@ class Tag {
 
   factory Tag.fromJson(Map<String, dynamic> json) {
     return Tag(
-      id: json['id'] ?? 0,
-      title: json['title'] ?? '',
+      id: json['id'] as int? ?? 0,
+      title: json['title'] as String? ?? '',
     );
   }
 }
@@ -36,13 +36,13 @@ class Lesson {
 
   factory Lesson.fromJson(Map<String, dynamic> json) {
     return Lesson(
-      id: json['id'] ?? 0,
-      title: json['title'] ?? '',
-      description: json['description'],
-      contenuUrl: json['contenu_url'],
-      duree: json['duree'] ?? '00:00',
-      type: json['type'] ?? 'TEXT',
-      ordreAffichage: json['ordre_affichage'] ?? 1,
+      id: json['id'] as int? ?? 0,
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String?,
+      contenuUrl: json['contenu_url'] as String?,
+      duree: json['duree'] as String? ?? '00:00',
+      type: json['type'] as String? ?? 'TEXT',
+      ordreAffichage: json['ordre_affichage'] as int? ?? 1,
     );
   }
 }
@@ -66,12 +66,12 @@ class AcademyModule {
 
   factory AcademyModule.fromJson(Map<String, dynamic> json) {
     return AcademyModule(
-      id: json['id'] ?? 0,
-      title: json['title'] ?? '',
-      description: json['description'] ?? '',
-      ordreAffichage: json['ordre_affichage'] ?? 1,
+      id: json['id'] as int? ?? 0,
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      ordreAffichage: json['ordre_affichage'] as int? ?? 1,
       lecons: (json['lecons'] as List?)
-              ?.map((l) => Lesson.fromJson(l))
+              ?.map((l) => Lesson.fromJson(l as Map<String, dynamic>))
               .toList() ??
           [],
       quiz: json['quiz'],
@@ -126,23 +126,23 @@ class Course {
 
     return Course(
       id: json['id'].toString(),
-      title: json['titre'] ?? '',
-      subtitle: json['subtitle'] ?? '',
-      description: json['description'] ?? '',
+      title: json['titre'] as String? ?? '',
+      subtitle: json['subtitle'] as String? ?? '',
+      description: json['description'] as String? ?? '',
       imageCouverture: imageFullUrl,
-      level: json['level'] ?? 'BEGINNER',
-      language: json['language'] ?? 'fr',
+      level: json['level'] as String? ?? 'BEGINNER',
+      language: json['language'] as String? ?? 'fr',
       datePublication: json['date_publication'] != null 
-          ? DateTime.tryParse(json['date_publication']) 
+          ? DateTime.tryParse(json['date_publication'].toString()) 
           : null,
       tags: (json['tags'] as List?)
-              ?.map((t) => Tag.fromJson(t))
+              ?.map((t) => Tag.fromJson(t as Map<String, dynamic>))
               .toList() ??
           [],
-      modulesCount: json['nombre_modules'] ?? 0,
-      duration: json['total_heures'] ?? '',
+      modulesCount: json['nombre_modules'] as int? ?? 0,
+      duration: json['total_heures']?.toString() ?? '',
       modules: (json['modules'] as List?)
-              ?.map((m) => AcademyModule.fromJson(m))
+              ?.map((m) => AcademyModule.fromJson(m as Map<String, dynamic>))
               .toList() ??
           [],
     );

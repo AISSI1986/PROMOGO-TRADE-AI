@@ -212,8 +212,16 @@ class RegisterViewModel extends BaseViewModel {
             _proceedToNext();
           }
         } else {
+          String errorMessage = "Erreur ${response.statusCode} : Vérifiez le format du numéro.";
+          try {
+            final errorData = jsonDecode(response.body);
+            if (errorData['error'] != null) {
+              errorMessage = errorData['error'];
+            }
+          } catch (_) {}
+
           _snackbarService.showCustomSnackBar(
-            message: "Erreur ${response.statusCode} : Vérifiez le format du numéro.",
+            message: errorMessage,
             variant: SnackbarType.error,
           );
         }

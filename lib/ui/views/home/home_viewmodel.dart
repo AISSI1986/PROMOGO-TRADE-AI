@@ -303,6 +303,9 @@ class HomeViewModel extends BaseViewModel {
   }
 
   void performTextSearch(String query) {
+    if (_currentTopTab == 0) {
+      _currentTopTab = 1;
+    }
     _adService.searchAdsByText(query);
     notifyListeners();
   }
