@@ -17,10 +17,8 @@ class ModeIaView extends StackedView<ModeIaViewModel> {
     ModeIaViewModel viewModel,
     Widget? child,
   ) {
-    final double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    final double bottomNavHeight = getBottomNavHeight(context);
-    final double actualBottomNavHeight = bottomNavHeight - 40.0;
-    const double headerHeight = 60.0;
+    final double keyboardHeight = MediaQueryData.fromView(View.of(context)).viewInsets.bottom;
+    final double bottomPadding = keyboardHeight > 0 ? 0.0 : getBottomNavHeight(context) - 25.0;
 
     return Container(
       width: double.infinity,
@@ -35,19 +33,23 @@ class ModeIaView extends StackedView<ModeIaViewModel> {
           end: Alignment.bottomCenter,
         ),
       ),
-      child: Stack(
+      child: Column(
         children: [
           // 1. En-tête Langue (Haut)
-          Positioned(
-            top: 10,
-            left: 16,
-            right: 16,
-            height: headerHeight,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: [
                 PopupMenuButton<String>(
                   initialValue: viewModel.selectedLanguage,
-                  onSelected: viewModel.setLanguage,
+                  onSelected: (lang) {
+                    viewModel.setLanguage(lang);
+                    if (lang == 'fra') {
+                      context.setLocale(const Locale('fr'));
+                    } else if (lang == 'eng') {
+                      context.setLocale(const Locale('en'));
+                    }
+                  },
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
@@ -82,14 +84,8 @@ class ModeIaView extends StackedView<ModeIaViewModel> {
             ),
           ),
 
-          // 2. Historique des messages de Chat (Milieu)
-          Positioned(
-            top: headerHeight + 10,
-            left: 0,
-            right: 0,
-            bottom: keyboardHeight > 0 
-                ? keyboardHeight + (viewModel.textQuery.trim().isEmpty ? 115 : 80)
-                : actualBottomNavHeight + (viewModel.textQuery.trim().isEmpty ? 115 : 80),
+          // 2. Historique des messages (Milieu)
+          Expanded(
             child: ListView.builder(
               controller: viewModel.chatScrollController,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -154,52 +150,66 @@ class ModeIaView extends StackedView<ModeIaViewModel> {
               },
             ),
           ),
-          
+
           // 3. Zone de suggestions et de saisie (Bas)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: keyboardHeight > 0 ? keyboardHeight + 10 : actualBottomNavHeight + 10,
+          Padding(
+            padding: EdgeInsets.only(bottom: keyboardHeight > 0 ? 5 : 12, top: 6),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Suggestions Chips (uniquement si le texte est vide pour ne pas encombrer l'écran)
-                if (viewModel.textQuery.trim().isEmpty)
-                  Container(
-                    height: 38,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      children: [
-                        _buildChip(
-                          context, 
-                          '🏭 Usines & Fabricants', 
-                          'Quelles sont les usines disponibles sur Promogo et comment les contacter ?',
-                          viewModel
-                        ),
-                        _buildChip(
-                          context, 
-                          '🛍️ Acheter en gros', 
-                          'Comment fonctionne l\'achat en gros sur la plateforme Promogo ?',
-                          viewModel
-                        ),
-                        _buildChip(
-                          context, 
-                          '🎙️ Live Sale ?', 
-                          'C\'est quoi le Live Sale sur Promogo et comment y participer ?',
-                          viewModel
-                        ),
-                        _buildChip(
-                          context, 
-                          '📈 Vendre des articles', 
-                          'Quelles sont les étapes pour commencer à vendre des produits sur Promogo ?',
-                          viewModel
-                        ),
-                      ],
-                    ),
-                  ),
+                // Suggestions Chips (uniquement si le texte est vide et qu'on n'est pas en train d'écrire/focus)
+                ValueListenableBuilder<bool>(
+                  valueListenable: viewModel.isTextEmpty,
+                  builder: (context, isEmpty, child) {
+                    return ValueListenableBuilder<bool>(
+                      valueListenable: viewModel.isFocused,
+                      builder: (context, isFocused, child) {
+                        if (isEmpty && !isFocused && keyboardHeight == 0) {
+                          return Container(
+                            height: 38,
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              children: [
+                                _buildChip(
+                                  context, 
+                                  '🏭 Usines & Fabricants', 
+                                  () {
+                                    viewModel.sendChatMessage('Quelles sont les usines disponibles sur Promogo et comment les contacter ?');
+                                  },
+                                ),
+                                _buildChip(
+                                  context, 
+                                  '🔍 Recherche de produits', 
+                                  () {
+                                    viewModel.sendChatMessage('Comment faire une recherche de produits sur Promogo ?');
+                                  },
+                                ),
+                                _buildChip(
+                                  context, 
+                                  '🎙️ Live Sale ?', 
+                                  () {
+                                    viewModel.sendChatMessage('C\'est quoi le Live Sale sur Promogo et comment y participer ?');
+                                  },
+                                ),
+                                _buildChip(
+                                  context, 
+                                  '📈 Vendre des articles', 
+                                  () {
+                                    viewModel.sendChatMessage('Quelles sont les étapes pour commencer à vendre des produits sur Promogo ?');
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    );
+                  },
+                ),
                 
                 // Champ de texte
                 Container(
@@ -221,7 +231,9 @@ class ModeIaView extends StackedView<ModeIaViewModel> {
                     children: [
                       Expanded(
                         child: TextField(
+                          key: const ValueKey('chat_input_field_key'),
                           controller: viewModel.textController,
+                          focusNode: viewModel.inputFocusNode,
                           textInputAction: TextInputAction.send,
                           onSubmitted: (value) {
                             if (value.trim().isNotEmpty) {
@@ -239,50 +251,59 @@ class ModeIaView extends StackedView<ModeIaViewModel> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      if (viewModel.textQuery.trim().isNotEmpty)
-                        GestureDetector(
-                          onTap: () {
-                            viewModel.sendChatMessage(viewModel.textQuery);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              color: kcPrimaryColor,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
-                          ),
-                        )
-                      else
-                        GestureDetector(
-                          onTap: () => homeViewModel?.onVoiceIAClicked(),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: kcPrimaryColor.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.mic_none, color: kcPrimaryColor, size: 20),
-                          ),
-                        )
+                      ValueListenableBuilder<bool>(
+                        valueListenable: viewModel.isTextEmpty,
+                        builder: (context, isEmpty, child) {
+                          if (!isEmpty) {
+                            return GestureDetector(
+                              onTap: () {
+                                if (viewModel.textController.text.trim().isNotEmpty) {
+                                  viewModel.sendChatMessage(viewModel.textController.text);
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: const BoxDecoration(
+                                  color: kcPrimaryColor,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                              ),
+                            );
+                          } else {
+                            return GestureDetector(
+                              onTap: () => homeViewModel?.onVoiceIAClicked(),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: kcPrimaryColor.withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.mic_none, color: kcPrimaryColor, size: 20),
+                              ),
+                            );
+                          }
+                        },
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
           ),
+          SizedBox(height: bottomPadding),
         ],
       ),
     );
   }
 
-  Widget _buildChip(BuildContext context, String label, String query, ModeIaViewModel viewModel) {
+  Widget _buildChip(BuildContext context, String label, VoidCallback onTap) {
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => viewModel.sendChatMessage(query),
+          onTap: onTap,
           borderRadius: BorderRadius.circular(20),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -320,5 +341,3 @@ class ModeIaView extends StackedView<ModeIaViewModel> {
   @override
   ModeIaViewModel viewModelBuilder(BuildContext context) => ModeIaViewModel();
 }
-
-

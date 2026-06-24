@@ -38,12 +38,12 @@ class HomeView extends StackedView<HomeViewModel> {
 
     return Scaffold(
       backgroundColor: kcBackgroundColor,
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       appBar: _buildAppBar(viewModel),
       body: Stack(
         children: [
           _buildMainBody(context, viewModel),
-          if (viewModel.currentIndex == 0)
+          if (viewModel.currentIndex == 0 && MediaQuery.of(context).viewInsets.bottom == 0)
             Positioned(
               left: 0,
               right: 0,
@@ -113,6 +113,7 @@ class HomeView extends StackedView<HomeViewModel> {
     switch (viewModel.currentIndex) {
       case 0:
         return SafeArea(
+          bottom: false,
           child: Column(
             children: [
               HomeHeader(viewModel: viewModel),

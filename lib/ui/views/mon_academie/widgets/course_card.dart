@@ -3,16 +3,20 @@ import 'package:promogoai/ui/common/app_colors.dart';
 import '../../../../models/course_model.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:promogoai/app/app.locator.dart';
-import 'package:promogoai/app/app.router.dart';
-import 'package:stacked_services/stacked_services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 
 class CourseCard extends StatelessWidget {
   final Course course;
+  final double progress;
+  final VoidCallback onTap;
 
-  const CourseCard({Key? key, required this.course}) : super(key: key);
+  const CourseCard({
+    Key? key, 
+    required this.course,
+    required this.progress,
+    required this.onTap,
+  }) : super(key: key);
 
   List<Color> _getFallbackGradient() {
     final idInt = int.tryParse(course.id) ?? 0;
@@ -189,17 +193,36 @@ class CourseCard extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (progress > 0) ...[
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: LinearProgressIndicator(
+                            value: progress / 100,
+                            backgroundColor: kcLightGrey.withOpacity(0.3),
+                            color: progress >= 100 ? kcSuccessColor : kcSecondaryGold,
+                            minHeight: 6,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          '${progress.toInt()}%',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: progress >= 100 ? kcSuccessColor : kcPrimaryColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 24),
 
                   // Premium Button
                   InkWell(
-                    onTap: () {
-                      final navigationService = locator<NavigationService>();
-                      navigationService.navigateTo(
-                        Routes.courseDetailView,
-                        arguments: CourseDetailViewArguments(courseId: course.id),
-                      );
-                    },
+                    onTap: onTap,
                     child: Container(
                       width: double.infinity,
                       height: 56,

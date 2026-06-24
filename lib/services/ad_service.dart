@@ -43,9 +43,9 @@ class AdService {
         if (jsonData is List) {
           results = jsonData;
         } else if (jsonData is Map && jsonData.containsKey('results')) {
-          results = jsonData['results'];
+          results = List<dynamic>.from(jsonData['results'] as List);
         }
-        return results.map((data) => Product.fromJson(data)).toList();
+        return results.map((data) => Product.fromJson(data as Map<String, dynamic>)).toList();
       }
     } catch (e) {
       print("❌ [AdService] Erreur fetch : $e");
@@ -96,7 +96,7 @@ class AdService {
       print("📦 [AdService] Chargement des annonces depuis le cache local...");
       final cachedData = await _localStorageService.getJson(_adsCacheKey);
       if (cachedData != null && cachedData is List) {
-        _ads = cachedData.map((data) => Product.fromJson(data)).toList().reversed.toList();
+        _ads = List<dynamic>.from(cachedData).map((data) => Product.fromJson(data as Map<String, dynamic>)).toList().reversed.toList();
         _isLoaded = true;
         print("✅ [AdService] ${_ads.length} annonces chargées depuis le cache.");
       } else {

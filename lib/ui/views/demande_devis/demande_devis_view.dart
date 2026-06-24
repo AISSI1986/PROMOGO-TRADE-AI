@@ -27,16 +27,18 @@ class DemandeDevisView extends StackedView<DemandeDevisViewModel> {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    _buildFrequentRequestsSection(context),
+                    _buildFrequentRequestsSection(context, viewModel),
                     _buildHeroSection(context, viewModel),
                     _buildRecommendationsSection(
                       context,
+                      viewModel,
                       title: 'rfq.recommendations_history'.tr(),
                       recommendations: viewModel.historyRecommendations,
                       delay: 600,
                     ),
                     _buildRecommendationsSection(
                       context,
+                      viewModel,
                       title: 'rfq.recommendations_suggested'.tr(),
                       recommendations: viewModel.suggestedRecommendations,
                       delay: 800,
@@ -90,7 +92,7 @@ class DemandeDevisView extends StackedView<DemandeDevisViewModel> {
     );
   }
 
-  Widget _buildFrequentRequestsSection(BuildContext context) {
+  Widget _buildFrequentRequestsSection(BuildContext context, DemandeDevisViewModel viewModel) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final double cardWidth = (screenWidth - 54) / 3;
 
@@ -169,7 +171,11 @@ class DemandeDevisView extends StackedView<DemandeDevisViewModel> {
                   children: items.map((item) => _AnimatedEntrance(
                     delay: item['delay'] as int,
                     offset: const Offset(0, 20),
-                    child: _buildTranscendentCard(context, item, cardWidth, isGold: true),
+                    child: InkWell(
+                      onTap: () => viewModel.navigateToFormWithRequest(context, item['title'] as String),
+                      borderRadius: BorderRadius.circular(22),
+                      child: _buildTranscendentCard(context, item, cardWidth, isGold: true),
+                    ),
                   )).toList(),
                 ),
               ),
@@ -177,7 +183,7 @@ class DemandeDevisView extends StackedView<DemandeDevisViewModel> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: InkWell(
-                  onTap: () {},
+                  onTap: () => _showExplanationBottomSheet(context),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -345,7 +351,8 @@ class DemandeDevisView extends StackedView<DemandeDevisViewModel> {
   }
 
   Widget _buildRecommendationsSection(
-    BuildContext context, {
+    BuildContext context,
+    DemandeDevisViewModel viewModel, {
     required String title,
     required List<RfqRecommendation> recommendations,
     int delay = 0,
@@ -397,7 +404,7 @@ class DemandeDevisView extends StackedView<DemandeDevisViewModel> {
                 return _AnimatedEntrance(
                   delay: delay + (index * 100),
                   offset: const Offset(0, 40),
-                  child: _buildUltimateRecommendationCard(context, item),
+                  child: _buildUltimateRecommendationCard(context, viewModel, item),
                 );
               },
             ),
@@ -407,9 +414,16 @@ class DemandeDevisView extends StackedView<DemandeDevisViewModel> {
     );
   }
 
-  Widget _buildUltimateRecommendationCard(BuildContext context, RfqRecommendation item) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+  Widget _buildUltimateRecommendationCard(
+    BuildContext context,
+    DemandeDevisViewModel viewModel,
+    RfqRecommendation item,
+  ) {
+    return InkWell(
+      onTap: () => viewModel.navigateToFormWithProduct(context, item),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -512,11 +526,152 @@ class DemandeDevisView extends StackedView<DemandeDevisViewModel> {
           ),
         ],
       ),
-    );
+    ),
+  );
+  }
+
+  @override
+  void onViewModelReady(DemandeDevisViewModel viewModel) {
+    viewModel.init();
   }
 
   @override
   DemandeDevisViewModel viewModelBuilder(BuildContext context) => DemandeDevisViewModel();
+
+  void _showExplanationBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 50,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 25),
+              Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded, color: kcPrimaryColor, size: 28),
+                  const SizedBox(width: 12),
+                  Text(
+                    'rfq.learn_more'.tr(),
+                    style: GoogleFonts.outfit(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: kcPrimaryColor,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _buildInfoRow(
+                context,
+                icon: Icons.edit_note_rounded,
+                title: 'rfq.learn_more_step1_title'.tr(),
+                description: 'rfq.learn_more_step1_desc'.tr(),
+              ),
+              const SizedBox(height: 18),
+              _buildInfoRow(
+                context,
+                icon: Icons.send_rounded,
+                title: 'rfq.learn_more_step2_title'.tr(),
+                description: 'rfq.learn_more_step2_desc'.tr(),
+              ),
+              const SizedBox(height: 18),
+              _buildInfoRow(
+                context,
+                icon: Icons.compare_arrows_rounded,
+                title: 'rfq.learn_more_step3_title'.tr(),
+                description: 'rfq.learn_more_step3_desc'.tr(),
+              ),
+              const SizedBox(height: 30),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kcPrimaryColor,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: Text(
+                    'rfq.learn_more_close'.tr(),
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoRow(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: kcPrimaryColor.withOpacity(0.08),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: kcPrimaryColor, size: 20),
+        ),
+        const SizedBox(width: 15),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.outfit(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: kcDarkGreyColor,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: kcMediumGrey,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 // --- Bulletproof helpers ---

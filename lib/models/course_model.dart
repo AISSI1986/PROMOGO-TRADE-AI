@@ -92,6 +92,7 @@ class Course {
   final int modulesCount;
   final String duration;
   final List<AcademyModule> modules;
+  final String visibility;
   
   // Couleurs de secours si pas d'image
   final List<Color>? gradientColors;
@@ -109,6 +110,7 @@ class Course {
     required this.modulesCount,
     required this.duration,
     this.modules = const [],
+    required this.visibility,
     this.gradientColors,
   });
 
@@ -145,6 +147,7 @@ class Course {
               ?.map((m) => AcademyModule.fromJson(m as Map<String, dynamic>))
               .toList() ??
           [],
+      visibility: json['visibility'] as String? ?? 'BOTH',
     );
   }
 

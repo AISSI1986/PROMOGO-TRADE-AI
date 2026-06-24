@@ -24,14 +24,21 @@ class ModeIaViewModel extends BaseViewModel {
   bool get isTyping => _isTyping;
 
   String get selectedLanguage => _aiVoiceService.selectedLangue;
-  String get textQuery => textController.text;
+  final ValueNotifier<bool> isTextEmpty = ValueNotifier<bool>(true);
+  final FocusNode inputFocusNode = FocusNode();
+  final ValueNotifier<bool> isFocused = ValueNotifier<bool>(false);
 
   ModeIaViewModel() {
     textController.addListener(_onTextChanged);
+    inputFocusNode.addListener(_onFocusChanged);
   }
 
   void _onTextChanged() {
-    notifyListeners();
+    isTextEmpty.value = textController.text.trim().isEmpty;
+  }
+
+  void _onFocusChanged() {
+    isFocused.value = inputFocusNode.hasFocus;
   }
 
   void setLanguage(String lang) {
@@ -41,6 +48,7 @@ class ModeIaViewModel extends BaseViewModel {
 
   void clearTextQuery() {
     textController.clear();
+    isTextEmpty.value = true;
     notifyListeners();
   }
 
@@ -58,6 +66,14 @@ class ModeIaViewModel extends BaseViewModel {
 
   Future<void> sendChatMessage(String prompt) async {
     if (prompt.trim().isEmpty) return;
+
+    // Récupérer l'historique avant d'ajouter le nouveau message de l'utilisateur
+    final List<Map<String, String>> history = messages.map((m) {
+      return {
+        'role': m['sender'] == 'sura' ? 'assistant' : 'user',
+        'content': m['text'] ?? '',
+      };
+    }).toList();
 
     // 1. Ajouter le message de l'utilisateur
     messages.add({'sender': 'user', 'text': prompt});
@@ -77,7 +93,11 @@ class ModeIaViewModel extends BaseViewModel {
         Uri.parse('https://affirmation-promogo-voice-search.hf.space/chat-stream'),
       );
       request.headers['Content-Type'] = 'application/json';
-      request.body = jsonEncode({'prompt': prompt});
+      request.body = jsonEncode({
+        'prompt': prompt,
+        'lang': selectedLanguage,
+        'history': history,
+      });
 
       final http.StreamedResponse response = await http.Client().send(request);
 
@@ -103,7 +123,9 @@ class ModeIaViewModel extends BaseViewModel {
   @override
   void dispose() {
     textController.removeListener(_onTextChanged);
+    inputFocusNode.removeListener(_onFocusChanged);
     textController.dispose();
+    inputFocusNode.dispose();
     chatScrollController.dispose();
     super.dispose();
   }

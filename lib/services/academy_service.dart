@@ -24,17 +24,17 @@ class AcademyService {
       if (response.statusCode == 200) {
         final decoded = json.decode(utf8.decode(response.bodyBytes));
         
-        List data = [];
+        List<dynamic> data = [];
         if (decoded is Map && decoded.containsKey('results')) {
-          data = decoded['results'];
+          data = List<dynamic>.from(decoded['results'] as List);
         } else if (decoded is List) {
-          data = decoded;
+          data = List<dynamic>.from(decoded);
         }
 
         // Sauvegarde dans le cache pour usage hors-ligne
         await _localStorageService.saveJson(_coursesCacheKey, data);
 
-        return data.map((c) => Course.fromJson(c)).toList();
+        return data.map((c) => Course.fromJson(c as Map<String, dynamic>)).toList();
       }
       
       // Si erreur serveur, on tente le cache
@@ -55,13 +55,13 @@ class AcademyService {
 
       if (response.statusCode == 200) {
         final decoded = json.decode(utf8.decode(response.bodyBytes));
-        List data = [];
+        List<dynamic> data = [];
         if (decoded is Map && decoded.containsKey('results')) {
-          data = decoded['results'];
+          data = List<dynamic>.from(decoded['results'] as List);
         } else if (decoded is List) {
-          data = decoded;
+          data = List<dynamic>.from(decoded);
         }
-        return data.map((t) => Tag.fromJson(t)).toList();
+        return data.map((t) => Tag.fromJson(t as Map<String, dynamic>)).toList();
       }
     } catch (e) {
       print("❌ [AcademyService] Erreur tags : $e");
@@ -75,7 +75,7 @@ class AcademyService {
       print("📦 [AcademyService] Chargement du cache local...");
       final cachedData = await _localStorageService.getJson(_coursesCacheKey);
       if (cachedData != null && cachedData is List) {
-        return cachedData.map((c) => Course.fromJson(c)).toList();
+        return List<dynamic>.from(cachedData).map((c) => Course.fromJson(c as Map<String, dynamic>)).toList();
       }
     } catch (e) {
       print("❌ [AcademyService] Erreur cache : $e");
@@ -93,7 +93,7 @@ class AcademyService {
 
       if (response.statusCode == 200) {
         final decoded = json.decode(utf8.decode(response.bodyBytes));
-        return Course.fromJson(decoded);
+        return Course.fromJson(decoded as Map<String, dynamic>);
       }
       return null;
     } catch (e) {
@@ -121,7 +121,7 @@ class AcademyService {
       ).timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
-        final serverData = json.decode(utf8.decode(response.bodyBytes));
+        final serverData = json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
         
         // CORRECTION : Mapper le champ du backend vers le nom utilisé par le mobile
         if (serverData.containsKey('pourcentage_completion')) {
@@ -132,14 +132,14 @@ class AcademyService {
         final localData = await loadCachedProgression(courseId);
         if (localData != null) {
           final Set<int> combinedLecons = {};
-          combinedLecons.addAll(List<int>.from(serverData['lecons_terminees'] ?? []));
-          combinedLecons.addAll(List<int>.from(localData['lecons_terminees'] ?? []));
+          combinedLecons.addAll(List<int>.from((serverData['lecons_terminees'] as List?) ?? []));
+          combinedLecons.addAll(List<int>.from((localData['lecons_terminees'] as List?) ?? []));
           
           serverData['lecons_terminees'] = combinedLecons.toList();
           // On garde le pourcentage le plus élevé
-          serverData['pourcentage'] = (serverData['pourcentage'] ?? 0) > (localData['pourcentage'] ?? 0) 
-              ? serverData['pourcentage'] 
-              : localData['pourcentage'];
+          final serverPct = (serverData['pourcentage'] as num?)?.toDouble() ?? 0.0;
+          final localPct = (localData['pourcentage'] as num?)?.toDouble() ?? 0.0;
+          serverData['pourcentage'] = serverPct > localPct ? serverPct : localPct;
         }
 
         await _localStorageService.saveJson(cacheKey, serverData);
@@ -183,7 +183,7 @@ class AcademyService {
     try {
       Map<String, dynamic>? cached = await loadCachedProgression(courseId);
       if (cached != null) {
-        List<int> completed = List<int>.from(cached['lecons_terminees'] ?? []);
+        List<int> completed = List<int>.from((cached['lecons_terminees'] as List?) ?? []);
         if (!completed.contains(lessonId)) {
           completed.add(lessonId);
           cached['lecons_terminees'] = completed;
@@ -218,7 +218,7 @@ class AcademyService {
       ).timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final serverData = json.decode(utf8.decode(response.bodyBytes));
+        final serverData = json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
         if (serverData.containsKey('pourcentage_completion')) {
           serverData['pourcentage'] = serverData['pourcentage_completion'];
         }
@@ -240,5 +240,64 @@ class AcademyService {
       // On retourne quand même true car le cache local a été mis à jour (Optimisme)
       return true; 
     }
+  }
+
+  /// Récupère les certificats de l'utilisateur connecté
+  Future<List<Map<String, dynamic>>> getCertificates() async {
+    try {
+      final token = _authService.accessToken;
+      if (token == null) return [];
+
+      print("📡 [AcademyService] Récupération des certificats...");
+      final response = await http.get(
+        Uri.parse("${ApiConstants.djangoBaseUrl}/academy/certificates/me/"),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> decoded = json.decode(utf8.decode(response.bodyBytes)) as List<dynamic>;
+        final certs = decoded.map((c) => Map<String, dynamic>.from(c as Map)).toList();
+        await _localStorageService.saveJson('academy_certificates.json', certs);
+        return certs;
+      }
+    } catch (e) {
+      print("❌ [AcademyService] Erreur certificats réseau : $e");
+    }
+    
+    // Fallback cache local
+    try {
+      final cached = await _localStorageService.getJson('academy_certificates.json');
+      if (cached != null && cached is List) {
+        return cached.map((c) => Map<String, dynamic>.from(c as Map)).toList();
+      }
+    } catch (e) {
+      print("❌ [AcademyService] Erreur cache certificats : $e");
+    }
+    return [];
+  }
+
+  /// Vérifie un certificat par son code
+  Future<Map<String, dynamic>?> verifyCertificate(String code) async {
+    try {
+      print("📡 [AcademyService] Vérification du certificat $code...");
+      final response = await http.get(
+        Uri.parse("${ApiConstants.djangoBaseUrl}/academy/certificates/verify/$code/"),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      } else if (response.statusCode == 404) {
+        return {'valid': false, 'error': 'Certificat invalide.'};
+      }
+    } catch (e) {
+      print("❌ [AcademyService] Erreur vérification certificat : $e");
+    }
+    return null;
   }
 }

@@ -29,19 +29,19 @@ class UserSubscription {
 
   factory UserSubscription.fromJson(Map<String, dynamic> json) {
     return UserSubscription(
-      id: json['id'],
-      planId: json['plan'],
+      id: (json['id'] as num?)?.toInt(),
+      planId: (json['plan'] as num?)?.toInt(),
       planDetails: json['plan_details'] != null
-          ? SubscriptionPlan.fromJson(json['plan_details'])
+          ? SubscriptionPlan.fromJson(json['plan_details'] as Map<String, dynamic>)
           : null,
-      dateDebut: json['date_debut'] != null ? DateTime.tryParse(json['date_debut']) : null,
-      dateExpiration: json['date_expiration'] != null ? DateTime.tryParse(json['date_expiration']) : null,
-      statutPaiement: json['statut_paiement'] ?? 'PENDING',
-      gateway: json['gateway'] ?? 'none',
-      paystackReference: json['paystack_reference'],
-      maxAds: json['max_ads'] ?? 1,
-      activeAdsCount: json['active_ads_count'] ?? 0,
-      isActive: json['is_active'] ?? false,
+      dateDebut: json['date_debut'] != null ? DateTime.tryParse(json['date_debut'].toString()) : null,
+      dateExpiration: json['date_expiration'] != null ? DateTime.tryParse(json['date_expiration'].toString()) : null,
+      statutPaiement: (json['statut_paiement'] as String?) ?? 'PENDING',
+      gateway: (json['gateway'] as String?) ?? 'none',
+      paystackReference: json['paystack_reference'] as String?,
+      maxAds: (json['max_ads'] as num?)?.toInt() ?? 1,
+      activeAdsCount: (json['active_ads_count'] as num?)?.toInt() ?? 0,
+      isActive: (json['is_active'] as bool?) ?? false,
     );
   }
 }

@@ -25,11 +25,22 @@ class MonAcademieViewModel extends BaseViewModel {
   Map<String, double> _courseProgress = {};
   Map<String, double> get courseProgress => _courseProgress;
 
-  /// Initialisation : On charge les cours et les tags depuis l'API
+  List<Map<String, dynamic>> _certificates = [];
+  List<Map<String, dynamic>> get certificates => _certificates;
+
+  // État du moteur de vérification des certificats
+  bool _isVerifying = false;
+  bool get isVerifying => _isVerifying;
+
+  Map<String, dynamic>? _verificationResult;
+  Map<String, dynamic>? get verificationResult => _verificationResult;
+
+  /// Initialisation : On charge les cours, les tags et les certificats
   Future<void> init() async {
     await Future.wait([
       loadCourses(),
       loadTags(),
+      loadCertificates(),
     ]);
     await loadAllProgress();
   }
@@ -43,7 +54,10 @@ class MonAcademieViewModel extends BaseViewModel {
       for (var course in _courses) {
         if (course.imageCouverture != null) {
           DefaultCacheManager().downloadFile(course.imageCouverture!)
-              .catchError((e) => print("Erreur pré-chargement image: $e"));
+              .catchError((Object e) {
+                print("Erreur pré-chargement image: $e");
+                return Future<FileInfo>.error(e);
+              });
         }
       }
     } catch (e) {
@@ -63,12 +77,20 @@ class MonAcademieViewModel extends BaseViewModel {
     }
   }
 
+  Future<void> loadCertificates() async {
+    try {
+      _certificates = await _academyService.getCertificates();
+      notifyListeners();
+    } catch (e) {
+      print("Erreur chargement certificats ViewModel: $e");
+    }
+  }
+
   Future<void> loadAllProgress() async {
     for (var course in _courses) {
       final progress = await _academyService.getProgression(course.id);
       if (progress != null) {
-        // Le backend renvoie un double ou int dans 'pourcentage'
-        final double perc = (progress['pourcentage'] ?? 0).toDouble();
+        final double perc = (progress['pourcentage'] as num? ?? 0).toDouble();
         _courseProgress[course.id] = perc;
         print("📊 [MonAcademieViewModel] Progression cours ${course.id} (${course.title}): $perc%");
       }
@@ -78,6 +100,42 @@ class MonAcademieViewModel extends BaseViewModel {
 
   double getProgressForCourse(String courseId) {
     return _courseProgress[courseId] ?? 0.0;
+  }
+
+  bool hasCertificate(String courseId) {
+    return _certificates.any((c) => c['course_id'].toString() == courseId.toString());
+  }
+
+  Map<String, dynamic>? getCertificateForCourse(String courseId) {
+    try {
+      return _certificates.firstWhere((c) => c['course_id'].toString() == courseId.toString());
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> verifyCertificateCode(String code) async {
+    _isVerifying = true;
+    _verificationResult = null;
+    notifyListeners();
+
+    try {
+      final res = await _academyService.verifyCertificate(code.trim());
+      _verificationResult = res;
+    } catch (e) {
+      _verificationResult = {
+        'valid': false,
+        'error': 'Erreur de communication avec le serveur'
+      };
+    } finally {
+      _isVerifying = false;
+      notifyListeners();
+    }
+  }
+
+  void resetVerification() {
+    _verificationResult = null;
+    notifyListeners();
   }
 
   void setTopTab(int index) {
@@ -95,13 +153,33 @@ class MonAcademieViewModel extends BaseViewModel {
     notifyListeners();
   }
 
+  // --- GETTERS STATISTIQUES POUR "MON ESPACE" ---
+
+  int get startedCoursesCount {
+    return _courseProgress.values.where((p) => p > 0 && p < 100).length;
+  }
+
+  int get completedCoursesCount {
+    return _courseProgress.values.where((p) => p >= 100).length;
+  }
+
+  /// Retourne le dernier cours consulté/en cours d'apprentissage
+  Course? get activeCourse {
+    if (_courses.isEmpty) return null;
+    for (var c in _courses) {
+      final p = getProgressForCourse(c.id);
+      if (p > 0 && p < 100) {
+        return c;
+      }
+    }
+    return null;
+  }
+
   /// Filtre les cours en fonction de la catégorie et du niveau
   List<Course> get filteredCourses {
     if (_courses.isEmpty) return [];
     
     return _courses.where((course) {
-      // Pour les catégories, on compare avec les tags pour le moment ou le champ category du backend
-      // Si ton backend n'a pas encore de champ "category", on peut filtrer par Tags
       final categoryMatch = _selectedCategory == 'all' || 
                            course.tags.any((t) => t.title == _selectedCategory);
       
